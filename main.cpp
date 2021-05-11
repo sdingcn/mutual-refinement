@@ -141,9 +141,52 @@ struct Graph {
 		if (fastMembershipTest[i].count(make_pair(g.startSymbol, j)) == 0) {
 			return set<int>();
 		} else {
-			// TODO
-			// probably another worklist algorithm (to avoid cycles)
-			return set<int>();
+			set<int> ret;
+			ret.insert(i);
+			ret.insert(j);
+			using State = pair<pair<int, int>, int>; // ((i, j), x) i --x--> j
+			queue<State> w;
+			set<State> s;
+			auto start = make_pair(make_pair(i, j), g.startSymbol);
+			s.insert(start);
+			w.push(start);
+			while (!w.empty()) {
+				auto cur = w.front();
+				w.pop();
+
+				// i --x--> j
+				int i = cur.first.first;
+				int j = cur.first.second;
+				int x = cur.second;
+
+				for (int ind : unaryRecord[i][j]) {
+					if (g.unaryProductions[ind].first == x) {
+						auto nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
+						if (s.count(nxt) == 0) {
+							s.insert(nxt);
+							w.push(nxt);
+						}
+					}
+				}
+				for (auto ind_k : binaryRecord[i][j]) {
+					int ind = ind_k.first;
+					int k = ind_k.second;
+					ret.insert(k);
+					if (g.binaryProductions[ind].first == x) {
+						auto nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
+						auto nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
+						if (s.count(nxt1) == 0) {
+							s.insert(nxt1);
+							w.push(nxt1);
+						}
+						if (s.count(nxt2) == 0) {
+							s.insert(nxt2);
+							w.push(nxt2);
+						}
+					}
+				}
+			}
+			return ret;
 		}
 	}
 };
@@ -196,4 +239,10 @@ int main()
 			}
 		}
 	}
+	auto rc = gh.getReachabilityClique(0, 2, gm);
+	assert(rc.size() == 4);
+	assert(rc.count(0) == 1);
+	assert(rc.count(1) == 1);
+	assert(rc.count(2) == 1);
+	assert(rc.count(4) == 1);
 }
