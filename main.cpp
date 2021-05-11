@@ -6,7 +6,8 @@
 #include <map>
 #include <queue>
 #include <cassert>
-#include <iostream>
+#include <string>
+#include <algorithm>
 
 using std::pair;
 using std::make_pair;
@@ -16,6 +17,14 @@ using std::map;
 using std::queue;
 using std::cerr;
 using std::endl;
+using std::ifstream;
+using std::getline;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::string;
+using std::stoi;
+using std::reverse;
 
 struct Grammar {
 	set<int> terminals;
@@ -191,6 +200,65 @@ struct Graph {
 	}
 };
 
+bool isEdgeLine(const string &line) {
+	for (char c : line) {
+		if (c == '>') {
+			return true;
+		}
+	}
+	return false;
+}
+
+pair<pair<int, int>, string> parseLine(string &line) {
+	int v1, v2;
+	string label;
+	reverse(line.begin(), line.end());
+	string buffer;
+	while (true) {
+		if (line.back() == '-') {
+			v1 = stoi(buffer);
+			buffer = "";
+			line.pop_back();
+			line.pop_back();
+			break;
+		}
+		buffer.push_back(line.back());
+		line.pop_back();
+	}
+	while (true) {
+		if (line.back() == '[') {
+			v2 = stoi(buffer);
+			buffer = "";
+			for (int i = 0; i < 8; i++) {
+				line.pop_back();
+			}
+			break;
+		}
+		buffer.push_back(line.back());
+		line.pop_back();
+	}
+	while (true) {
+		if (line.back() == '"') {
+			label = buffer;
+			break;
+		}
+		buffer.push_back(line.back());
+		line.pop_back();
+	}
+	return make_pair(make_pair(v1, v2), label);
+}
+
+void readGraph(string fname) {
+	ifstream in(fname);
+	string line;
+	while (getline(in, line)) {
+		if (isEdgeLine(line)) {
+			auto p = parseLine(line);
+			cout << p.first.first << ' ' << p.first.second << ' ' << p.second << endl;
+		}
+	}
+}
+
 int main() {
 	/*
 	 * D[0] -> D[0] D[0] | ([1] Dc[3] | epsilon
@@ -248,4 +316,5 @@ int main() {
 	assert(rc2.size() == 2);
 	assert(rc2.count(2) == 1);
 	assert(rc2.count(3) == 1);
+	readGraph("lcl-exp/taint/normal/backflash.dot");
 }
