@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include <set>
+#include <map>
 #include <queue>
 #include <cassert>
 #include <iostream>
@@ -11,6 +12,7 @@ using std::pair;
 using std::make_pair;
 using std::vector;
 using std::set;
+using std::map;
 using std::queue;
 using std::cerr;
 using std::endl;
@@ -31,11 +33,17 @@ struct Graph {
 	vector<vector<pair<int, int>>> adjacencyVector; // (label, second vertex)
 	vector<vector<pair<int, int>>> counterAdjacencyVector; // (first vertex, label)
 	vector<set<pair<int, int>>> fastMembershipTest; // (label, second vertex)
+	// vector<map<int, set<int>>> emptyRecord; // [i][j][productionNumber]
+	vector<map<int, set<int>>> unaryRecord; // [i][j][productionNumber]
+	vector<map<int, set<pair<int, int>>>> binaryRecord; // [i][j][(productionNumber, middleVertex)]
 
 	Graph(int n) : numberOfVertices(n),
                        adjacencyVector(n),
-		       counterAdjacencyVector(n),
-	               fastMembershipTest(n) {}
+                       counterAdjacencyVector(n),
+                       fastMembershipTest(n),
+                       // emptyRecord(n),
+                       unaryRecord(n),
+                       binaryRecord(n) {}
 
 	void addEdge(int i, int x, int j) { // i --x--> j
 		auto xj = make_pair(x, j);
@@ -51,7 +59,11 @@ struct Graph {
 				w.push(make_pair(make_pair(i, sj.second), sj.first));
 			}
 		}
-		for (int x : g.emptyProductions) { // add empty edges to the edge set and the worklist
+		int nep = g.emptyProductions.size();
+		int nup = g.unaryProductions.size();
+		int nbp = g.binaryProductions.size();
+		for (int ind = 0; ind < nep; ind++) { // add empty edges to the edge set and the worklist
+			int x = g.emptyProductions[ind];
 			for (int i = 0; i < numberOfVertices; i++) {
 				auto xi = make_pair(x, i); // --x--> i
 				if (fastMembershipTest[i].count(xi) == 0) {
@@ -71,10 +83,12 @@ struct Graph {
 			int j = e.first.second;
 			int y = e.second;
 
-			for (auto &p : g.unaryProductions) {
+			for (int ind = 0; ind < nup; ind++) {
+				auto &p = g.unaryProductions[ind];
 				if (p.second == y) { // x -> y
 					int x = p.first;
 					auto xj = make_pair(x, j); // --x--> j
+					unaryRecord[i][j].insert(ind);
 					if (fastMembershipTest[i].count(xj) == 0) {
 						fastMembershipTest[i].insert(xj);
 						adjacencyVector[i].push_back(xj);
@@ -83,7 +97,8 @@ struct Graph {
 					}
 				}
 			}
-			for (auto &p : g.binaryProductions) {
+			for (int ind = 0; ind < nbp; ind++) {
+				auto &p = g.binaryProductions[ind];
 				if (p.second.first == y) { // x -> yz
 					int x = p.first;
 					int z = p.second.second;
@@ -91,6 +106,7 @@ struct Graph {
 						if (sk.first == z) { // --z--> k
 							int k = sk.second;
 							auto xk = make_pair(x, k);
+							binaryRecord[i][k].insert(make_pair(ind, j));
 							if (fastMembershipTest[i].count(xk) == 0) {
 								fastMembershipTest[i].insert(xk);
 								adjacencyVector[i].push_back(xk);
@@ -107,6 +123,7 @@ struct Graph {
 						if (ks.second == z) { // k --z-->
 							int k = ks.first;
 							auto xj = make_pair(x, j);
+							binaryRecord[k][j].insert(make_pair(ind, i));
 							if (fastMembershipTest[k].count(xj) == 0) {
 								fastMembershipTest[k].insert(xj);
 								adjacencyVector[k].push_back(xj);
@@ -117,6 +134,16 @@ struct Graph {
 					}
 				}
 			}
+		}
+	}
+
+	set<int> getReachabilityClique(int i, int j, const Grammar &g) {
+		if (fastMembershipTest[i].count(make_pair(g.startSymbol, j)) == 0) {
+			return set<int>();
+		} else {
+			// TODO
+			// probably another worklist algorithm (to avoid cycles)
+			return set<int>();
 		}
 	}
 };
@@ -141,21 +168,28 @@ int main()
 	gm.binaryProductions.push_back(make_pair(3, make_pair(0, 2)));
 	gm.startSymbol = 0;
 	/*
+	 *   --1--> (4) --2-->
+	 *  |                 \    -1->
+	 *  |                  \  | /
 	 * (0) --1--> (1) --2--> (2) --2--> (3)
 	 *  |                     |
 	 *   ----------1--------->
 	 */
-	Graph gh(4);
+	Graph gh(5);
+	gh.addEdge(0, 1, 4);
+	gh.addEdge(4, 2, 2);
 	gh.addEdge(0, 1, 1);
 	gh.addEdge(1, 2, 2);
+	gh.addEdge(2, 1, 2);
 	gh.addEdge(2, 2, 3);
 	gh.addEdge(0, 1, 2);
 	gh.runCFLReachability(gm);
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 5; j++) {
 			if ((i == j) ||
 			    (i == 0 && j == 2) ||
-			    (i == 0 && j == 3)) {
+			    (i == 0 && j == 3) ||
+			    (i == 2 && j == 3)) {
 				assert(gh.fastMembershipTest[i].count(make_pair(gm.startSymbol, j)) == 1);
 			} else {
 				assert(gh.fastMembershipTest[i].count(make_pair(gm.startSymbol, j)) == 0);

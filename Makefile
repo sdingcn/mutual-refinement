@@ -1,5 +1,5 @@
 main : main.cpp
-	g++ -o main main.cpp
+	g++ -O2 -o main main.cpp
 
 .PHONY : clean
 clean :
