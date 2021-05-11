@@ -137,7 +137,7 @@ struct Graph {
 		}
 	}
 
-	set<int> getReachabilityClique(int i, int j, const Grammar &g) {
+	set<int> getReachabilityClosure(int i, int j, const Grammar &g) {
 		if (fastMembershipTest[i].count(make_pair(g.startSymbol, j)) == 0) {
 			return set<int>();
 		} else {
@@ -191,8 +191,7 @@ struct Graph {
 	}
 };
 
-int main()
-{
+int main() {
 	/*
 	 * D[0] -> D[0] D[0] | ([1] Dc[3] | epsilon
 	 * Dc[3] -> D[0] )[2]
@@ -239,10 +238,14 @@ int main()
 			}
 		}
 	}
-	auto rc = gh.getReachabilityClique(0, 2, gm);
-	assert(rc.size() == 4);
-	assert(rc.count(0) == 1);
-	assert(rc.count(1) == 1);
-	assert(rc.count(2) == 1);
-	assert(rc.count(4) == 1);
+	auto rc1 = gh.getReachabilityClosure(0, 2, gm);
+	assert(rc1.size() == 4);
+	assert(rc1.count(0) == 1);
+	assert(rc1.count(1) == 1);
+	assert(rc1.count(2) == 1);
+	assert(rc1.count(4) == 1);
+	auto rc2 = gh.getReachabilityClosure(2, 3, gm);
+	assert(rc2.size() == 2);
+	assert(rc2.count(2) == 1);
+	assert(rc2.count(3) == 1);
 }
