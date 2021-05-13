@@ -62,7 +62,7 @@ struct Graph {
 		counterAdjacencyVector[j].push_back(make_pair(i, x));
 	}
 
-	bool hasEdge(int i, int x, int j) {
+	bool hasEdge(int i, int x, int j) const {
 		return fastEdgeTest[i].count(make_pair(x, j)) == 1;
 	}
 
@@ -141,7 +141,7 @@ struct Graph {
 		}
 	}
 
-	set<int> getCFLReachabilityClosure(int i, int j, const Grammar &g) {
+	set<int> getCFLReachabilityClosure(int i, int j, const Grammar &g) const {
 		if (!hasEdge(i, g.startSymbol, j)) {
 			return set<int>();
 		} else {
@@ -157,28 +157,32 @@ struct Graph {
 				// i --x--> j
 				int i = cur.first.first, j = cur.first.second, x = cur.second;
 
-				for (int ind : unaryRecord[i][j]) {
-					if (g.unaryProductions[ind].first == x) {
-						State nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
-						if (vis.count(nxt) == 0) {
-							vis.insert(nxt);
-							q.push_back(nxt);
+				if (unaryRecord[i].count(j) == 1) {
+					for (int ind : unaryRecord[i].at(j)) {
+						if (g.unaryProductions[ind].first == x) {
+							State nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
+							if (vis.count(nxt) == 0) {
+								vis.insert(nxt);
+								q.push_back(nxt);
+							}
 						}
 					}
 				}
-				for (auto &ind_k : binaryRecord[i][j]) {
-					int ind = ind_k.first, k = ind_k.second; // i --> k --> j
-					if (g.binaryProductions[ind].first == x) {
-						ret.insert(k);
-						State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
-						State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
-						if (vis.count(nxt1) == 0) {
-							vis.insert(nxt1);
-							q.push_back(nxt1);
-						}
-						if (vis.count(nxt2) == 0) {
-							vis.insert(nxt2);
-							q.push_back(nxt2);
+				if (binaryRecord[i].count(j) == 1) {
+					for (auto &ind_k : binaryRecord[i].at(j)) {
+						int ind = ind_k.first, k = ind_k.second; // i --> k --> j
+						if (g.binaryProductions[ind].first == x) {
+							ret.insert(k);
+							State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
+							State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
+							if (vis.count(nxt1) == 0) {
+								vis.insert(nxt1);
+								q.push_back(nxt1);
+							}
+							if (vis.count(nxt2) == 0) {
+								vis.insert(nxt2);
+								q.push_back(nxt2);
+							}
 						}
 					}
 				}
@@ -301,28 +305,30 @@ pair<pair<int, int>, string> parseLine(string &line) {
 	return make_pair(make_pair(v1, v2), label);
 }
 
-// This function is expected to return the normalized vertices.
-//     That means the vertices should be 0, 1, ..., n - 1. (n >= 1)
-vector<pair<pair<int, int>, int>> getEdges(string fname) { // TODO
+vector<string> readFile(string fname) { // TODO
 	ifstream in(fname); // automatically closed after leaving this function
 	string line;
+	vector<string> ret;
 	while (getline(in, line)) {
-		if (isEdgeLine(line)) {
-			auto p = parseLine(line);
-			cout << p.first.first << ' ' << p.first.second << ' ' << p.second << endl;
-		}
+		ret.push_back(std::move(line));
 	}
+	return ret; // RVO?
+}
+
+// This function is expected to return the normalized vertices.
+//     That means the vertices should be 0, 1, ..., n - 1. (n >= 1)
+vector<pair<pair<int, int>, int>> getEdges(const vector<string> &lines) { // TODO
 	return vector<pair<pair<int, int>, int>>();
 }
 
 // This function is expected to return grammars whose symbols are represented by integers.
 // The order of grammars might be very important!
 //     For example, at the beginning, processing the grammars of global variables may rule out many nodes.
-vector<Grammar> getGrammars(string fname) { // TODO
+vector<Grammar> getGrammars(const vector<string> &lines) { // TODO
 	return vector<Grammar>();
 }
 
-pair<int, int> getSourceAndSink(string fname) { // TODO
+pair<int, int> getSourceAndSink(const vector<string> &lines) { // TODO
 	pair<int, int> ret(0, 0);
 	return ret;
 }
@@ -331,9 +337,10 @@ int main(int argc, char *argv[]) {
 	if (argc == 1) {
 		test();
 	} else {
-		auto edges = getEdges(argv[1]);
-		auto grammars = getGrammars(argv[1]);
-		auto ss = getSourceAndSink(argv[1]);
+		auto lines = readFile(argv[1]);
+		auto edges = getEdges(lines);
+		auto grammars = getGrammars(lines);
+		auto ss = getSourceAndSink(lines);
 		int source = ss.first, sink = ss.second; // In C++17 there is a way to unpack the tuple in one line, but I don't want to use it.
 		int n = 0;
 		for (auto ijs : edges) { // finding out the number of vertices in the original graph.
