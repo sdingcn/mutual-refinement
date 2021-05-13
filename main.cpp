@@ -15,8 +15,6 @@ using std::vector;
 using std::set;
 using std::map;
 using std::queue;
-using std::cerr;
-using std::endl;
 using std::ifstream;
 using std::getline;
 using std::cout;
@@ -25,6 +23,7 @@ using std::endl;
 using std::string;
 using std::stoi;
 using std::reverse;
+using std::max;
 
 struct Grammar {
 	set<int> terminals;
@@ -151,7 +150,7 @@ struct Graph {
 		}
 	}
 
-	set<int> getReachabilityClosure(int i, int j, const Grammar &g) {
+	set<int> getCFLReachabilityClosure(int i, int j, const Grammar &g) {
 		if (!hasEdge(i, g.startSymbol, j)) {
 			return set<int>();
 		} else {
@@ -203,66 +202,7 @@ struct Graph {
 	}
 };
 
-bool isEdgeLine(const string &line) {
-	for (char c : line) {
-		if (c == '>') {
-			return true;
-		}
-	}
-	return false;
-}
-
-pair<pair<int, int>, string> parseLine(string &line) {
-	int v1, v2;
-	string label;
-	reverse(line.begin(), line.end());
-	string buffer;
-	while (true) {
-		if (line.back() == '-') {
-			v1 = stoi(buffer);
-			buffer = "";
-			line.pop_back();
-			line.pop_back();
-			break;
-		}
-		buffer.push_back(line.back());
-		line.pop_back();
-	}
-	while (true) {
-		if (line.back() == '[') {
-			v2 = stoi(buffer);
-			buffer = "";
-			for (int i = 0; i < 8; i++) {
-				line.pop_back();
-			}
-			break;
-		}
-		buffer.push_back(line.back());
-		line.pop_back();
-	}
-	while (true) {
-		if (line.back() == '"') {
-			label = buffer;
-			break;
-		}
-		buffer.push_back(line.back());
-		line.pop_back();
-	}
-	return make_pair(make_pair(v1, v2), label);
-}
-
-void readGraph(string fname) {
-	ifstream in(fname);
-	string line;
-	while (getline(in, line)) {
-		if (isEdgeLine(line)) {
-			auto p = parseLine(line);
-			cout << p.first.first << ' ' << p.first.second << ' ' << p.second << endl;
-		}
-	}
-}
-
-int main() {
+void test() {
 	/*
 	 * D[0] -> D[0] D[0] | ([1] Dc[3] | epsilon
 	 * Dc[3] -> D[0] )[2]
@@ -314,15 +254,127 @@ int main() {
 			}
 		}
 	}
-	auto rc1 = gh.getReachabilityClosure(0, 2, gm);
+	auto rc1 = gh.getCFLReachabilityClosure(0, 2, gm);
 	assert(rc1.size() == 5);
 	assert(rc1.count(0) == 1);
 	assert(rc1.count(1) == 1);
 	assert(rc1.count(2) == 1);
 	assert(rc1.count(4) == 1);
 	assert(rc1.count(5) == 1);
-	auto rc2 = gh.getReachabilityClosure(2, 3, gm);
+	auto rc2 = gh.getCFLReachabilityClosure(2, 3, gm);
 	assert(rc2.size() == 2);
 	assert(rc2.count(2) == 1);
 	assert(rc2.count(3) == 1);
+}
+
+bool isEdgeLine(const string &line) {
+	for (char c : line) {
+		if (c == '>') {
+			return true;
+		}
+	}
+	return false;
+}
+
+pair<pair<int, int>, string> parseLine(string &line) {
+	int v1, v2;
+	string label;
+	reverse(line.begin(), line.end());
+	string buffer;
+	while (true) {
+		if (line.back() == '-') {
+			v1 = stoi(buffer);
+			buffer = "";
+			line.pop_back();
+			line.pop_back();
+			break;
+		}
+		buffer.push_back(line.back());
+		line.pop_back();
+	}
+	while (true) {
+		if (line.back() == '[') {
+			v2 = stoi(buffer);
+			buffer = "";
+			for (int i = 0; i < 8; i++) {
+				line.pop_back();
+			}
+			break;
+		}
+		buffer.push_back(line.back());
+		line.pop_back();
+	}
+	while (true) {
+		if (line.back() == '"') {
+			label = buffer;
+			break;
+		}
+		buffer.push_back(line.back());
+		line.pop_back();
+	}
+	return make_pair(make_pair(v1, v2), label);
+}
+
+// This function is expected to return the normalized data.
+//     That means the vertices should be 0, 1, ..., n - 1.
+vector<pair<pair<int, int>, int>> getEdges(string fname) {
+	ifstream in(fname); // automatically closed after leaving this function
+	string line;
+	while (getline(in, line)) {
+		if (isEdgeLine(line)) {
+			auto p = parseLine(line);
+			cout << p.first.first << ' ' << p.first.second << ' ' << p.second << endl;
+		}
+	}
+	return vector<pair<pair<int, int>, int>>();
+}
+
+vector<Grammar> getGrammars(string fname) {
+	return vector<Grammar>();
+}
+
+pair<int, int> getSourceAndSink(string fname) {
+	pair<int, int> ret(0, 0);
+	return ret;
+}
+
+int main(int argc, char *argv[]) {
+	if (argc == 1) {
+		test();
+		return 0;
+	} else {
+		auto edges = getEdges(argv[1]);
+		auto grammars = getGrammars(argv[1]);
+		auto ss = getSourceAndSink(argv[1]);
+		int source = ss.first;
+		int sink = ss.second;
+		int n = 0;
+		for (auto ijs : edges) { // finding out the number of vertices in the original graph.
+			n = max(n, ijs.first.first);
+			n = max(n, ijs.first.second);
+		}
+		++n;
+		int rounds = grammars.size(); // the number of CFLs that we want to intersect
+		set<int> vertices; // The vertices that we want to consider.
+		for (int i = 0; i < n; i++) { // Initially, we consider all vertices.
+			vertices.insert(i);
+		}
+		for (int r = 0; r < rounds; r++) {
+			Graph gh(n);
+			for (auto ijs : edges) { // We only include edges containing vertices that we want to consider.
+				if (vertices.count(ijs.first.first) == 1 &&
+				    vertices.count(ijs.first.second) == 1) {
+					gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
+				}
+			}
+			gh.runCFLReachability(grammars[r]);
+			vertices = gh.getCFLReachabilityClosure(source, sink, grammars[r]);
+			if (vertices.size() == 0) {
+				cout << "Definitely Unreachable" << endl;
+				return 0;
+			}
+		}
+		cout << "Possibly Reachable" << endl;
+		return 0;
+	}
 }
