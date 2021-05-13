@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 #include <map>
-#include <queue>
+#include <deque>
 #include <cassert>
 #include <string>
 #include <algorithm>
@@ -14,7 +14,7 @@ using std::make_pair;
 using std::vector;
 using std::set;
 using std::map;
-using std::queue;
+using std::deque;
 using std::ifstream;
 using std::getline;
 using std::cout;
@@ -53,11 +53,8 @@ struct Graph {
 	vector<map<int, set<pair<int, int>>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
 
 	Graph(int n) : numberOfVertices(n),
-                       fastEdgeTest(n),
-                       adjacencyVector(n),
-                       counterAdjacencyVector(n),
-                       unaryRecord(n),
-                       binaryRecord(n) {}
+                       fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
+                       unaryRecord(n), binaryRecord(n) {}
 
 	void addEdge(int i, int x, int j) { // i --x--> j
 		fastEdgeTest[i].insert(make_pair(x, j));
@@ -70,11 +67,11 @@ struct Graph {
 	}
 
 	void runCFLReachability(const Grammar &g) {
-		queue<pair<pair<int, int>, int>> w; // ((first vertex, second vertex), label)
+		deque<pair<pair<int, int>, int>> w; // ((first vertex, second vertex), label)
 		vector<pair<int, int>> negligibleEdges;
 		for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist, and find out all negligible edges
 			for (auto &sj : adjacencyVector[i]) { // --s--> j
-				w.push(make_pair(make_pair(i, sj.second), sj.first));
+				w.push_back(make_pair(make_pair(i, sj.second), sj.first));
 				if (g.negligibleTerminals.count(sj.first) == 1) {
 					negligibleEdges.push_back(make_pair(i, sj.second));
 				}
@@ -82,7 +79,7 @@ struct Graph {
 		}
 		for (auto e : negligibleEdges) { // add negligible edges to the edge set and the worklist
 			addEdge(e.first, g.startSymbol, e.second);
-			w.push(make_pair(make_pair(e.first, e.second), g.startSymbol));
+			w.push_back(make_pair(make_pair(e.first, e.second), g.startSymbol));
 		}
 		int nep = g.emptyProductions.size();
 		int nup = g.unaryProductions.size();
@@ -92,18 +89,16 @@ struct Graph {
 			for (int i = 0; i < numberOfVertices; i++) {
 				// if (!hasEdge(i, x, i)) {
 				addEdge(i, x, i);
-				w.push(make_pair(make_pair(i, i), x));
+				w.push_back(make_pair(make_pair(i, i), x));
 				// }
 			}
 		}
 		while (!w.empty()) {
 			auto e = w.front();
-			w.pop();
+			w.pop_front();
 
 			// i --y--> j
-			int i = e.first.first;
-			int j = e.first.second;
-			int y = e.second;
+			int i = e.first.first, j = e.first.second, y = e.second;
 
 			for (int ind = 0; ind < nup; ind++) {
 				auto &p = g.unaryProductions[ind];
@@ -112,36 +107,34 @@ struct Graph {
 					unaryRecord[i][j].insert(ind);
 					if (!hasEdge(i, x, j)) {
 						addEdge(i, x, j);
-						w.push(make_pair(make_pair(i, j), x));
+						w.push_back(make_pair(make_pair(i, j), x));
 					}
 				}
 			}
 			for (int ind = 0; ind < nbp; ind++) {
 				auto &p = g.binaryProductions[ind];
 				if (p.second.first == y) { // x -> yz
-					int x = p.first;
-					int z = p.second.second;
+					int x = p.first, z = p.second.second;
 					for (auto &sk : adjacencyVector[j]) { // --s--> k
 						if (sk.first == z) { // --z--> k
 							int k = sk.second;
 							binaryRecord[i][k].insert(make_pair(ind, j));
 							if (!hasEdge(i, x, k)) {
 								addEdge(i, x, k);
-								w.push(make_pair(make_pair(i, k), x)); 
+								w.push_back(make_pair(make_pair(i, k), x)); 
 							}
 						}
 					}
 				}
 				if (p.second.second == y) { // x -> zy
-					int x = p.first;
-					int z = p.second.first;
+					int x = p.first, z = p.second.first;
 					for (auto &ks : counterAdjacencyVector[i]) {
 						if (ks.second == z) { // k --z-->
 							int k = ks.first;
 							binaryRecord[k][j].insert(make_pair(ind, i));
 							if (!hasEdge(k, x, j)) {
 								addEdge(k, x, j);
-								w.push(make_pair(make_pair(k, j), x));
+								w.push_back(make_pair(make_pair(k, j), x));
 							}
 						}
 					}
@@ -157,42 +150,37 @@ struct Graph {
 			set<int> ret {i, j};
 			using State = pair<pair<int, int>, int>; // ((i, j), x) i --x--> j
 			State start = make_pair(make_pair(i, j), g.startSymbol);
-			set<State> vis;
-			queue<State> q;
-			vis.insert(start);
-			q.push(start);
+			set<State> vis {start};
+			deque<State> q {start};
 			while (!q.empty()) { // BFS
 				State cur = q.front();
-				q.pop();
+				q.pop_front();
 
 				// i --x--> j
-				int i = cur.first.first;
-				int j = cur.first.second;
-				int x = cur.second;
+				int i = cur.first.first, j = cur.first.second, x = cur.second;
 
 				for (int ind : unaryRecord[i][j]) {
 					if (g.unaryProductions[ind].first == x) {
 						State nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
 						if (vis.count(nxt) == 0) {
 							vis.insert(nxt);
-							q.push(nxt);
+							q.push_back(nxt);
 						}
 					}
 				}
 				for (auto ind_k : binaryRecord[i][j]) {
-					int ind = ind_k.first;
-					int k = ind_k.second; // i --> k --> j
+					int ind = ind_k.first, k = ind_k.second; // i --> k --> j
 					if (g.binaryProductions[ind].first == x) {
 						ret.insert(k);
 						State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
 						State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
 						if (vis.count(nxt1) == 0) {
 							vis.insert(nxt1);
-							q.push(nxt1);
+							q.push_back(nxt1);
 						}
 						if (vis.count(nxt2) == 0) {
 							vis.insert(nxt2);
-							q.push(nxt2);
+							q.push_back(nxt2);
 						}
 					}
 				}
@@ -315,7 +303,7 @@ pair<pair<int, int>, string> parseLine(string &line) {
 	return make_pair(make_pair(v1, v2), label);
 }
 
-// This function is expected to return the normalized data.
+// This function is expected to return the normalized vertices.
 //     That means the vertices should be 0, 1, ..., n - 1.
 vector<pair<pair<int, int>, int>> getEdges(string fname) {
 	ifstream in(fname); // automatically closed after leaving this function
@@ -329,6 +317,7 @@ vector<pair<pair<int, int>, int>> getEdges(string fname) {
 	return vector<pair<pair<int, int>, int>>();
 }
 
+// This function is expected to return grammars whose symbols are represented by integers.
 vector<Grammar> getGrammars(string fname) {
 	return vector<Grammar>();
 }
@@ -346,17 +335,14 @@ int main(int argc, char *argv[]) {
 		auto edges = getEdges(argv[1]);
 		auto grammars = getGrammars(argv[1]);
 		auto ss = getSourceAndSink(argv[1]);
-		int source = ss.first;
-		int sink = ss.second;
+		int source = ss.first, sink = ss.second; // In C++17 there is a way to unpack the tuple in one line, but I don't want to use it.
 		int n = 0;
 		for (auto ijs : edges) { // finding out the number of vertices in the original graph.
-			n = max(n, ijs.first.first);
-			n = max(n, ijs.first.second);
+			n = max(n, max(ijs.first.first, ijs.first.second) + 1);
 		}
-		++n;
 		int rounds = grammars.size(); // the number of CFLs that we want to intersect
-		set<int> vertices; // The vertices that we want to consider.
-		for (int i = 0; i < n; i++) { // Initially, we consider all vertices.
+		set<int> vertices; // the vertices that we want to consider in each round
+		for (int i = 0; i < n; i++) { // In the first round, we consider all vertices.
 			vertices.insert(i);
 		}
 		for (int r = 0; r < rounds; r++) {
