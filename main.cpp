@@ -77,7 +77,7 @@ struct Graph {
 				}
 			}
 		}
-		for (auto e : negligibleEdges) { // add negligible edges to the edge set and the worklist
+		for (auto &e : negligibleEdges) { // add negligible edges to the edge set and the worklist
 			addEdge(e.first, g.startSymbol, e.second);
 			w.push_back(make_pair(make_pair(e.first, e.second), g.startSymbol));
 		}
@@ -87,10 +87,8 @@ struct Graph {
 		for (int ind = 0; ind < nep; ind++) { // add empty edges to the edge set and the worklist
 			int x = g.emptyProductions[ind];
 			for (int i = 0; i < numberOfVertices; i++) {
-				// if (!hasEdge(i, x, i)) {
 				addEdge(i, x, i);
 				w.push_back(make_pair(make_pair(i, i), x));
-				// }
 			}
 		}
 		while (!w.empty()) {
@@ -168,7 +166,7 @@ struct Graph {
 						}
 					}
 				}
-				for (auto ind_k : binaryRecord[i][j]) {
+				for (auto &ind_k : binaryRecord[i][j]) {
 					int ind = ind_k.first, k = ind_k.second; // i --> k --> j
 					if (g.binaryProductions[ind].first == x) {
 						ret.insert(k);
@@ -304,8 +302,8 @@ pair<pair<int, int>, string> parseLine(string &line) {
 }
 
 // This function is expected to return the normalized vertices.
-//     That means the vertices should be 0, 1, ..., n - 1.
-vector<pair<pair<int, int>, int>> getEdges(string fname) {
+//     That means the vertices should be 0, 1, ..., n - 1. (n >= 1)
+vector<pair<pair<int, int>, int>> getEdges(string fname) { // TODO
 	ifstream in(fname); // automatically closed after leaving this function
 	string line;
 	while (getline(in, line)) {
@@ -318,11 +316,13 @@ vector<pair<pair<int, int>, int>> getEdges(string fname) {
 }
 
 // This function is expected to return grammars whose symbols are represented by integers.
-vector<Grammar> getGrammars(string fname) {
+// The order of grammars might be very important!
+//     For example, at the beginning, processing the grammars of global variables may rule out many nodes.
+vector<Grammar> getGrammars(string fname) { // TODO
 	return vector<Grammar>();
 }
 
-pair<int, int> getSourceAndSink(string fname) {
+pair<int, int> getSourceAndSink(string fname) { // TODO
 	pair<int, int> ret(0, 0);
 	return ret;
 }
@@ -330,7 +330,6 @@ pair<int, int> getSourceAndSink(string fname) {
 int main(int argc, char *argv[]) {
 	if (argc == 1) {
 		test();
-		return 0;
 	} else {
 		auto edges = getEdges(argv[1]);
 		auto grammars = getGrammars(argv[1]);
@@ -341,7 +340,7 @@ int main(int argc, char *argv[]) {
 			n = max(n, max(ijs.first.first, ijs.first.second) + 1);
 		}
 		int rounds = grammars.size(); // the number of CFLs that we want to intersect
-		set<int> vertices; // the vertices that we want to consider in each round
+		set<int> vertices; // the vertices that we want to consider in each round (TODO: consider changing this to a Boolean array?)
 		for (int i = 0; i < n; i++) { // In the first round, we consider all vertices.
 			vertices.insert(i);
 		}
@@ -361,6 +360,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		cout << "Possibly Reachable" << endl;
-		return 0;
 	}
+	return 0;
 }
