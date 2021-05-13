@@ -44,14 +44,14 @@ struct Grammar {
 struct Graph {
 	int numberOfVertices;
 
-	// The index of the outmost vector serves as the first vertex.
-	vector<set<pair<int, int>>> fastEdgeTest; // (label, second vertex)
-	vector<vector<pair<int, int>>> adjacencyVector; // (label, second vertex)
-	vector<vector<pair<int, int>>> counterAdjacencyVector; // (first vertex, label)
+	// edges
+	vector<set<pair<int, int>>> fastEdgeTest; // first vertex -> {(label, second vertex)}
+	vector<vector<pair<int, int>>> adjacencyVector; // first vertex -> [(label, second vertex)]
+	vector<vector<pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
 
 	// records for reachability closures
-	vector<map<int, set<int>>> unaryRecord; // [i][j][productionNumber]
-	vector<map<int, set<pair<int, int>>>> binaryRecord; // [i][j][(productionNumber, middleVertex)]
+	vector<map<int, set<int>>> unaryRecord; // i -> j -> {unary production number}
+	vector<map<int, set<pair<int, int>>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
 
 	Graph(int n) : numberOfVertices(n),
                        fastEdgeTest(n),
@@ -66,7 +66,7 @@ struct Graph {
 		counterAdjacencyVector[j].push_back(make_pair(i, x));
 	}
 
-	bool isEdge(int i, int x, int j) {
+	bool hasEdge(int i, int x, int j) {
 		return fastEdgeTest[i].count(make_pair(x, j)) == 1;
 	}
 
@@ -91,10 +91,10 @@ struct Graph {
 		for (int ind = 0; ind < nep; ind++) { // add empty edges to the edge set and the worklist
 			int x = g.emptyProductions[ind];
 			for (int i = 0; i < numberOfVertices; i++) {
-				if (!isEdge(i, x, i)) {
-					addEdge(i, x, i);
-					w.push(make_pair(make_pair(i, i), x));
-				}
+				// if (!hasEdge(i, x, i)) {
+				addEdge(i, x, i);
+				w.push(make_pair(make_pair(i, i), x));
+				// }
 			}
 		}
 		while (!w.empty()) {
@@ -111,7 +111,7 @@ struct Graph {
 				if (p.second == y) { // x -> y
 					int x = p.first;
 					unaryRecord[i][j].insert(ind);
-					if (!isEdge(i, x, j)) {
+					if (!hasEdge(i, x, j)) {
 						addEdge(i, x, j);
 						w.push(make_pair(make_pair(i, j), x));
 					}
@@ -126,7 +126,7 @@ struct Graph {
 						if (sk.first == z) { // --z--> k
 							int k = sk.second;
 							binaryRecord[i][k].insert(make_pair(ind, j));
-							if (!isEdge(i, x, k)) {
+							if (!hasEdge(i, x, k)) {
 								addEdge(i, x, k);
 								w.push(make_pair(make_pair(i, k), x)); 
 							}
@@ -140,7 +140,7 @@ struct Graph {
 						if (ks.second == z) { // k --z-->
 							int k = ks.first;
 							binaryRecord[k][j].insert(make_pair(ind, i));
-							if (!isEdge(k, x, j)) {
+							if (!hasEdge(k, x, j)) {
 								addEdge(k, x, j);
 								w.push(make_pair(make_pair(k, j), x));
 							}
@@ -152,21 +152,19 @@ struct Graph {
 	}
 
 	set<int> getReachabilityClosure(int i, int j, const Grammar &g) {
-		if (!isEdge(i, g.startSymbol, j)) {
+		if (!hasEdge(i, g.startSymbol, j)) {
 			return set<int>();
 		} else {
-			set<int> ret;
-			ret.insert(i);
-			ret.insert(j);
+			set<int> ret {i, j};
 			using State = pair<pair<int, int>, int>; // ((i, j), x) i --x--> j
-			queue<State> w;
-			set<State> s;
-			auto start = make_pair(make_pair(i, j), g.startSymbol);
-			s.insert(start);
-			w.push(start);
-			while (!w.empty()) {
-				auto cur = w.front();
-				w.pop();
+			State start = make_pair(make_pair(i, j), g.startSymbol);
+			set<State> vis;
+			queue<State> q;
+			vis.insert(start);
+			q.push(start);
+			while (!q.empty()) { // BFS
+				State cur = q.front();
+				q.pop();
 
 				// i --x--> j
 				int i = cur.first.first;
@@ -175,27 +173,27 @@ struct Graph {
 
 				for (int ind : unaryRecord[i][j]) {
 					if (g.unaryProductions[ind].first == x) {
-						auto nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
-						if (s.count(nxt) == 0) {
-							s.insert(nxt);
-							w.push(nxt);
+						State nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
+						if (vis.count(nxt) == 0) {
+							vis.insert(nxt);
+							q.push(nxt);
 						}
 					}
 				}
 				for (auto ind_k : binaryRecord[i][j]) {
 					int ind = ind_k.first;
-					int k = ind_k.second;
-					ret.insert(k);
+					int k = ind_k.second; // i --> k --> j
 					if (g.binaryProductions[ind].first == x) {
-						auto nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
-						auto nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
-						if (s.count(nxt1) == 0) {
-							s.insert(nxt1);
-							w.push(nxt1);
+						ret.insert(k);
+						State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
+						State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
+						if (vis.count(nxt1) == 0) {
+							vis.insert(nxt1);
+							q.push(nxt1);
 						}
-						if (s.count(nxt2) == 0) {
-							s.insert(nxt2);
-							w.push(nxt2);
+						if (vis.count(nxt2) == 0) {
+							vis.insert(nxt2);
+							q.push(nxt2);
 						}
 					}
 				}
@@ -310,9 +308,9 @@ int main() {
 			    (i == 0 && j == 3) ||
 			    (i == 2 && j == 3) ||
 			    (i == 4 && j == 5)) {
-				assert(gh.isEdge(i, gm.startSymbol, j));
+				assert(gh.hasEdge(i, gm.startSymbol, j));
 			} else {
-				assert(!gh.isEdge(i, gm.startSymbol, j));
+				assert(!gh.hasEdge(i, gm.startSymbol, j));
 			}
 		}
 	}
