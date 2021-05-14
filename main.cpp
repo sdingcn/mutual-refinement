@@ -32,12 +32,17 @@ struct Grammar {
 	vector<pair<int, int>> unaryProductions;
 	vector<pair<int, pair<int, int>>> binaryProductions;
 	int startSymbol;
-
-	// This requires that startSymbol could be inserted into arbitrary positions arbitrarily many times in valid strings.
-	// For a typical grammar of the Dyck language (or the unmatched variant), this is the case.
-	// forall s in negligibleTerminals, startSymbol -> s
-	// Netligible terminals are not included in terminals. They are not present in the productions either.
-	set<int> negligibleTerminals;
+	void print() {
+		for (int e : emptyProductions) {
+			cerr << e << " -> " << 'e' << endl;
+		}
+		for (auto ab : unaryProductions) {
+			cerr << ab.first << " -> " << ab.second << endl;
+		}
+		for (auto abc : binaryProductions) {
+			cerr << abc.first << " -> " << abc.second.first << ' ' << abc.second.second << endl;
+		}
+	}
 };
 
 struct Graph {
@@ -66,13 +71,35 @@ struct Graph {
 		return fastEdgeTest[i].count(make_pair(x, j)) == 1;
 	}
 
+	bool runPureReachability(int i, int j) {
+		deque<int> q;
+		set<int> s;
+		q.push_back(i);
+		s.insert(i);
+		while (!q.empty()) {
+			int c = q.front();
+			q.pop_front();
+			if (c == j) {
+				return true;
+			}
+			for (auto &sj : adjacencyVector[c]) {
+				if (s.count(sj.second) == 0) {
+					q.push_back(sj.second);
+					s.insert(sj.second);
+				}
+			}
+		}
+		return false;
+	}
+
 	void runCFLReachability(const Grammar &g) {
 		deque<pair<pair<int, int>, int>> w; // ((first vertex, second vertex), label)
 		vector<pair<int, int>> negligibleEdges;
 		for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist, and find out all negligible edges
 			for (auto &sj : adjacencyVector[i]) { // --s--> j
 				w.push_back(make_pair(make_pair(i, sj.second), sj.first));
-				if (g.negligibleTerminals.count(sj.first) == 1) {
+				if (g.terminals.count(sj.first) == 0 &&
+                                    g.nonterminals.count(sj.first) == 0) {
 					negligibleEdges.push_back(make_pair(i, sj.second));
 				}
 			}
@@ -212,7 +239,6 @@ void test() {
 	gm.binaryProductions.push_back(make_pair(0, make_pair(1, 3)));
 	gm.binaryProductions.push_back(make_pair(3, make_pair(0, 2)));
 	gm.startSymbol = 0;
-	gm.negligibleTerminals.insert(10);
 	/*
 	 *  1->(4)-10->(5)-2->
 	 *  |                 \    -1->
@@ -266,7 +292,7 @@ bool isEdgeLine(const string &line) {
 	return false;
 }
 
-pair<pair<int, int>, string> parseLine(string &line) {
+pair<pair<int, int>, string> parseLine(string line) {
 	int v1, v2;
 	string label;
 	reverse(line.begin(), line.end());
@@ -305,68 +331,196 @@ pair<pair<int, int>, string> parseLine(string &line) {
 	return make_pair(make_pair(v1, v2), label);
 }
 
-vector<string> readFile(string fname) { // TODO
-	ifstream in(fname); // automatically closed after leaving this function
+pair<string, int> parseLabel(const string &label) {
+	return make_pair(label.substr(0, 2), stoi(label.substr(4)));
+}
+
+using Edge = pair<pair<int, int>, int>;
+
+// (([edge], (source, sink)), [grammar])
+// Vertices should be normalized (0, 1, ..., n - 1 (n >= 1)).
+// Symbols in grammars are should be integers.
+// pay attention to the grammars' order
+pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname) {
+	ifstream in(fname); // automatically being closed after leaving this function
+
+	// read raw edges
 	string line;
-	vector<string> ret;
+	vector<pair<pair<int, int>, pair<string, int>>> rawEdges;
 	while (getline(in, line)) {
-		ret.push_back(std::move(line));
+		if (isEdgeLine(line)) {
+			auto ijl = parseLine(line);
+			auto tn = parseLabel(ijl.second);
+			rawEdges.push_back(make_pair(make_pair(ijl.first.first, ijl.first.second),
+                                                     make_pair(tn.first, tn.second)));
+		}
 	}
-	return ret; // RVO?
-}
 
-// This function is expected to return the normalized vertices.
-//     That means the vertices should be 0, 1, ..., n - 1. (n >= 1)
-vector<pair<pair<int, int>, int>> getEdges(const vector<string> &lines) { // TODO
-	return vector<pair<pair<int, int>, int>>();
-}
+	// normalize vertices
+	map<int, int> m;
+	for (auto &ijtn : rawEdges) {
+		m[ijtn.first.first] = 0;
+		m[ijtn.first.second] = 0;
+	}
+	int ind = 0;
+	for (auto &p : m) {
+		p.second = ind++;
+	}
+	vector<pair<int, int>> nes;
+	for (auto &ijtn : rawEdges) {
+		nes.push_back(make_pair(m[ijtn.first.first], m[ijtn.first.second]));
+	}
 
-// This function is expected to return grammars whose symbols are represented by integers.
-// The order of grammars might be very important!
-//     For example, at the beginning, processing the grammars of global variables may rule out many nodes.
-vector<Grammar> getGrammars(const vector<string> &lines) { // TODO
-	return vector<Grammar>();
-}
+	// normalize labels
+	map<int, int> mp;
+	map<int, int> mb;
+	for (auto &ijtn : rawEdges) {
+		if (ijtn.second.first == "op" ||
+                    ijtn.second.first == "cp") {
+			mp[ijtn.second.second] = 0;
+		} else {
+			mb[ijtn.second.second] = 0;
+		}
+	}
+	int indp = 0; // number of types of parentheses
+	for (auto &pr : mp) {
+		pr.second = indp++;
+	}
+	int indb = 0; // number of types of brackets
+	for (auto &pr : mb) {
+		pr.second = indb++;
+	}
+	vector<int> nls;
+	for (auto &ijtn : rawEdges) {
+		if (ijtn.second.first == "op") {
+			nls.push_back(mp[ijtn.second.second]);
+		} else if (ijtn.second.first == "cp") {
+			nls.push_back(-mp[ijtn.second.second]);
+		} else if (ijtn.second.first == "ob") {
+			nls.push_back(indp + mb[ijtn.second.second]);
+		} else {
+			nls.push_back(-(indp + mb[ijtn.second.second]));
+		}
+	}
 
-pair<int, int> getSourceAndSink(const vector<string> &lines) { // TODO
-	pair<int, int> ret(0, 0);
-	return ret;
+	int avlb = indp + indb + 10;
+	Grammar gmp, gmb;
+	auto fillDyck = [](Grammar &gm, int bg, int ed, int &avlb) -> void {
+		// (-ed, -bg] [bg, ed) ... [avlb, avlb + 1) [avlb + 1, avlb + 1 + ed - bg)
+		for (int i = bg; i < ed; i++) {
+			gm.terminals.insert(i);
+			gm.terminals.insert(-i);
+		}
+		for (int i = avlb; i < avlb + 1 + ed - bg; i++) {
+			gm.nonterminals.insert(i);
+		}
+		gm.emptyProductions.push_back(avlb);
+		gm.binaryProductions.push_back(make_pair(avlb, make_pair(avlb, avlb)));
+		for (int i = bg; i < ed; i++) {
+			gm.binaryProductions.push_back(make_pair(avlb, make_pair(i, i - bg + avlb + 1)));
+			gm.binaryProductions.push_back(make_pair(i - bg + avlb + 1, make_pair(avlb, -i)));
+		}
+		gm.startSymbol = avlb;
+		avlb = avlb + 1 + ed - bg;
+	};
+	fillDyck(gmp, 0, indp, avlb);
+	fillDyck(gmb, indp, indp + indb, avlb);
+	vector<Edge> retEdges;
+	int N = nes.size();
+	for (int i = 0; i < N; i++) {
+		retEdges.push_back(make_pair(nes[i], nls[i]));
+	}
+	return make_pair(make_pair(retEdges, make_pair(0, ind - 1)), vector<Grammar> {gmp, gmb});
 }
 
 int main(int argc, char *argv[]) {
 	if (argc == 1) {
 		test();
 	} else {
-		auto lines = readFile(argv[1]);
-		auto edges = getEdges(lines);
-		auto grammars = getGrammars(lines);
-		auto ss = getSourceAndSink(lines);
-		int source = ss.first, sink = ss.second; // In C++17 there is a way to unpack the tuple in one line, but I don't want to use it.
-		int n = 0;
-		for (auto ijs : edges) { // finding out the number of vertices in the original graph.
-			n = max(n, max(ijs.first.first, ijs.first.second) + 1);
+		pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> data = readFile(argv[1]);
+		vector<Edge> &edges = data.first.first;
+		vector<Grammar> &grammars = data.second;
+		int n = data.first.second.second + 1;
+		Graph ghp(n);
+		for (auto &ijs : edges) {
+			ghp.addEdge(ijs.first.first, ijs.second, ijs.first.second);
 		}
-		int rounds = grammars.size(); // the number of CFLs that we want to intersect
-		set<int> vertices; // the vertices that we want to consider in each round (TODO: consider changing this to a Boolean array?)
-		for (int i = 0; i < n; i++) { // In the first round, we consider all vertices.
-			vertices.insert(i);
-		}
-		for (int r = 0; r < rounds; r++) {
-			Graph gh(n);
-			for (auto ijs : edges) { // We only include edges containing vertices that we want to consider.
-				if (vertices.count(ijs.first.first) == 1 &&
-				    vertices.count(ijs.first.second) == 1) {
-					gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
+		Graph ghb = ghp;
+		ghp.runCFLReachability(grammars[0]);
+		ghb.runCFLReachability(grammars[1]);
+		int totalCP = 0;
+		int totalCB = 0;
+		int total = 0;
+		for (int source = 0; source < n; source++) {
+			cerr << source << ':' << n << endl;
+			//int batchTotal = 0;
+			for (int sink = 0; sink < n; sink++) {
+				auto cp = ghp.getCFLReachabilityClosure(source, sink, grammars[0]);
+				if (cp.size() > 0) {
+					totalCP++;
+				}
+				auto cb = ghb.getCFLReachabilityClosure(source, sink, grammars[1]);
+				if (cb.size() > 0) {
+					totalCB++;
+				}
+				set<int> c;
+				for (int i : cp) {
+					if (cb.count(i) == 1) {
+						c.insert(i);
+					}
+				}
+				/*cout << "n: " << n
+				       << " cp: " << cp.size()
+				       << " cb: " << cb.size()
+				       << " c: " << c.size() << endl;*/
+				Graph gh(n);
+				for (auto &ijs : edges) {
+					if (c.count(ijs.first.first) == 1 &&
+					    c.count(ijs.first.second) == 1) {
+						gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
+					}
+				}
+				if (gh.runPureReachability(source, sink)) {
+					total++;
+					//batchTotal++;
+					//cout << "**********> Possibly Reachable " << source << "->" << sink << endl;
 				}
 			}
-			gh.runCFLReachability(grammars[r]);
-			vertices = gh.getCFLReachabilityClosure(source, sink, grammars[r]);
-			if (vertices.size() == 0) {
-				cout << "Definitely Unreachable" << endl;
-				return 0;
-			}
+			//cout << "Batch Total: " << batchTotal << endl;
+			//cout << "Current Total: " << total << endl;
 		}
-		cout << "Possibly Reachable" << endl;
+		cout << "totalCP: " << totalCP << endl;
+		cout << "totalCB: " << totalCB << endl;
+		cout << "total: " << total << endl;
+		//int rounds = grammars.size(); // the number of CFLs that we want to intersect
+		///**/for (int se = 0; se < n; se++) {
+		///**/for (int sk = 0; sk < n; sk++) {
+		//cerr << "Source: " << se << " Sink: " << sk << endl;
+		//set<int> vertices; // the vertices that we want to consider in each round (TODO: consider changing this to a Boolean array?)
+		//for (int i = 0; i < n; i++) { // In the first round, we consider all vertices.
+		//	vertices.insert(i);
+		//}
+		//for (int r = 0; r < rounds; r++) {
+		//	// cerr << "Starting Round " << r << endl;
+		//	Graph gh(n);
+		//	for (auto &ijs : edges) { // We only include edges containing vertices that we want to consider.
+		//		if (vertices.count(ijs.first.first) == 1 &&
+		//		    vertices.count(ijs.first.second) == 1) {
+		//			gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
+		//		}
+		//	}
+		//	gh.runCFLReachability(grammars[r]);
+		//	vertices = gh.getCFLReachabilityClosure(se, sk, grammars[r]);
+		//	if (vertices.size() == 0) {
+		//		// cout << "Definitely Unreachable" << endl;
+		//		goto NX;
+		//	}
+		//}
+		//cout << "**********> Possibly Reachable " << se << "->" << sk << endl;
+//NX:
+		//;
+		///**/}
+		///**/}
 	}
 	return 0;
 }
