@@ -448,11 +448,13 @@ int main(int argc, char *argv[]) {
 		Graph ghb = ghp;
 		ghp.runCFLReachability(grammars[0]);
 		ghb.runCFLReachability(grammars[1]);
+		cout << "preprocessing done" << endl;
+		return 0;
 		int totalCP = 0;
 		int totalCB = 0;
 		int total = 0;
 		for (int source = 0; source < n; source++) {
-			cerr << source << ':' << n << endl;
+			//cerr << source << ':' << n << endl;
 			//int batchTotal = 0;
 			for (int sink = 0; sink < n; sink++) {
 				auto cp = ghp.getCFLReachabilityClosure(source, sink, grammars[0]);
@@ -469,6 +471,7 @@ int main(int argc, char *argv[]) {
 						c.insert(i);
 					}
 				}
+				cout << source << ' ' << sink << endl;
 				/*cout << "n: " << n
 				       << " cp: " << cp.size()
 				       << " cb: " << cb.size()
