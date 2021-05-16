@@ -54,12 +54,13 @@ struct Graph {
 	vector<vector<pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
 
 	// records for reachability closures
+	vector<map<int, set<int>>> negligibleRecord; // i -> j -> {negligible symbol}
 	vector<map<int, set<int>>> unaryRecord; // i -> j -> {unary production number}
 	vector<map<int, set<pair<int, int>>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
 
 	Graph(int n) : numberOfVertices(n),
                        fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
-                       unaryRecord(n), binaryRecord(n) {}
+                       negligibleRecord(n), unaryRecord(n), binaryRecord(n) {}
 
 	void addEdge(int i, int x, int j) { // i --x--> j
 		fastEdgeTest[i].insert(make_pair(x, j));
@@ -94,19 +95,20 @@ struct Graph {
 
 	void runCFLReachability(const Grammar &g) {
 		deque<pair<pair<int, int>, int>> w; // ((first vertex, second vertex), label)
-		vector<pair<int, int>> negligibleEdges;
+		vector<pair<pair<int, int>, int>> negligibleEdges;
 		for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist, and find out all negligible edges
 			for (auto &sj : adjacencyVector[i]) { // --s--> j
 				w.push_back(make_pair(make_pair(i, sj.second), sj.first));
 				if (g.terminals.count(sj.first) == 0 &&
                                     g.nonterminals.count(sj.first) == 0) {
-					negligibleEdges.push_back(make_pair(i, sj.second));
+					negligibleEdges.push_back(make_pair(make_pair(i, sj.second), sj.first));
 				}
 			}
 		}
 		for (auto &e : negligibleEdges) { // add negligible edges to the edge set and the worklist
-			addEdge(e.first, g.startSymbol, e.second);
-			w.push_back(make_pair(make_pair(e.first, e.second), g.startSymbol));
+			negligibleRecord[e.first.first][e.first.second].insert(e.second);
+			addEdge(e.first.first, g.startSymbol, e.first.second);
+			w.push_back(make_pair(make_pair(e.first.first, e.first.second), g.startSymbol));
 		}
 		int nep = g.emptyProductions.size();
 		int nup = g.unaryProductions.size();
@@ -168,7 +170,7 @@ struct Graph {
 		}
 	}
 
-	set<int> getCFLReachabilityClosure(int i, int j, const Grammar &g) const {
+	set<int> getCFLReachabilityVertexClosure(int i, int j, const Grammar &g) const {
 		if (!hasEdge(i, g.startSymbol, j)) {
 			return set<int>();
 		} else {
@@ -200,6 +202,65 @@ struct Graph {
 						int ind = ind_k.first, k = ind_k.second; // i --> k --> j
 						if (g.binaryProductions[ind].first == x) {
 							ret.insert(k);
+							State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
+							State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
+							if (vis.count(nxt1) == 0) {
+								vis.insert(nxt1);
+								q.push_back(nxt1);
+							}
+							if (vis.count(nxt2) == 0) {
+								vis.insert(nxt2);
+								q.push_back(nxt2);
+							}
+						}
+					}
+				}
+			}
+			return ret;
+		}
+	}
+
+	set<pair<pair<int, int>, int>> getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
+		if (!hasEdge(i, g.startSymbol, j)) {
+			return set<pair<pair<int, int>, int>>();
+		} else {
+			set<pair<pair<int, int>, int>> ret;
+			using State = pair<pair<int, int>, int>; // ((i, j), x) i --x--> j
+			State start = make_pair(make_pair(i, j), g.startSymbol);
+			set<State> vis {start};
+			deque<State> q {start};
+			while (!q.empty()) { // BFS
+				State cur = q.front();
+				q.pop_front();
+
+				// i --x--> j
+				int i = cur.first.first, j = cur.first.second, x = cur.second;
+				if (g.terminals.count(x) == 1) {
+					ret.insert(make_pair(make_pair(i, j), x));
+				}
+
+				if (negligibleRecord[i].count(j) == 1) {
+					if (x == g.startSymbol) {
+						for (int s : negligibleRecord[i].at(j)) {
+							ret.insert(make_pair(make_pair(i, j), s));
+						}
+					}
+				}
+				if (unaryRecord[i].count(j) == 1) {
+					for (int ind : unaryRecord[i].at(j)) {
+						if (g.unaryProductions[ind].first == x) {
+							State nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
+							if (vis.count(nxt) == 0) {
+								vis.insert(nxt);
+								q.push_back(nxt);
+							}
+						}
+					}
+				}
+				if (binaryRecord[i].count(j) == 1) {
+					for (auto &ind_k : binaryRecord[i].at(j)) {
+						int ind = ind_k.first, k = ind_k.second; // i --> k --> j
+						if (g.binaryProductions[ind].first == x) {
 							State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
 							State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
 							if (vis.count(nxt1) == 0) {
@@ -270,14 +331,14 @@ void test() {
 			}
 		}
 	}
-	auto rc1 = gh.getCFLReachabilityClosure(0, 2, gm);
+	auto rc1 = gh.getCFLReachabilityVertexClosure(0, 2, gm);
 	assert(rc1.size() == 5);
 	assert(rc1.count(0) == 1);
 	assert(rc1.count(1) == 1);
 	assert(rc1.count(2) == 1);
 	assert(rc1.count(4) == 1);
 	assert(rc1.count(5) == 1);
-	auto rc2 = gh.getCFLReachabilityClosure(2, 3, gm);
+	auto rc2 = gh.getCFLReachabilityVertexClosure(2, 3, gm);
 	assert(rc2.size() == 2);
 	assert(rc2.count(2) == 1);
 	assert(rc2.count(3) == 1);
@@ -446,54 +507,52 @@ int main(int argc, char *argv[]) {
 			ghp.addEdge(ijs.first.first, ijs.second, ijs.first.second);
 		}
 		Graph ghb = ghp;
+		cout << ">>> Running CFL Reachability" << endl;
 		ghp.runCFLReachability(grammars[0]);
 		ghb.runCFLReachability(grammars[1]);
-		cout << "preprocessing done" << endl;
-		return 0;
-		int totalCP = 0;
-		int totalCB = 0;
+		cout << ">>> CFL Reachability Done" << endl;
+		// int totalCP = 0;
+		// int totalCB = 0;
 		int total = 0;
 		for (int source = 0; source < n; source++) {
-			//cerr << source << ':' << n << endl;
-			//int batchTotal = 0;
+			cout << ">>> Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
-				auto cp = ghp.getCFLReachabilityClosure(source, sink, grammars[0]);
+				auto cp = ghp.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
+				auto cb = ghb.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
+				// cout << cp.size() << ' ' << cb.size() << endl;
+				/*
 				if (cp.size() > 0) {
 					totalCP++;
 				}
-				auto cb = ghb.getCFLReachabilityClosure(source, sink, grammars[1]);
 				if (cb.size() > 0) {
 					totalCB++;
 				}
-				set<int> c;
-				for (int i : cp) {
-					if (cb.count(i) == 1) {
-						c.insert(i);
+				*/
+				set<pair<pair<int, int>, int>> c;
+				for (auto e : cp) {
+					if (cb.count(e) == 1) {
+						c.insert(e);
 					}
 				}
-				cout << source << ' ' << sink << endl;
-				/*cout << "n: " << n
-				       << " cp: " << cp.size()
-				       << " cb: " << cb.size()
-				       << " c: " << c.size() << endl;*/
 				Graph gh(n);
+				for (auto &ijs : c) {
+					gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
+				}
+				/*
 				for (auto &ijs : edges) {
 					if (c.count(ijs.first.first) == 1 &&
 					    c.count(ijs.first.second) == 1) {
 						gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
 					}
 				}
+				*/
 				if (gh.runPureReachability(source, sink)) {
 					total++;
-					//batchTotal++;
-					//cout << "**********> Possibly Reachable " << source << "->" << sink << endl;
 				}
 			}
-			//cout << "Batch Total: " << batchTotal << endl;
-			//cout << "Current Total: " << total << endl;
 		}
-		cout << "totalCP: " << totalCP << endl;
-		cout << "totalCB: " << totalCB << endl;
+		// cout << "totalCP: " << totalCP << endl;
+		// cout << "totalCB: " << totalCB << endl;
 		cout << "total: " << total << endl;
 		//int rounds = grammars.size(); // the number of CFLs that we want to intersect
 		///**/for (int se = 0; se < n; se++) {
