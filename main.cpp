@@ -94,20 +94,22 @@ inline Edge make_edge(int i, int x, int j) {
 	return make_pair(make_pair(i, j), x);
 }
 
+#define FP_MASK 1048576
+
 inline long long make_fast_pair(int a, int b /* assumed to be >= 0 */) {
 	if (a >= 0) {
-		return a * 1000000 + b;
+		return a * FP_MASK + b;
 	} else {
-		return -((-a) * 1000000 + b);
+		return -((-a) * FP_MASK + b);
 	}
 }
 
 inline pair<int, int> unpack_fast_pair(long long fp) {
 	if (fp >= 0) {
-		return make_pair(static_cast<int>(fp / 1000000), static_cast<int>(fp % 1000000));
+		return make_pair(static_cast<int>(fp / FP_MASK), static_cast<int>(fp % FP_MASK));
 	} else {
 		fp = -fp;
-		return make_pair(static_cast<int>(-fp / 1000000), static_cast<int>(fp % 1000000));
+		return make_pair(static_cast<int>(-(fp / FP_MASK)), static_cast<int>(fp % FP_MASK));
 	}
 }
 
@@ -115,14 +117,14 @@ struct Graph {
 	int numberOfVertices;
 
 	// edges
-	vector<unordered_set<long long>> fastEdgeTest; // first vertex -> {(label, second vertex)}
+	vector<unordered_set<long long>> fastEdgeTest; // first vertex -> {FP(label, second vertex)}
 	vector<vector<pair<int, int>>> adjacencyVector; // first vertex -> [(label, second vertex)]
 	vector<vector<pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
 
 	// records for reachability closures
 	vector<unordered_map<int, unordered_set<int>>> negligibleRecord; // i -> j -> {negligible symbol}
 	vector<unordered_map<int, unordered_set<int>>> unaryRecord; // i -> j -> {unary production number}
-	vector<unordered_map<int, unordered_set<long long>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
+	vector<unordered_map<int, unordered_set<long long>>> binaryRecord; // i -> j -> {FP(binary prodution number, middle vertex)}
 
 	Graph(int n) : numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
                        negligibleRecord(n), unaryRecord(n), binaryRecord(n) {}
@@ -232,7 +234,8 @@ struct Graph {
 		}
 	}
 
-	unordered_set<int> getCFLReachabilityVertexClosure(int i, int j, const Grammar &g) const {
+	/*
+	unordered_set<int> getCFLReachabilityVertexClosure(int i, int j, const Grammar &g) const { // unoptimized
 		if (!hasEdge(i, g.startSymbol, j)) {
 			return unordered_set<int>();
 		} else {
@@ -281,69 +284,69 @@ struct Graph {
 			return ret;
 		}
 	}
+	*/
 
 	set<Edge> getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
-		if (!hasEdge(i, g.startSymbol, j)) {
-			return set<Edge>();
-		} else {
-			set<Edge> ret;
+		set<Edge> closure;
+		set<Edge> vis;
+		deque<Edge> q;
+		if (hasEdge(i, g.startSymbol, j)) {
 			Edge start = make_edge(i, g.startSymbol, j);
-			set<Edge> vis {start};
-			deque<Edge> q {start};
-			while (!q.empty()) { // BFS
-				Edge cur = q.front();
-				q.pop_front();
+			vis.insert(start);
+			q.push_back(start);
+		}
+		while (!q.empty()) { // BFS
+			Edge cur = q.front();
+			q.pop_front();
 
-				// i --x--> j
-				int i = cur.first.first, j = cur.first.second, x = cur.second;
-				if (g.terminals.count(x) == 1 ||
-				   (g.terminals.count(x) == 0 && g.nonterminals.count(x) == 0)) {
-					ret.insert(make_edge(i, x, j));
-				}
+			// i --x--> j
+			int i = cur.first.first, j = cur.first.second, x = cur.second;
+			if (g.nonterminals.count(x) == 0) { // terminals or negligible symbols
+				closure.insert(make_edge(i, x, j));
+			}
 
-				if (negligibleRecord[i].count(j) == 1) {
-					if (x == g.startSymbol) {
-						for (int s : negligibleRecord[i].at(j)) {
-							Edge nxt = make_edge(i, s, j);
-							if (vis.count(nxt) == 0) {
-								vis.insert(nxt);
-								q.push_back(nxt);
-							}
-						}
-					}
-				}
-				if (unaryRecord[i].count(j) == 1) {
-					for (int ind : unaryRecord[i].at(j)) {
-						if (g.unaryProductions[ind].first == x) {
-							Edge nxt = make_edge(i, g.unaryProductions[ind].second, j);
-							if (vis.count(nxt) == 0) {
-								vis.insert(nxt);
-								q.push_back(nxt);
-							}
-						}
-					}
-				}
-				if (binaryRecord[i].count(j) == 1) {
-					for (long long fp : binaryRecord[i].at(j)) {
-						auto p = unpack_fast_pair(fp);
-						int ind = p.first, k = p.second; // i --> k --> j
-						if (g.binaryProductions[ind].first == x) {
-							Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
-							Edge nxt2 = make_edge(k, g.binaryProductions[ind].second.second, j);
-							if (vis.count(nxt1) == 0) {
-								vis.insert(nxt1);
-								q.push_back(nxt1);
-							}
-							if (vis.count(nxt2) == 0) {
-								vis.insert(nxt2);
-								q.push_back(nxt2);
-							}
+			if (negligibleRecord[i].count(j) == 1) {
+				if (x == g.startSymbol) {
+					for (int s : negligibleRecord[i].at(j)) {
+						Edge nxt = make_edge(i, s, j);
+						if (vis.count(nxt) == 0) {
+							vis.insert(nxt);
+							q.push_back(nxt);
 						}
 					}
 				}
 			}
-			return ret;
+			if (unaryRecord[i].count(j) == 1) {
+				for (int ind : unaryRecord[i].at(j)) {
+					if (g.unaryProductions[ind].first == x) {
+						Edge nxt = make_edge(i, g.unaryProductions[ind].second, j);
+						if (vis.count(nxt) == 0) {
+							vis.insert(nxt);
+							q.push_back(nxt);
+						}
+					}
+				}
+			}
+			if (binaryRecord[i].count(j) == 1) {
+				for (long long fp : binaryRecord[i].at(j)) {
+					auto p = unpack_fast_pair(fp);
+					int ind = p.first, k = p.second; // i --> k --> j
+					if (g.binaryProductions[ind].first == x) {
+						Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
+						Edge nxt2 = make_edge(k, g.binaryProductions[ind].second.second, j);
+						if (vis.count(nxt1) == 0) {
+							vis.insert(nxt1);
+							q.push_back(nxt1);
+						}
+						if (vis.count(nxt2) == 0) {
+							vis.insert(nxt2);
+							q.push_back(nxt2);
+						}
+					}
+				}
+			}
 		}
+		return closure;
 	}
 };
 
@@ -396,6 +399,7 @@ void test() {
 			}
 		}
 	}
+	/*
 	auto rvc1 = gh.getCFLReachabilityVertexClosure(0, 2, gm);
 	assert(rvc1.size() == 5);
 	assert(rvc1.count(0) == 1);
@@ -410,6 +414,7 @@ void test() {
 	auto rvc3 = gh.getCFLReachabilityVertexClosure(2, 2, gm);
 	assert(rvc3.size() == 1);
 	assert(rvc3.count(2) == 1);
+	*/
 	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2, gm);
 	assert(rec1.size() == 5);
 	assert(rec1.count(make_edge(0, 1, 1)) == 1);
@@ -566,7 +571,7 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 		retEdges.push_back(make_pair(nes[i], nls[i]));
 	}
 
-	if (ind > 999999 || avlb > 999999) {
+	if (ind >= FP_MASK || avlb >= FP_MASK) {
 		cerr << "Error: The graph is too large." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -599,7 +604,6 @@ int main(int argc, char *argv[]) {
 		auto end = std::chrono::steady_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end - start;
 		cout << ">>> CFL Reachability Done. Time (Seconds): " << elapsed_seconds.count() << endl;
-		return 0;
 
 		// main query loop
 		int total = 0;
@@ -616,7 +620,7 @@ int main(int argc, char *argv[]) {
 				}
 				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
 				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
-				set<pair<pair<int, int>, int>> c;
+				set<Edge> c;
 				for (auto e : c1) {
 					if (c2.count(e) == 1) {
 						c.insert(e);
