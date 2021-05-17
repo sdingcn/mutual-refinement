@@ -621,7 +621,7 @@ int main(int argc, char *argv[]) {
 				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
 				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
 				set<Edge> c;
-				for (auto e : c1) {
+				for (auto &e : c1) {
 					if (c2.count(e) == 1) {
 						c.insert(e);
 					}
