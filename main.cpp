@@ -542,6 +542,7 @@ int main(int argc, char *argv[]) {
 		auto end = std::chrono::steady_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end - start;
 		cout << ">>> CFL Reachability Done. Time (Seconds): " << elapsed_seconds.count() << endl;
+		return 0;
 
 		// main query loop
 		int total = 0;
