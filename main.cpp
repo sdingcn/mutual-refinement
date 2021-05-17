@@ -3,18 +3,23 @@
 #include <utility>
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <map>
+#include <unordered_map>
 #include <deque>
 #include <cassert>
 #include <string>
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 
 using std::pair;
 using std::make_pair;
 using std::vector;
 using std::set;
+using std::unordered_set;
 using std::map;
+using std::unordered_map;
 using std::deque;
 using std::ifstream;
 using std::getline;
@@ -25,65 +30,116 @@ using std::string;
 using std::stoi;
 using std::reverse;
 using std::max;
+using std::exit;
 
 struct Grammar {
-	set<int> terminals;
-	set<int> nonterminals;
+	unordered_set<int> terminals;
+	unordered_set<int> nonterminals;
 	vector<int> emptyProductions;
 	vector<pair<int, int>> unaryProductions;
 	vector<pair<int, pair<int, int>>> binaryProductions;
 	int startSymbol;
-	/*
-	void print() {
-		for (int e : emptyProductions) {
-			cerr << e << " -> " << 'e' << endl;
+	unordered_map<int, vector<int>> unaryProductionsInv; // right hand side symbol -> {corresponding indices in unaryProductions}
+	unordered_map<int, vector<int>> binaryProductionsFirstInv; // right hand side symbol 1 -> {corresponding indices in binaryProductions}
+	unordered_map<int, vector<int>> binaryProductionsSecondInv; // right hand side symbol 2 -> {corresponding indices in binaryProductions}
+	void fillInv() {
+		int nu = unaryProductions.size();
+		int nb = binaryProductions.size();
+		for (int t : terminals) {
+			unaryProductionsInv[t] = vector<int>();
+			binaryProductionsFirstInv[t] = vector<int>();
+			binaryProductionsSecondInv[t] = vector<int>();
 		}
-		for (auto &ab : unaryProductions) {
-			cerr << ab.first << " -> " << ab.second << endl;
+		for (int nt : nonterminals) {
+			unaryProductionsInv[nt] = vector<int>();
+			binaryProductionsFirstInv[nt] = vector<int>();
+			binaryProductionsSecondInv[nt] = vector<int>();
 		}
-		for (auto &abc : binaryProductions) {
-			cerr << abc.first << " -> " << abc.second.first << ' ' << abc.second.second << endl;
+		for (int t : terminals) {
+			for (int i = 0; i < nu; i++) {
+				if (unaryProductions[i].second == t) {
+					unaryProductionsInv[t].push_back(i);
+				}
+			}
+			for (int i = 0; i < nb; i++) {
+				if (binaryProductions[i].second.first == t) {
+					binaryProductionsFirstInv[t].push_back(i);
+				}
+				if (binaryProductions[i].second.second == t) {
+					binaryProductionsSecondInv[t].push_back(i);
+				}
+			}
+		}
+		for (int nt : nonterminals) {
+			for (int i = 0; i < nu; i++) {
+				if (unaryProductions[i].second == nt) {
+					unaryProductionsInv[nt].push_back(i);
+				}
+			}
+			for (int i = 0; i < nb; i++) {
+				if (binaryProductions[i].second.first == nt) {
+					binaryProductionsFirstInv[nt].push_back(i);
+				}
+				if (binaryProductions[i].second.second == nt) {
+					binaryProductionsSecondInv[nt].push_back(i);
+				}
+			}
 		}
 	}
-	*/
 };
 
 using Edge = pair<pair<int, int>, int>; // ((first vertex, second vertex), label)
 
-Edge make_edge(int i, int x, int j) {
+inline Edge make_edge(int i, int x, int j) {
 	return make_pair(make_pair(i, j), x);
+}
+
+inline long long make_fast_pair(int a, int b /* assumed to be >= 0 */) {
+	if (a >= 0) {
+		return a * 1000000 + b;
+	} else {
+		return -((-a) * 1000000 + b);
+	}
+}
+
+inline pair<int, int> unpack_fast_pair(long long fp) {
+	if (fp >= 0) {
+		return make_pair(static_cast<int>(fp / 1000000), static_cast<int>(fp % 1000000));
+	} else {
+		fp = -fp;
+		return make_pair(static_cast<int>(-fp / 1000000), static_cast<int>(fp % 1000000));
+	}
 }
 
 struct Graph {
 	int numberOfVertices;
 
 	// edges
-	vector<set<pair<int, int>>> fastEdgeTest; // first vertex -> {(label, second vertex)}
+	vector<unordered_set<long long>> fastEdgeTest; // first vertex -> {(label, second vertex)}
 	vector<vector<pair<int, int>>> adjacencyVector; // first vertex -> [(label, second vertex)]
 	vector<vector<pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
 
 	// records for reachability closures
-	vector<map<int, set<int>>> negligibleRecord; // i -> j -> {negligible symbol}
-	vector<map<int, set<int>>> unaryRecord; // i -> j -> {unary production number}
-	vector<map<int, set<pair<int, int>>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
+	vector<unordered_map<int, unordered_set<int>>> negligibleRecord; // i -> j -> {negligible symbol}
+	vector<unordered_map<int, unordered_set<int>>> unaryRecord; // i -> j -> {unary production number}
+	vector<unordered_map<int, unordered_set<long long>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
 
-	Graph(int n) : numberOfVertices(n),
-                       fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
+	Graph(int n) : numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
                        negligibleRecord(n), unaryRecord(n), binaryRecord(n) {}
 
 	void addEdge(int i, int x, int j) { // i --x--> j
-		fastEdgeTest[i].insert(make_pair(x, j));
+		fastEdgeTest[i].insert(make_fast_pair(x, j));
 		adjacencyVector[i].push_back(make_pair(x, j));
 		counterAdjacencyVector[j].push_back(make_pair(i, x));
 	}
 
 	bool hasEdge(int i, int x, int j) const {
-		return fastEdgeTest[i].count(make_pair(x, j)) == 1;
+		return fastEdgeTest[i].count(make_fast_pair(x, j)) == 1;
 	}
 
 	bool runPureReachability(int i, int j) {
 		deque<int> q;
-		set<int> s;
+		unordered_set<int> s;
 		q.push_back(i);
 		s.insert(i);
 		while (!q.empty()) {
@@ -105,15 +161,16 @@ struct Graph {
 	void runCFLReachability(const Grammar &g) {
 		deque<Edge> w; // ((first vertex, second vertex), label)
 		vector<Edge> negligibleEdges;
-		for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist, and find out all negligible edges
+		for (int i = 0; i < numberOfVertices; i++) { // add all non-negligible edges to the worklist, and find out all negligible edges
 			for (auto &sj : adjacencyVector[i]) { // --s--> j
-				w.push_back(make_edge(i, sj.first, sj.second));
 				if (g.terminals.count(sj.first) == 0) {
 					negligibleEdges.push_back(make_edge(i, sj.first, sj.second));
+				} else {
+					w.push_back(make_edge(i, sj.first, sj.second));
 				}
 			}
 		}
-		for (auto &e : negligibleEdges) { // add negligible edges to the edge set and the worklist
+		for (auto &e : negligibleEdges) { // handle negligible edges
 			negligibleRecord[e.first.first][e.first.second].insert(e.second);
 			addEdge(e.first.first, g.startSymbol, e.first.second);
 			w.push_back(make_edge(e.first.first, g.startSymbol, e.first.second));
@@ -135,42 +192,39 @@ struct Graph {
 			// i --y--> j
 			int i = e.first.first, j = e.first.second, y = e.second;
 
-			for (int ind = 0; ind < nup; ind++) {
+			for (int ind : g.unaryProductionsInv.at(y)) { // x -> y
 				auto &p = g.unaryProductions[ind];
-				if (p.second == y) { // x -> y
-					int x = p.first;
-					unaryRecord[i][j].insert(ind);
-					if (!hasEdge(i, x, j)) {
-						addEdge(i, x, j);
-						w.push_back(make_edge(i, x, j));
-					}
+				int x = p.first;
+				unaryRecord[i][j].insert(ind);
+				if (!hasEdge(i, x, j)) {
+					addEdge(i, x, j);
+					w.push_back(make_edge(i, x, j));
 				}
 			}
-			for (int ind = 0; ind < nbp; ind++) {
+			for (int ind : g.binaryProductionsFirstInv.at(y)) { // x -> yz
 				auto &p = g.binaryProductions[ind];
-				if (p.second.first == y) { // x -> yz
-					int x = p.first, z = p.second.second;
-					for (auto &sk : adjacencyVector[j]) { // --s--> k
-						if (sk.first == z) { // --z--> k
-							int k = sk.second;
-							binaryRecord[i][k].insert(make_pair(ind, j));
-							if (!hasEdge(i, x, k)) {
-								addEdge(i, x, k);
-								w.push_back(make_edge(i, x, k)); 
-							}
+				int x = p.first, z = p.second.second;
+				for (auto &sk : adjacencyVector[j]) { // --s--> k
+					if (sk.first == z) { // --z--> k
+						int k = sk.second;
+						binaryRecord[i][k].insert(make_fast_pair(ind, j));
+						if (!hasEdge(i, x, k)) {
+							addEdge(i, x, k);
+							w.push_back(make_edge(i, x, k)); 
 						}
 					}
 				}
-				if (p.second.second == y) { // x -> zy
-					int x = p.first, z = p.second.first;
-					for (auto &ks : counterAdjacencyVector[i]) {
-						if (ks.second == z) { // k --z-->
-							int k = ks.first;
-							binaryRecord[k][j].insert(make_pair(ind, i));
-							if (!hasEdge(k, x, j)) {
-								addEdge(k, x, j);
-								w.push_back(make_edge(k, x, j));
-							}
+			}
+			for (int ind : g.binaryProductionsSecondInv.at(y)) { // x -> zy
+				auto &p = g.binaryProductions[ind];
+				int x = p.first, z = p.second.first;
+				for (auto &ks : counterAdjacencyVector[i]) {
+					if (ks.second == z) { // k --z-->
+						int k = ks.first;
+						binaryRecord[k][j].insert(make_fast_pair(ind, i));
+						if (!hasEdge(k, x, j)) {
+							addEdge(k, x, j);
+							w.push_back(make_edge(k, x, j));
 						}
 					}
 				}
@@ -178,11 +232,11 @@ struct Graph {
 		}
 	}
 
-	set<int> getCFLReachabilityVertexClosure(int i, int j, const Grammar &g) const {
+	unordered_set<int> getCFLReachabilityVertexClosure(int i, int j, const Grammar &g) const {
 		if (!hasEdge(i, g.startSymbol, j)) {
-			return set<int>();
+			return unordered_set<int>();
 		} else {
-			set<int> ret {i, j};
+			unordered_set<int> ret {i, j};
 			Edge start = make_edge(i, g.startSymbol, j);
 			set<Edge> vis {start};
 			deque<Edge> q {start};
@@ -205,8 +259,9 @@ struct Graph {
 					}
 				}
 				if (binaryRecord[i].count(j) == 1) {
-					for (auto &ind_k : binaryRecord[i].at(j)) {
-						int ind = ind_k.first, k = ind_k.second; // i --> k --> j
+					for (long long fp : binaryRecord[i].at(j)) {
+						auto p = unpack_fast_pair(fp);
+						int ind = p.first, k = p.second; // i --> k --> j
 						if (g.binaryProductions[ind].first == x) {
 							ret.insert(k);
 							Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
@@ -269,8 +324,9 @@ struct Graph {
 					}
 				}
 				if (binaryRecord[i].count(j) == 1) {
-					for (auto &ind_k : binaryRecord[i].at(j)) {
-						int ind = ind_k.first, k = ind_k.second; // i --> k --> j
+					for (long long fp : binaryRecord[i].at(j)) {
+						auto p = unpack_fast_pair(fp);
+						int ind = p.first, k = p.second; // i --> k --> j
 						if (g.binaryProductions[ind].first == x) {
 							Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
 							Edge nxt2 = make_edge(k, g.binaryProductions[ind].second.second, j);
@@ -311,6 +367,7 @@ void test() {
 	gm.binaryProductions.push_back(make_pair(0, make_pair(1, 3)));
 	gm.binaryProductions.push_back(make_pair(3, make_pair(0, 2)));
 	gm.startSymbol = 0;
+	gm.fillInv();
 	/*
 	 *  1->(4)-10->(5)-2->
 	 *  |                 \    -1->
@@ -331,11 +388,8 @@ void test() {
 	gh.runCFLReachability(gm);
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 6; j++) {
-			if ((i == j) ||
-			    (i == 0 && j == 2) ||
-			    (i == 0 && j == 3) ||
-			    (i == 2 && j == 3) ||
-			    (i == 4 && j == 5)) {
+			if ((i == j) || (i == 0 && j == 2) || (i == 0 && j == 3) ||
+			    (i == 2 && j == 3) || (i == 4 && j == 5)) {
 				assert(gh.hasEdge(i, gm.startSymbol, j));
 			} else {
 				assert(!gh.hasEdge(i, gm.startSymbol, j));
@@ -419,10 +473,6 @@ pair<pair<int, int>, pair<string, int>> parseLine(string line) {
 	return make_pair(make_pair(v1, v2), make_pair(label.substr(0, 2), stoi(label.substr(4))));
 }
 
-// (([edge], (source, sink)), [grammar])
-// Vertices should be normalized (0, 1, ..., n - 1 (n >= 1)).
-// Symbols in grammars should be integers.
-// pay attention to the grammars' order
 pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname) {
 	ifstream in(fname); // This file will be automatically closed during the call of the destructor of "in".
 
@@ -507,11 +557,18 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 	};
 	fillDyck(gmp, 1, indp + 1, avlb);
 	fillDyck(gmb, indp + 1, indp + indb + 1, avlb);
+	gmp.fillInv();
+	gmb.fillInv();
 
 	vector<Edge> retEdges;
 	int ne = rawEdges.size();
 	for (int i = 0; i < ne; i++) {
 		retEdges.push_back(make_pair(nes[i], nls[i]));
+	}
+
+	if (ind > 999999 || avlb > 999999) {
+		cerr << "Error: The graph is too large." << endl;
+		exit(EXIT_FAILURE);
 	}
 
 	return make_pair(make_pair(retEdges, make_pair(0, ind - 1)), vector<Grammar> {gmp, gmb});
@@ -577,35 +634,6 @@ int main(int argc, char *argv[]) {
 		cout << "total: " << total << endl;
 		cout << "total1: " << total1 << endl;
 		cout << "total2: " << total2 << endl;
-		//int rounds = grammars.size(); // the number of CFLs that we want to intersect
-		///**/for (int se = 0; se < n; se++) {
-		///**/for (int sk = 0; sk < n; sk++) {
-		//cerr << "Source: " << se << " Sink: " << sk << endl;
-		//set<int> vertices; // the vertices that we want to consider in each round (TODO: consider changing this to a Boolean array?)
-		//for (int i = 0; i < n; i++) { // In the first round, we consider all vertices.
-		//	vertices.insert(i);
-		//}
-		//for (int r = 0; r < rounds; r++) {
-		//	// cerr << "Starting Round " << r << endl;
-		//	Graph gh(n);
-		//	for (auto &ijs : edges) { // We only include edges containing vertices that we want to consider.
-		//		if (vertices.count(ijs.first.first) == 1 &&
-		//		    vertices.count(ijs.first.second) == 1) {
-		//			gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
-		//		}
-		//	}
-		//	gh.runCFLReachability(grammars[r]);
-		//	vertices = gh.getCFLReachabilityClosure(se, sk, grammars[r]);
-		//	if (vertices.size() == 0) {
-		//		// cout << "Definitely Unreachable" << endl;
-		//		goto NX;
-		//	}
-		//}
-		//cout << "**********> Possibly Reachable " << se << "->" << sk << endl;
-//NX:
-		//;
-		///**/}
-		///**/}
 	}
 	return 0;
 }
