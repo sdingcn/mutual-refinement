@@ -8,6 +8,7 @@
 #include <cassert>
 #include <string>
 #include <algorithm>
+#include <chrono>
 
 using std::pair;
 using std::make_pair;
@@ -32,18 +33,26 @@ struct Grammar {
 	vector<pair<int, int>> unaryProductions;
 	vector<pair<int, pair<int, int>>> binaryProductions;
 	int startSymbol;
+	/*
 	void print() {
 		for (int e : emptyProductions) {
 			cerr << e << " -> " << 'e' << endl;
 		}
-		for (auto ab : unaryProductions) {
+		for (auto &ab : unaryProductions) {
 			cerr << ab.first << " -> " << ab.second << endl;
 		}
-		for (auto abc : binaryProductions) {
+		for (auto &abc : binaryProductions) {
 			cerr << abc.first << " -> " << abc.second.first << ' ' << abc.second.second << endl;
 		}
 	}
+	*/
 };
+
+using Edge = pair<pair<int, int>, int>; // ((first vertex, second vertex), label)
+
+Edge make_edge(int i, int x, int j) {
+	return make_pair(make_pair(i, j), x);
+}
 
 struct Graph {
 	int numberOfVertices;
@@ -94,21 +103,20 @@ struct Graph {
 	}
 
 	void runCFLReachability(const Grammar &g) {
-		deque<pair<pair<int, int>, int>> w; // ((first vertex, second vertex), label)
-		vector<pair<pair<int, int>, int>> negligibleEdges;
+		deque<Edge> w; // ((first vertex, second vertex), label)
+		vector<Edge> negligibleEdges;
 		for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist, and find out all negligible edges
 			for (auto &sj : adjacencyVector[i]) { // --s--> j
-				w.push_back(make_pair(make_pair(i, sj.second), sj.first));
-				if (g.terminals.count(sj.first) == 0 &&
-                                    g.nonterminals.count(sj.first) == 0) {
-					negligibleEdges.push_back(make_pair(make_pair(i, sj.second), sj.first));
+				w.push_back(make_edge(i, sj.first, sj.second));
+				if (g.terminals.count(sj.first) == 0) {
+					negligibleEdges.push_back(make_edge(i, sj.first, sj.second));
 				}
 			}
 		}
 		for (auto &e : negligibleEdges) { // add negligible edges to the edge set and the worklist
 			negligibleRecord[e.first.first][e.first.second].insert(e.second);
 			addEdge(e.first.first, g.startSymbol, e.first.second);
-			w.push_back(make_pair(make_pair(e.first.first, e.first.second), g.startSymbol));
+			w.push_back(make_edge(e.first.first, g.startSymbol, e.first.second));
 		}
 		int nep = g.emptyProductions.size();
 		int nup = g.unaryProductions.size();
@@ -117,11 +125,11 @@ struct Graph {
 			int x = g.emptyProductions[ind];
 			for (int i = 0; i < numberOfVertices; i++) {
 				addEdge(i, x, i);
-				w.push_back(make_pair(make_pair(i, i), x));
+				w.push_back(make_edge(i, x, i));
 			}
 		}
 		while (!w.empty()) {
-			auto e = w.front();
+			Edge e = w.front();
 			w.pop_front();
 
 			// i --y--> j
@@ -134,7 +142,7 @@ struct Graph {
 					unaryRecord[i][j].insert(ind);
 					if (!hasEdge(i, x, j)) {
 						addEdge(i, x, j);
-						w.push_back(make_pair(make_pair(i, j), x));
+						w.push_back(make_edge(i, x, j));
 					}
 				}
 			}
@@ -148,7 +156,7 @@ struct Graph {
 							binaryRecord[i][k].insert(make_pair(ind, j));
 							if (!hasEdge(i, x, k)) {
 								addEdge(i, x, k);
-								w.push_back(make_pair(make_pair(i, k), x)); 
+								w.push_back(make_edge(i, x, k)); 
 							}
 						}
 					}
@@ -161,7 +169,7 @@ struct Graph {
 							binaryRecord[k][j].insert(make_pair(ind, i));
 							if (!hasEdge(k, x, j)) {
 								addEdge(k, x, j);
-								w.push_back(make_pair(make_pair(k, j), x));
+								w.push_back(make_edge(k, x, j));
 							}
 						}
 					}
@@ -175,12 +183,11 @@ struct Graph {
 			return set<int>();
 		} else {
 			set<int> ret {i, j};
-			using State = pair<pair<int, int>, int>; // ((i, j), x) i --x--> j
-			State start = make_pair(make_pair(i, j), g.startSymbol);
-			set<State> vis {start};
-			deque<State> q {start};
+			Edge start = make_edge(i, g.startSymbol, j);
+			set<Edge> vis {start};
+			deque<Edge> q {start};
 			while (!q.empty()) { // BFS
-				State cur = q.front();
+				Edge cur = q.front();
 				q.pop_front();
 
 				// i --x--> j
@@ -189,7 +196,7 @@ struct Graph {
 				if (unaryRecord[i].count(j) == 1) {
 					for (int ind : unaryRecord[i].at(j)) {
 						if (g.unaryProductions[ind].first == x) {
-							State nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
+							Edge nxt = make_edge(i, g.unaryProductions[ind].second, j);
 							if (vis.count(nxt) == 0) {
 								vis.insert(nxt);
 								q.push_back(nxt);
@@ -202,8 +209,8 @@ struct Graph {
 						int ind = ind_k.first, k = ind_k.second; // i --> k --> j
 						if (g.binaryProductions[ind].first == x) {
 							ret.insert(k);
-							State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
-							State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
+							Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
+							Edge nxt2 = make_edge(k, g.binaryProductions[ind].second.second, j);
 							if (vis.count(nxt1) == 0) {
 								vis.insert(nxt1);
 								q.push_back(nxt1);
@@ -220,36 +227,40 @@ struct Graph {
 		}
 	}
 
-	set<pair<pair<int, int>, int>> getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
+	set<Edge> getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
 		if (!hasEdge(i, g.startSymbol, j)) {
-			return set<pair<pair<int, int>, int>>();
+			return set<Edge>();
 		} else {
-			set<pair<pair<int, int>, int>> ret;
-			using State = pair<pair<int, int>, int>; // ((i, j), x) i --x--> j
-			State start = make_pair(make_pair(i, j), g.startSymbol);
-			set<State> vis {start};
-			deque<State> q {start};
+			set<Edge> ret;
+			Edge start = make_edge(i, g.startSymbol, j);
+			set<Edge> vis {start};
+			deque<Edge> q {start};
 			while (!q.empty()) { // BFS
-				State cur = q.front();
+				Edge cur = q.front();
 				q.pop_front();
 
 				// i --x--> j
 				int i = cur.first.first, j = cur.first.second, x = cur.second;
-				if (g.terminals.count(x) == 1) {
-					ret.insert(make_pair(make_pair(i, j), x));
+				if (g.terminals.count(x) == 1 ||
+				   (g.terminals.count(x) == 0 && g.nonterminals.count(x) == 0)) {
+					ret.insert(make_edge(i, x, j));
 				}
 
 				if (negligibleRecord[i].count(j) == 1) {
 					if (x == g.startSymbol) {
 						for (int s : negligibleRecord[i].at(j)) {
-							ret.insert(make_pair(make_pair(i, j), s));
+							Edge nxt = make_edge(i, s, j);
+							if (vis.count(nxt) == 0) {
+								vis.insert(nxt);
+								q.push_back(nxt);
+							}
 						}
 					}
 				}
 				if (unaryRecord[i].count(j) == 1) {
 					for (int ind : unaryRecord[i].at(j)) {
 						if (g.unaryProductions[ind].first == x) {
-							State nxt = make_pair(make_pair(i, j), g.unaryProductions[ind].second);
+							Edge nxt = make_edge(i, g.unaryProductions[ind].second, j);
 							if (vis.count(nxt) == 0) {
 								vis.insert(nxt);
 								q.push_back(nxt);
@@ -261,8 +272,8 @@ struct Graph {
 					for (auto &ind_k : binaryRecord[i].at(j)) {
 						int ind = ind_k.first, k = ind_k.second; // i --> k --> j
 						if (g.binaryProductions[ind].first == x) {
-							State nxt1 = make_pair(make_pair(i, k), g.binaryProductions[ind].second.first);
-							State nxt2 = make_pair(make_pair(k, j), g.binaryProductions[ind].second.second);
+							Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
+							Edge nxt2 = make_edge(k, g.binaryProductions[ind].second.second, j);
 							if (vis.count(nxt1) == 0) {
 								vis.insert(nxt1);
 								q.push_back(nxt1);
@@ -331,17 +342,33 @@ void test() {
 			}
 		}
 	}
-	auto rc1 = gh.getCFLReachabilityVertexClosure(0, 2, gm);
-	assert(rc1.size() == 5);
-	assert(rc1.count(0) == 1);
-	assert(rc1.count(1) == 1);
-	assert(rc1.count(2) == 1);
-	assert(rc1.count(4) == 1);
-	assert(rc1.count(5) == 1);
-	auto rc2 = gh.getCFLReachabilityVertexClosure(2, 3, gm);
-	assert(rc2.size() == 2);
-	assert(rc2.count(2) == 1);
-	assert(rc2.count(3) == 1);
+	auto rvc1 = gh.getCFLReachabilityVertexClosure(0, 2, gm);
+	assert(rvc1.size() == 5);
+	assert(rvc1.count(0) == 1);
+	assert(rvc1.count(1) == 1);
+	assert(rvc1.count(2) == 1);
+	assert(rvc1.count(4) == 1);
+	assert(rvc1.count(5) == 1);
+	auto rvc2 = gh.getCFLReachabilityVertexClosure(2, 3, gm);
+	assert(rvc2.size() == 2);
+	assert(rvc2.count(2) == 1);
+	assert(rvc2.count(3) == 1);
+	auto rvc3 = gh.getCFLReachabilityVertexClosure(2, 2, gm);
+	assert(rvc3.size() == 1);
+	assert(rvc3.count(2) == 1);
+	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2, gm);
+	assert(rec1.size() == 5);
+	assert(rec1.count(make_edge(0, 1, 1)) == 1);
+	assert(rec1.count(make_edge(1, 2, 2)) == 1);
+	assert(rec1.count(make_edge(0, 1, 4)) == 1);
+	assert(rec1.count(make_edge(4, 10, 5)) == 1);
+	assert(rec1.count(make_edge(5, 2, 2)) == 1);
+	auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3, gm);
+	assert(rec2.size() == 2);
+	assert(rec2.count(make_edge(2, 1, 2)) == 1);
+	assert(rec2.count(make_edge(2, 2, 3)) == 1);
+	auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2, gm);
+	assert(rec3.size() == 0);
 }
 
 bool isEdgeLine(const string &line) {
@@ -353,7 +380,7 @@ bool isEdgeLine(const string &line) {
 	return false;
 }
 
-pair<pair<int, int>, string> parseLine(string line) {
+pair<pair<int, int>, pair<string, int>> parseLine(string line) {
 	int v1, v2;
 	string label;
 	reverse(line.begin(), line.end());
@@ -389,31 +416,22 @@ pair<pair<int, int>, string> parseLine(string line) {
 		buffer.push_back(line.back());
 		line.pop_back();
 	}
-	return make_pair(make_pair(v1, v2), label);
+	return make_pair(make_pair(v1, v2), make_pair(label.substr(0, 2), stoi(label.substr(4))));
 }
-
-pair<string, int> parseLabel(const string &label) {
-	return make_pair(label.substr(0, 2), stoi(label.substr(4)));
-}
-
-using Edge = pair<pair<int, int>, int>;
 
 // (([edge], (source, sink)), [grammar])
 // Vertices should be normalized (0, 1, ..., n - 1 (n >= 1)).
-// Symbols in grammars are should be integers.
+// Symbols in grammars should be integers.
 // pay attention to the grammars' order
 pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname) {
-	ifstream in(fname); // automatically being closed after leaving this function
+	ifstream in(fname); // This file will be automatically closed during the call of the destructor of "in".
 
 	// read raw edges
 	string line;
 	vector<pair<pair<int, int>, pair<string, int>>> rawEdges;
 	while (getline(in, line)) {
 		if (isEdgeLine(line)) {
-			auto ijl = parseLine(line);
-			auto tn = parseLabel(ijl.second);
-			rawEdges.push_back(make_pair(make_pair(ijl.first.first, ijl.first.second),
-                                                     make_pair(tn.first, tn.second)));
+			rawEdges.push_back(parseLine(line));
 		}
 	}
 
@@ -423,14 +441,15 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 		m[ijtn.first.first] = 0;
 		m[ijtn.first.second] = 0;
 	}
-	int ind = 0;
-	for (auto &p : m) {
-		p.second = ind++;
+	int ind = 0; // number of vertices
+	for (auto &pr : m) {
+		pr.second = ind++;
 	}
 	vector<pair<int, int>> nes;
 	for (auto &ijtn : rawEdges) {
 		nes.push_back(make_pair(m[ijtn.first.first], m[ijtn.first.second]));
 	}
+	// vertices: [0, ind - 1]
 
 	// normalize labels
 	map<int, int> mp;
@@ -445,11 +464,11 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 	}
 	int indp = 0; // number of types of parentheses
 	for (auto &pr : mp) {
-		pr.second = indp++;
+		pr.second = ++indp; // avoid 0 here, since later we want both x and -x
 	}
 	int indb = 0; // number of types of brackets
 	for (auto &pr : mb) {
-		pr.second = indb++;
+		pr.second = ++indb;
 	}
 	vector<int> nls;
 	for (auto &ijtn : rawEdges) {
@@ -463,10 +482,12 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 			nls.push_back(-(indp + mb[ijtn.second.second]));
 		}
 	}
+	// [-indp - indb, -indp - 1] [-indp, -1] [1, indp] [indp + 1, indp + indb]
 
-	int avlb = indp + indb + 10;
+	int avlb = indp + indb + 10; // the next available number
 	Grammar gmp, gmb;
-	auto fillDyck = [](Grammar &gm, int bg, int ed, int &avlb) -> void {
+	auto fillDyck = [](Grammar &gm, int bg /* open parenthesis number begin */,
+			                int ed /* open parenthesis number end */, int &avlb) -> void {
 		// (-ed, -bg] [bg, ed) ... [avlb, avlb + 1) [avlb + 1, avlb + 1 + ed - bg)
 		for (int i = bg; i < ed; i++) {
 			gm.terminals.insert(i);
@@ -484,13 +505,15 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 		gm.startSymbol = avlb;
 		avlb = avlb + 1 + ed - bg;
 	};
-	fillDyck(gmp, 0, indp, avlb);
-	fillDyck(gmb, indp, indp + indb, avlb);
+	fillDyck(gmp, 1, indp + 1, avlb);
+	fillDyck(gmb, indp + 1, indp + indb + 1, avlb);
+
 	vector<Edge> retEdges;
-	int N = nes.size();
-	for (int i = 0; i < N; i++) {
+	int ne = rawEdges.size();
+	for (int i = 0; i < ne; i++) {
 		retEdges.push_back(make_pair(nes[i], nls[i]));
 	}
+
 	return make_pair(make_pair(retEdges, make_pair(0, ind - 1)), vector<Grammar> {gmp, gmb});
 }
 
@@ -498,39 +521,46 @@ int main(int argc, char *argv[]) {
 	if (argc == 1) {
 		test();
 	} else {
+		// retrieve data
 		pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> data = readFile(argv[1]);
 		vector<Edge> &edges = data.first.first;
 		vector<Grammar> &grammars = data.second;
 		int n = data.first.second.second + 1;
-		Graph ghp(n);
+
+		// construct graphs
+		Graph gh1(n);
 		for (auto &ijs : edges) {
-			ghp.addEdge(ijs.first.first, ijs.second, ijs.first.second);
+			gh1.addEdge(ijs.first.first, ijs.second, ijs.first.second);
 		}
-		Graph ghb = ghp;
+		Graph gh2 = gh1;
+
+		// run CFL reachability
 		cout << ">>> Running CFL Reachability" << endl;
-		ghp.runCFLReachability(grammars[0]);
-		ghb.runCFLReachability(grammars[1]);
-		cout << ">>> CFL Reachability Done" << endl;
-		// int totalCP = 0;
-		// int totalCB = 0;
+		auto start = std::chrono::steady_clock::now();
+		gh1.runCFLReachability(grammars[0]);
+		gh2.runCFLReachability(grammars[1]);
+		auto end = std::chrono::steady_clock::now();
+		std::chrono::duration<double> elapsed_seconds = end - start;
+		cout << ">>> CFL Reachability Done. Time (Seconds): " << elapsed_seconds.count() << endl;
+
+		// main query loop
 		int total = 0;
+		int total1 = 0;
+		int total2 = 0;
 		for (int source = 0; source < n; source++) {
 			cout << ">>> Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
-				auto cp = ghp.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
-				auto cb = ghb.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
-				// cout << cp.size() << ' ' << cb.size() << endl;
-				/*
-				if (cp.size() > 0) {
-					totalCP++;
+				if (gh1.hasEdge(source, grammars[0].startSymbol, sink)) {
+					total1++;
 				}
-				if (cb.size() > 0) {
-					totalCB++;
+				if (gh2.hasEdge(source, grammars[1].startSymbol, sink)) {
+					total2++;
 				}
-				*/
+				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
+				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
 				set<pair<pair<int, int>, int>> c;
-				for (auto e : cp) {
-					if (cb.count(e) == 1) {
+				for (auto e : c1) {
+					if (c2.count(e) == 1) {
 						c.insert(e);
 					}
 				}
@@ -538,22 +568,14 @@ int main(int argc, char *argv[]) {
 				for (auto &ijs : c) {
 					gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
 				}
-				/*
-				for (auto &ijs : edges) {
-					if (c.count(ijs.first.first) == 1 &&
-					    c.count(ijs.first.second) == 1) {
-						gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
-					}
-				}
-				*/
 				if (gh.runPureReachability(source, sink)) {
 					total++;
 				}
 			}
 		}
-		// cout << "totalCP: " << totalCP << endl;
-		// cout << "totalCB: " << totalCB << endl;
 		cout << "total: " << total << endl;
+		cout << "total1: " << total1 << endl;
+		cout << "total2: " << total2 << endl;
 		//int rounds = grammars.size(); // the number of CFLs that we want to intersect
 		///**/for (int se = 0; se < n; se++) {
 		///**/for (int sk = 0; sk < n; sk++) {
