@@ -162,6 +162,7 @@ struct Graph {
 	}
 
 	void runCFLReachability(const Grammar &g) {
+		// TODO: try to use the metainfo to ignore edges?
 		deque<Edge> w; // ((first vertex, second vertex), label)
 		vector<Edge> negligibleEdges;
 		for (int i = 0; i < numberOfVertices; i++) { // add all non-negligible edges to the worklist, and find out all negligible edges
@@ -287,6 +288,7 @@ struct Graph {
 	}
 	*/
 
+	// TODO: precision?
 	set<Edge> getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
 		set<Edge> closure;
 		set<Edge> vis;
