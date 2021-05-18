@@ -481,8 +481,20 @@ pair<pair<int, int>, pair<string, int>> parseLine(string line) {
 	return make_pair(make_pair(v1, v2), make_pair(label.substr(0, 2), stoi(label.substr(4))));
 }
 
+map<int, int> normalizeNumbers(int start, const vector<int> &numbers) {
+	map<int, int> m;
+	for (int n : numbers) {
+		m[n] = 0;
+	}
+	int i = start;
+	for (auto &pr : m) {
+		pr.second = i++;
+	}
+	return m;
+}
+
 pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname) {
-	ifstream in(fname); // This file will be automatically closed during the call of the destructor of "in".
+	ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges
 	string line;
@@ -493,93 +505,87 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 		}
 	}
 
+	// vertices
+	// 0, 1, ..., n - 1
+
 	// normalize vertices
-	map<int, int> m;
+	vector<int> v;
 	for (auto &ijtn : rawEdges) {
-		m[ijtn.first.first] = 0;
-		m[ijtn.first.second] = 0;
+		v.push_back(ijtn.first.first);
+		v.push_back(ijtn.first.second);
 	}
-	int ind = 0; // number of vertices
-	for (auto &pr : m) {
-		pr.second = ind++;
-	}
-	vector<pair<int, int>> nes;
-	for (auto &ijtn : rawEdges) {
-		nes.push_back(make_pair(m[ijtn.first.first], m[ijtn.first.second]));
-	}
-	// vertices: [0, ind - 1]
+	auto nv_map = normalizeNumbers(0, v);
+	int n = nv_map.size();
+
+	// symbols
+	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]    [ first Dyck's nonterminals    ]    [ second Dyck's nonterminals   ]
+	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2    D, D_1, D_2, D_3, D_4, ..., D_n1    E, E_1, E_2, E_3, E_4, ..., E_n2
 
 	// normalize labels
-	map<int, int> mp;
-	map<int, int> mb;
+	vector<int> p;
+	vector<int> b;
 	for (auto &ijtn : rawEdges) {
-		if (ijtn.second.first == "op" ||
-                    ijtn.second.first == "cp") {
-			mp[ijtn.second.second] = 0;
+		if (ijtn.second.first == "op" || ijtn.second.first == "cp") {
+			p.push_back(ijtn.second.second);
 		} else {
-			mb[ijtn.second.second] = 0;
+			b.push_back(ijtn.second.second);
 		}
 	}
-	int indp = 0; // number of types of parentheses
-	for (auto &pr : mp) {
-		pr.second = ++indp; // avoid 0 here, since later we want both x and -x
-	}
-	int indb = 0; // number of types of brackets
-	for (auto &pr : mb) {
-		pr.second = ++indb;
-	}
-	vector<int> nls;
-	for (auto &ijtn : rawEdges) {
-		if (ijtn.second.first == "op") {
-			nls.push_back(mp[ijtn.second.second]);
-		} else if (ijtn.second.first == "cp") {
-			nls.push_back(-mp[ijtn.second.second]);
-		} else if (ijtn.second.first == "ob") {
-			nls.push_back(indp + mb[ijtn.second.second]);
-		} else {
-			nls.push_back(-(indp + mb[ijtn.second.second]));
-		}
-	}
-	// [-indp - indb, -indp - 1] [-indp, -1] [1, indp] [indp + 1, indp + indb]
+	auto np_map = normalizeNumbers(0, p);
+	int n1 = np_map.size();
+	auto nb_map = normalizeNumbers(2 * n1, b);
+	int n2 = nb_map.size();
 
-	int avlb = indp + indb + 10; // the next available number
+	int start = 2 * n1 + 2 * n2 - 1;
 	Grammar gmp, gmb;
-	auto fillDyck = [](Grammar &gm, int bg /* open parenthesis number begin */,
-			                int ed /* open parenthesis number end */, int &avlb) -> void {
-		// (-ed, -bg] [bg, ed) ... [avlb, avlb + 1) [avlb + 1, avlb + 1 + ed - bg)
-		for (int i = bg; i < ed; i++) {
+	auto fillDyck = [](Grammar &gm, int op_begin, int n, int start) -> void {
+		for (int i = op_begin; i < op_begin + 2 * n; i++) {
 			gm.terminals.insert(i);
-			gm.terminals.insert(-i);
 		}
-		for (int i = avlb; i < avlb + 1 + ed - bg; i++) {
-			gm.nonterminals.insert(i);
+		for (int i = start; i <= start + n; i++) {
+			gm.terminals.insert(i);
 		}
-		gm.emptyProductions.push_back(avlb);
-		gm.binaryProductions.push_back(make_pair(avlb, make_pair(avlb, avlb)));
-		for (int i = bg; i < ed; i++) {
-			gm.binaryProductions.push_back(make_pair(avlb, make_pair(i, i - bg + avlb + 1)));
-			gm.binaryProductions.push_back(make_pair(i - bg + avlb + 1, make_pair(avlb, -i)));
+		gm.emptyProductions.push_back(start);
+		gm.binaryProductions.push_back(make_pair(start, make_pair(start, start)));
+		for (int i = 0; i < n; i++) {
+			gm.binaryProductions.push_back(make_pair(start, make_pair(op_begin + i, start + 1 + i)));
+			gm.binaryProductions.push_back(make_pair(start + 1 + i, make_pair(start, op_begin + n + i)));
 		}
-		gm.startSymbol = avlb;
-		avlb = avlb + 1 + ed - bg;
+		gm.startSymbol = start;
 	};
-	fillDyck(gmp, 1, indp + 1, avlb);
-	fillDyck(gmb, indp + 1, indp + indb + 1, avlb);
+	fillDyck(gmp, 0, n1, 2 * n1 + 2 * n2);
+	fillDyck(gmb, 2 * n1, n2, 2 * n1 + 2 * n2 + n1 + 1);
 	gmp.fillInv();
 	gmb.fillInv();
 
-	vector<Edge> retEdges;
-	int ne = rawEdges.size();
-	for (int i = 0; i < ne; i++) {
-		retEdges.push_back(make_pair(nes[i], nls[i]));
-	}
-
-	if (ind >= FP_MASK || avlb >= FP_MASK) {
-		cerr << "Error: The graph is too large." << endl;
+	if (n >= FP_MASK) {
+		cerr << "Error: The graph contains too many nodes." << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	return make_pair(make_pair(retEdges, make_pair(0, ind - 1)), vector<Grammar> {gmp, gmb});
+	if (2 * n1 + 2 * n2 + n1 + 1 + n2 + 1 >= FP_MASK) {
+		cerr << "Error: The grammar contains too many symbols." << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	vector<Edge> edges;
+	for (auto &ijtn : rawEdges) {
+		string t = ijtn.second.first;
+		int n = ijtn.second.second;
+		int sym;
+		if (t == "op") {
+			sym = np_map[n];
+		} else if (t == "cp") {
+			sym = np_map[n] + n1;
+		} else if (t == "ob") {
+			sym = nb_map[n];
+		} else {
+			sym = nb_map[n] + n2;
+		}
+		edges.push_back(make_edge(nv_map[ijtn.first.first], sym, nv_map[ijtn.first.second]));
+	}
+
+	return make_pair(make_pair(edges, make_pair(0, n - 1)), vector<Grammar> {gmp, gmb});
 }
 
 int main(int argc, char *argv[]) {
@@ -612,14 +618,20 @@ int main(int argc, char *argv[]) {
 		int total = 0;
 		int total1 = 0;
 		int total2 = 0;
+		int total3 = 0;
 		for (int source = 0; source < n; source++) {
 			cout << ">>> Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
-				if (gh1.hasEdge(source, grammars[0].startSymbol, sink)) {
+				bool reach1 = gh1.hasEdge(source, grammars[0].startSymbol, sink);
+				bool reach2 = gh2.hasEdge(source, grammars[1].startSymbol, sink);
+				if (reach1) {
 					total1++;
 				}
-				if (gh2.hasEdge(source, grammars[1].startSymbol, sink)) {
+				if (reach2) {
 					total2++;
+				}
+				if (reach1 && reach2) {
+					total3++;
 				}
 				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
 				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
@@ -641,6 +653,7 @@ int main(int argc, char *argv[]) {
 		cout << "total: " << total << endl;
 		cout << "total1: " << total1 << endl;
 		cout << "total2: " << total2 << endl;
+		cout << "total3: " << total3 << endl;
 	}
 	return 0;
 }
