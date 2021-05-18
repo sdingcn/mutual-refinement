@@ -39,6 +39,7 @@ struct Grammar {
 	vector<pair<int, int>> unaryProductions;
 	vector<pair<int, pair<int, int>>> binaryProductions;
 	int startSymbol;
+	// TODO: change to a table
 	unordered_map<int, vector<int>> unaryProductionsInv; // right hand side symbol -> {corresponding indices in unaryProductions}
 	unordered_map<int, vector<int>> binaryProductionsFirstInv; // right hand side symbol 1 -> {corresponding indices in binaryProductions}
 	unordered_map<int, vector<int>> binaryProductionsSecondInv; // right hand side symbol 2 -> {corresponding indices in binaryProductions}
