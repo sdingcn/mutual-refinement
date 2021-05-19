@@ -626,6 +626,7 @@ int main(int argc, char *argv[]) {
 		int totalCFL2 = 0;
 		int totalCFLBoolean = 0;
 		int totalEC = 0;
+		int totalECFix = 0;
 		for (int source = 0; source < n; source++) {
 			cout << ">>> [main] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
@@ -639,61 +640,45 @@ int main(int argc, char *argv[]) {
 				}
 				if (reach1 && reach2) {
 					totalCFLBoolean++;
-				}
-				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
-				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
-				set<Edge> c;
-				for (auto &e : c1) {
-					if (c2.count(e) == 1) {
-						c.insert(e);
+					
+					// EC
+					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
+					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
+					set<Edge> c;
+					for (auto &e : c1) {
+						if (c2.count(e) == 1) {
+							c.insert(e);
+						}
 					}
-				}
-				Graph gh(n);
-				gh.fillEdges(c);
-				if (gh.runPureReachability(source, sink)) {
-					totalEC++;
-				}
-			}
-		}
-
-		// fixpoint algorithm
-		int totalECFix = 0;
-		for (int source = 0; source < n; source++) {
-			cout << ">>> [fix] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
-			for (int sink = 0; sink < n; sink++) {
-				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
-				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
-				set<Edge> es;
-				for (auto &e : c1) {
-					if (c2.count(e) == 1) {
-						es.insert(e);
-					}
-				}
-				// bool first = true;
-				while (true) {
 					Graph gh(n);
-					gh.fillEdges(es);
-					gh.runCFLReachability(grammars[0]);
-					if (!(gh.hasEdge(source, grammars[0].startSymbol, sink))) {
-						break;
+					gh.fillEdges(c);
+					if (gh.runPureReachability(source, sink)) {
+						totalEC++;
 					}
-					auto c1 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
-					// if (first) {
-					// 	first = false;
-					// 	cerr << es.size() << ' ' << c1.size() << endl;
-					// }
-					gh = Graph(n);
-					gh.fillEdges(c1);
-					gh.runCFLReachability(grammars[1]);
-					if (!(gh.hasEdge(source, grammars[1].startSymbol, sink))) {
-						break;
-					}
-					auto c2 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
-					if (c2.size() == es.size()) {
-						totalECFix++;
-						break;
-					} else {
-						es = c2;
+
+					// ECFix
+					set<Edge> es = c;
+					while (true) {
+						Graph gh(n);
+						gh.fillEdges(es);
+						gh.runCFLReachability(grammars[0]);
+						if (!(gh.hasEdge(source, grammars[0].startSymbol, sink))) {
+							break;
+						}
+						auto c1 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
+						gh = Graph(n);
+						gh.fillEdges(c1);
+						gh.runCFLReachability(grammars[1]);
+						if (!(gh.hasEdge(source, grammars[1].startSymbol, sink))) {
+							break;
+						}
+						auto c2 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
+						if (c2.size() == es.size()) {
+							totalECFix++;
+							break;
+						} else {
+							es = c2;
+						}
 					}
 				}
 			}
