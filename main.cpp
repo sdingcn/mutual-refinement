@@ -39,23 +39,15 @@ struct Grammar {
 	vector<pair<int, int>> unaryProductions;
 	vector<pair<int, pair<int, int>>> binaryProductions;
 	int startSymbol;
-	// TODO: change to a table
-	unordered_map<int, vector<int>> unaryProductionsInv; // right hand side symbol -> {corresponding indices in unaryProductions}
-	unordered_map<int, vector<int>> binaryProductionsFirstInv; // right hand side symbol 1 -> {corresponding indices in binaryProductions}
-	unordered_map<int, vector<int>> binaryProductionsSecondInv; // right hand side symbol 2 -> {corresponding indices in binaryProductions}
-	void fillInv() {
+	vector<vector<int>> unaryProductionsInv; // right hand side symbol -> {corresponding indices in unaryProductions}
+	vector<vector<int>> binaryProductionsFirstInv; // right hand side symbol 1 -> {corresponding indices in binaryProductions}
+	vector<vector<int>> binaryProductionsSecondInv; // right hand side symbol 2 -> {corresponding indices in binaryProductions}
+	void fillInv(int total) {
+		unaryProductionsInv = vector<vector<int>>(total);
+		binaryProductionsFirstInv = vector<vector<int>>(total);
+		binaryProductionsSecondInv = vector<vector<int>>(total);
 		int nu = unaryProductions.size();
 		int nb = binaryProductions.size();
-		for (int t : terminals) {
-			unaryProductionsInv[t] = vector<int>();
-			binaryProductionsFirstInv[t] = vector<int>();
-			binaryProductionsSecondInv[t] = vector<int>();
-		}
-		for (int nt : nonterminals) {
-			unaryProductionsInv[nt] = vector<int>();
-			binaryProductionsFirstInv[nt] = vector<int>();
-			binaryProductionsSecondInv[nt] = vector<int>();
-		}
 		for (int t : terminals) {
 			for (int i = 0; i < nu; i++) {
 				if (unaryProductions[i].second == t) {
@@ -196,7 +188,7 @@ struct Graph {
 			// i --y--> j
 			int i = e.first.first, j = e.first.second, y = e.second;
 
-			for (int ind : g.unaryProductionsInv.at(y)) { // x -> y
+			for (int ind : g.unaryProductionsInv[y]) { // x -> y
 				auto &p = g.unaryProductions[ind];
 				int x = p.first;
 				unaryRecord[i][j].insert(ind);
@@ -205,7 +197,7 @@ struct Graph {
 					w.push_back(make_edge(i, x, j));
 				}
 			}
-			for (int ind : g.binaryProductionsFirstInv.at(y)) { // x -> yz
+			for (int ind : g.binaryProductionsFirstInv[y]) { // x -> yz
 				auto &p = g.binaryProductions[ind];
 				int x = p.first, z = p.second.second;
 				for (auto &sk : adjacencyVector[j]) { // --s--> k
@@ -219,7 +211,7 @@ struct Graph {
 					}
 				}
 			}
-			for (int ind : g.binaryProductionsSecondInv.at(y)) { // x -> zy
+			for (int ind : g.binaryProductionsSecondInv[y]) { // x -> zy
 				auto &p = g.binaryProductions[ind];
 				int x = p.first, z = p.second.first;
 				for (auto &ks : counterAdjacencyVector[i]) {
@@ -373,7 +365,7 @@ void test() {
 	gm.binaryProductions.push_back(make_pair(0, make_pair(1, 3)));
 	gm.binaryProductions.push_back(make_pair(3, make_pair(0, 2)));
 	gm.startSymbol = 0;
-	gm.fillInv();
+	gm.fillInv(11);
 	/*
 	 *  1->(4)-10->(5)-2->
 	 *  |                 \    -1->
@@ -555,15 +547,16 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 	};
 	fillDyck(gmp, 0, n1, 2 * n1 + 2 * n2);
 	fillDyck(gmb, 2 * n1, n2, 2 * n1 + 2 * n2 + n1 + 1);
-	gmp.fillInv();
-	gmb.fillInv();
+	int total = 2 * n1 + 2 * n2 + n1 + 1 + n2 + 1;
+	gmp.fillInv(total);
+	gmb.fillInv(total);
 
-	if (n >= FP_MASK) {
+	if (n > FP_MASK) {
 		cerr << "Error: The graph contains too many nodes." << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	if (2 * n1 + 2 * n2 + n1 + 1 + n2 + 1 >= FP_MASK) {
+	if (total > FP_MASK) {
 		cerr << "Error: The grammar contains too many symbols." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -613,6 +606,10 @@ int main(int argc, char *argv[]) {
 		auto end = std::chrono::steady_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end - start;
 		cout << ">>> CFL Reachability Done. Time (Seconds): " << elapsed_seconds.count() << endl;
+
+		if (argc == 3) {
+			return 0;
+		}
 
 		// main query loop
 		int total = 0;
