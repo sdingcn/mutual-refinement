@@ -636,20 +636,19 @@ int main(int argc, char *argv[]) {
 					// EC
 					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
 					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
-					set<Edge> c;
+					set<Edge> es;
 					for (auto &e : c1) {
 						if (c2.count(e) == 1) {
-							c.insert(e);
+							es.insert(e);
 						}
 					}
 					Graph gh(n);
-					gh.fillEdges(c);
+					gh.fillEdges(es);
 					if (gh.runPureReachability(source, sink)) {
 						totalEC++;
 					}
 
 					// ECFix
-					set<Edge> es = c;
 					while (true) {
 						Graph gh(n);
 						gh.fillEdges(es);
