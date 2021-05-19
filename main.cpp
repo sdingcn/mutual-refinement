@@ -594,6 +594,7 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 }
 
 int main(int argc, char *argv[]) {
+	auto start = std::chrono::steady_clock::now();
 	if (argc == 1) {
 		test();
 	} else {
@@ -608,18 +609,9 @@ int main(int argc, char *argv[]) {
 		gh1.fillEdges(edges);
 		Graph gh2 = gh1;
 
-		// run CFL reachability
-		// cout << ">>> Running CFL Reachability" << endl;
-		// auto start = std::chrono::steady_clock::now();
+		// first run of CFL reachability
 		gh1.runCFLReachability(grammars[0]);
 		gh2.runCFLReachability(grammars[1]);
-		// auto end = std::chrono::steady_clock::now();
-		// std::chrono::duration<double> elapsed_seconds = end - start;
-		// cout << ">>> CFL Reachability Done. Time (Seconds): " << elapsed_seconds.count() << endl;
-
-		// if (argc == 3) {
-		// 	return 0;
-		// }
 
 		// main query loop
 		int totalCFL1 = 0;
@@ -690,5 +682,8 @@ int main(int argc, char *argv[]) {
 		cout << "totalEC: " << totalEC << endl;
 		cout << "totalECFix: " << totalECFix << endl;
 	}
+	auto end = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
+	cout << "Total Time (Seconds): " << elapsed_seconds.count() << endl;
 	return 0;
 }
