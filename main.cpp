@@ -657,15 +657,18 @@ int main(int argc, char *argv[]) {
 		}
 
 		// fixpoint algorithm
-		set<Edge> edgeSet;
-		for (auto &e : edges) {
-			edgeSet.insert(e);
-		}
 		int totalECFix = 0;
 		for (int source = 0; source < n; source++) {
 			cout << ">>> [fix] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
-				set<Edge> es = edgeSet;
+				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
+				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
+				set<Edge> es;
+				for (auto &e : c1) {
+					if (c2.count(e) == 1) {
+						es.insert(e);
+					}
+				}
 				// bool first = true;
 				while (true) {
 					Graph gh(n);
