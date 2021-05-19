@@ -666,6 +666,7 @@ int main(int argc, char *argv[]) {
 			cout << ">>> [fix] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
 				set<Edge> es = edgeSet;
+				// bool first = true;
 				while (true) {
 					Graph gh(n);
 					gh.fillEdges(es);
@@ -674,6 +675,10 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 					auto c1 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
+					// if (first) {
+					// 	first = false;
+					// 	cerr << es.size() << ' ' << c1.size() << endl;
+					// }
 					gh = Graph(n);
 					gh.fillEdges(c1);
 					gh.runCFLReachability(grammars[1]);
