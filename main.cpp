@@ -128,6 +128,18 @@ struct Graph {
 		counterAdjacencyVector[j].push_back(make_pair(i, x));
 	}
 
+	void fillEdges(const vector<Edge> &edges) {
+		for (auto &ijs : edges) {
+			addEdge(ijs.first.first, ijs.second, ijs.first.second);
+		}
+	}
+
+	void fillEdges(const set<Edge> &edges) {
+		for (auto &ijs : edges) {
+			addEdge(ijs.first.first, ijs.second, ijs.first.second);
+		}
+	}
+
 	bool hasEdge(int i, int x, int j) const {
 		return fastEdgeTest[i].count(make_fast_pair(x, j)) == 1;
 	}
@@ -535,7 +547,7 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 			gm.terminals.insert(i);
 		}
 		for (int i = start; i <= start + n; i++) {
-			gm.terminals.insert(i);
+			gm.nonterminals.insert(i);
 		}
 		gm.emptyProductions.push_back(start);
 		gm.binaryProductions.push_back(make_pair(start, make_pair(start, start)));
@@ -586,16 +598,14 @@ int main(int argc, char *argv[]) {
 		test();
 	} else {
 		// retrieve data
-		pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> data = readFile(argv[1]);
-		vector<Edge> &edges = data.first.first;
-		vector<Grammar> &grammars = data.second;
-		int n = data.first.second.second + 1;
+		const pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> data = readFile(argv[1]);
+		const vector<Edge> &edges = data.first.first;
+		const vector<Grammar> &grammars = data.second;
+		const int n = data.first.second.second + 1;
 
 		// construct graphs
 		Graph gh1(n);
-		for (auto &ijs : edges) {
-			gh1.addEdge(ijs.first.first, ijs.second, ijs.first.second);
-		}
+		gh1.fillEdges(edges);
 		Graph gh2 = gh1;
 
 		// run CFL reachability
@@ -612,23 +622,23 @@ int main(int argc, char *argv[]) {
 		}
 
 		// main query loop
-		int total = 0;
-		int total1 = 0;
-		int total2 = 0;
-		int total3 = 0;
+		int totalCFL1 = 0;
+		int totalCFL2 = 0;
+		int totalCFLBoolean = 0;
+		int totalEC = 0;
 		for (int source = 0; source < n; source++) {
-			cout << ">>> Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
+			cout << ">>> [main] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
 				bool reach1 = gh1.hasEdge(source, grammars[0].startSymbol, sink);
 				bool reach2 = gh2.hasEdge(source, grammars[1].startSymbol, sink);
 				if (reach1) {
-					total1++;
+					totalCFL1++;
 				}
 				if (reach2) {
-					total2++;
+					totalCFL2++;
 				}
 				if (reach1 && reach2) {
-					total3++;
+					totalCFLBoolean++;
 				}
 				auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
 				auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
@@ -639,18 +649,53 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				Graph gh(n);
-				for (auto &ijs : c) {
-					gh.addEdge(ijs.first.first, ijs.second, ijs.first.second);
-				}
+				gh.fillEdges(c);
 				if (gh.runPureReachability(source, sink)) {
-					total++;
+					totalEC++;
 				}
 			}
 		}
-		cout << "total: " << total << endl;
-		cout << "total1: " << total1 << endl;
-		cout << "total2: " << total2 << endl;
-		cout << "total3: " << total3 << endl;
+
+		// fixpoint algorithm
+		int totalECFix = 0;
+		for (int source = 0; source < n; source++) {
+			cout << ">>> [fix] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
+			for (int sink = 0; sink < n; sink++) {
+				set<Edge> es;
+				for (auto &e : edges) {
+					es.insert(e);
+				}
+				while (true) {
+					Graph gh(n);
+					gh.fillEdges(es);
+					gh.runCFLReachability(grammars[0]);
+					if (!(gh.hasEdge(source, grammars[0].startSymbol, sink))) {
+						break;
+					}
+					auto c1 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
+					gh = Graph(n);
+					gh.fillEdges(c1);
+					gh.runCFLReachability(grammars[1]);
+					if (!(gh.hasEdge(source, grammars[1].startSymbol, sink))) {
+						break;
+					}
+					auto c2 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
+					if (c2.size() == es.size()) {
+						totalECFix++;
+						break;
+					} else {
+						es = c2;
+					}
+				}
+			}
+		}
+		
+		cout << "totalCFL1: " << totalCFL1 << endl;
+		cout << "totalCFL2: " << totalCFL2 << endl;
+		cout << "totalCFLBoolean: " << totalCFLBoolean << endl;
+		cout << "totalEC: " << totalEC << endl;
+		cout << "totalECFix: " << totalECFix << endl;
+
 	}
 	return 0;
 }
