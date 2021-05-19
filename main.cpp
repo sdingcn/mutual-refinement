@@ -609,17 +609,17 @@ int main(int argc, char *argv[]) {
 		Graph gh2 = gh1;
 
 		// run CFL reachability
-		cout << ">>> Running CFL Reachability" << endl;
-		auto start = std::chrono::steady_clock::now();
+		// cout << ">>> Running CFL Reachability" << endl;
+		// auto start = std::chrono::steady_clock::now();
 		gh1.runCFLReachability(grammars[0]);
 		gh2.runCFLReachability(grammars[1]);
-		auto end = std::chrono::steady_clock::now();
-		std::chrono::duration<double> elapsed_seconds = end - start;
-		cout << ">>> CFL Reachability Done. Time (Seconds): " << elapsed_seconds.count() << endl;
+		// auto end = std::chrono::steady_clock::now();
+		// std::chrono::duration<double> elapsed_seconds = end - start;
+		// cout << ">>> CFL Reachability Done. Time (Seconds): " << elapsed_seconds.count() << endl;
 
-		if (argc == 3) {
-			return 0;
-		}
+		// if (argc == 3) {
+		// 	return 0;
+		// }
 
 		// main query loop
 		int totalCFL1 = 0;
@@ -657,14 +657,15 @@ int main(int argc, char *argv[]) {
 		}
 
 		// fixpoint algorithm
+		set<Edge> edgeSet;
+		for (auto &e : edges) {
+			edgeSet.insert(e);
+		}
 		int totalECFix = 0;
 		for (int source = 0; source < n; source++) {
 			cout << ">>> [fix] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
 			for (int sink = 0; sink < n; sink++) {
-				set<Edge> es;
-				for (auto &e : edges) {
-					es.insert(e);
-				}
+				set<Edge> es = edgeSet;
 				while (true) {
 					Graph gh(n);
 					gh.fillEdges(es);
@@ -695,7 +696,6 @@ int main(int argc, char *argv[]) {
 		cout << "totalCFLBoolean: " << totalCFLBoolean << endl;
 		cout << "totalEC: " << totalEC << endl;
 		cout << "totalECFix: " << totalECFix << endl;
-
 	}
 	return 0;
 }
