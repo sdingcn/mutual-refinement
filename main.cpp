@@ -48,35 +48,12 @@ struct Grammar {
 		binaryProductionsSecondInv = vector<vector<int>>(total);
 		int nu = unaryProductions.size();
 		int nb = binaryProductions.size();
-		for (int t : terminals) {
-			for (int i = 0; i < nu; i++) {
-				if (unaryProductions[i].second == t) {
-					unaryProductionsInv[t].push_back(i);
-				}
-			}
-			for (int i = 0; i < nb; i++) {
-				if (binaryProductions[i].second.first == t) {
-					binaryProductionsFirstInv[t].push_back(i);
-				}
-				if (binaryProductions[i].second.second == t) {
-					binaryProductionsSecondInv[t].push_back(i);
-				}
-			}
+		for (int i = 0; i < nu; i++) {
+			unaryProductionsInv[unaryProductions[i].second].push_back(i);
 		}
-		for (int nt : nonterminals) {
-			for (int i = 0; i < nu; i++) {
-				if (unaryProductions[i].second == nt) {
-					unaryProductionsInv[nt].push_back(i);
-				}
-			}
-			for (int i = 0; i < nb; i++) {
-				if (binaryProductions[i].second.first == nt) {
-					binaryProductionsFirstInv[nt].push_back(i);
-				}
-				if (binaryProductions[i].second.second == nt) {
-					binaryProductionsSecondInv[nt].push_back(i);
-				}
-			}
+		for (int i = 0; i < nb; i++) {
+			binaryProductionsFirstInv[binaryProductions[i].second.first].push_back(i);
+			binaryProductionsSecondInv[binaryProductions[i].second.second].push_back(i);
 		}
 	}
 };
@@ -89,21 +66,12 @@ inline Edge make_edge(int i, int x, int j) {
 
 #define FP_MASK 1048576
 
-inline long long make_fast_pair(int a, int b /* assumed to be >= 0 */) {
-	if (a >= 0) {
-		return a * FP_MASK + b;
-	} else {
-		return -((-a) * FP_MASK + b);
-	}
+inline long long make_fast_pair(int a, int b) { // assuming a >= 0 && b >= 0
+	return a * FP_MASK + b;
 }
 
 inline pair<int, int> unpack_fast_pair(long long fp) {
-	if (fp >= 0) {
-		return make_pair(static_cast<int>(fp / FP_MASK), static_cast<int>(fp % FP_MASK));
-	} else {
-		fp = -fp;
-		return make_pair(static_cast<int>(-(fp / FP_MASK)), static_cast<int>(fp % FP_MASK));
-	}
+	return make_pair(static_cast<int>(fp / FP_MASK), static_cast<int>(fp % FP_MASK));
 }
 
 struct Graph {
@@ -144,7 +112,7 @@ struct Graph {
 		return fastEdgeTest[i].count(make_fast_pair(x, j)) == 1;
 	}
 
-	bool runPureReachability(int i, int j) {
+	bool runPureReachability(int i, int j) const {
 		deque<int> q;
 		unordered_set<int> s;
 		q.push_back(i);
@@ -239,58 +207,6 @@ struct Graph {
 			}
 		}
 	}
-
-	/*
-	unordered_set<int> getCFLReachabilityVertexClosure(int i, int j, const Grammar &g) const { // unoptimized
-		if (!hasEdge(i, g.startSymbol, j)) {
-			return unordered_set<int>();
-		} else {
-			unordered_set<int> ret {i, j};
-			Edge start = make_edge(i, g.startSymbol, j);
-			set<Edge> vis {start};
-			deque<Edge> q {start};
-			while (!q.empty()) { // BFS
-				Edge cur = q.front();
-				q.pop_front();
-
-				// i --x--> j
-				int i = cur.first.first, j = cur.first.second, x = cur.second;
-
-				if (unaryRecord[i].count(j) == 1) {
-					for (int ind : unaryRecord[i].at(j)) {
-						if (g.unaryProductions[ind].first == x) {
-							Edge nxt = make_edge(i, g.unaryProductions[ind].second, j);
-							if (vis.count(nxt) == 0) {
-								vis.insert(nxt);
-								q.push_back(nxt);
-							}
-						}
-					}
-				}
-				if (binaryRecord[i].count(j) == 1) {
-					for (long long fp : binaryRecord[i].at(j)) {
-						auto p = unpack_fast_pair(fp);
-						int ind = p.first, k = p.second; // i --> k --> j
-						if (g.binaryProductions[ind].first == x) {
-							ret.insert(k);
-							Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
-							Edge nxt2 = make_edge(k, g.binaryProductions[ind].second.second, j);
-							if (vis.count(nxt1) == 0) {
-								vis.insert(nxt1);
-								q.push_back(nxt1);
-							}
-							if (vis.count(nxt2) == 0) {
-								vis.insert(nxt2);
-								q.push_back(nxt2);
-							}
-						}
-					}
-				}
-			}
-			return ret;
-		}
-	}
-	*/
 
 	// TODO: precision?
 	set<Edge> getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
