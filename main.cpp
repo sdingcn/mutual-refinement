@@ -64,7 +64,7 @@ inline Edge make_edge(int i, int x, int j) {
 	return make_pair(make_pair(i, j), x);
 }
 
-#define FP_MASK 1048576
+constexpr int FP_MASK = 1048576;
 
 inline long long make_fast_pair(int a, int b) { // assuming a >= 0 && b >= 0
 	return a * FP_MASK + b;
@@ -413,7 +413,7 @@ map<int, int> normalizeNumbers(int start, const vector<int> &numbers) {
 	return m;
 }
 
-pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname) {
+pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string &fname) {
 	ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges
@@ -491,7 +491,7 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(string fname)
 
 	vector<Edge> edges;
 	for (auto &ijtn : rawEdges) {
-		string t = ijtn.second.first;
+		string &t = ijtn.second.first;
 		int n = ijtn.second.second;
 		int sym;
 		if (t == "op") {
@@ -514,7 +514,7 @@ int main(int argc, char *argv[]) {
 	if (argc == 1) {
 		test();
 	} else {
-		// retrieve data
+		// read data
 		const pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> data = readFile(argv[1]);
 		const vector<Edge> &edges = data.first.first;
 		const vector<Grammar> &grammars = data.second;
