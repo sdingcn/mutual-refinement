@@ -1,7 +1,7 @@
 #ifndef GRAMMAR_H
 #define GRAMMAR_H
 
-#include "common.h"
+#include "../common.h"
 
 struct Grammar {
 	unordered_set<int> terminals;

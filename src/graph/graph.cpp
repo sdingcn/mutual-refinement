@@ -1,6 +1,6 @@
-#include "common.h"
+#include "../common.h"
+#include "../grammar/grammar.h"
 #include "graph.h"
-#include "grammar.h"
 
 Graph::Graph(int n) : numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
                        negligibleRecord(n), unaryRecord(n), binaryRecord(n) {}

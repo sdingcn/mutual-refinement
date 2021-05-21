@@ -1,4 +1,4 @@
-#include "common.h"
+#include "../common.h"
 #include "parser.h"
 
 bool isEdgeLine(const string &line) {

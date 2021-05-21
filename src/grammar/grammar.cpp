@@ -1,4 +1,4 @@
-#include "common.h"
+#include "../common.h"
 #include "grammar.h"
 
 void Grammar::fillInv(int total) {

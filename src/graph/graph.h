@@ -1,8 +1,8 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#include "common.h"
-#include "grammar.h"
+#include "../common.h"
+#include "../grammar/grammar.h"
 
 struct Graph {
 	int numberOfVertices;

@@ -1,7 +1,7 @@
 #include "common.h"
-#include "grammar.h"
-#include "parser.h"
-#include "graph.h"
+#include "grammar/grammar.h"
+#include "parser/parser.h"
+#include "graph/graph.h"
 
 void test() {
 	/*
