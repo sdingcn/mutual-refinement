@@ -1,9 +1,12 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "../common.h"
+#include <utility>
+#include <vector>
+#include <string>
 #include "../grammar/grammar.h"
+#include "../common.h"
 
-pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string &fname);
+std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> readFile(const std::string &fname);
 
 #endif

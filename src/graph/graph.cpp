@@ -1,23 +1,27 @@
-#include "../common.h"
-#include "../grammar/grammar.h"
 #include "graph.h"
+#include <vector>
+#include <set>
+#include <deque>
+#include <unordered_set>
+#include <utility>
+#include "../grammar/grammar.h"
 
 Graph::Graph(int n) : numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
                        negligibleRecord(n), unaryRecord(n), binaryRecord(n) {}
 
 void Graph::addEdge(int i, int x, int j) { // i --x--> j
 	fastEdgeTest[i].insert(make_fast_pair(x, j));
-	adjacencyVector[i].push_back(make_pair(x, j));
-	counterAdjacencyVector[j].push_back(make_pair(i, x));
+	adjacencyVector[i].push_back(std::make_pair(x, j));
+	counterAdjacencyVector[j].push_back(std::make_pair(i, x));
 }
 
-void Graph::fillEdges(const vector<Edge> &edges) {
+void Graph::fillEdges(const std::vector<Edge> &edges) {
 	for (auto &ijs : edges) {
 		addEdge(ijs.first.first, ijs.second, ijs.first.second);
 	}
 }
 
-void Graph::fillEdges(const set<Edge> &edges) {
+void Graph::fillEdges(const std::set<Edge> &edges) {
 	for (auto &ijs : edges) {
 		addEdge(ijs.first.first, ijs.second, ijs.first.second);
 	}
@@ -28,8 +32,8 @@ bool Graph::hasEdge(int i, int x, int j) const {
 }
 
 bool Graph::runPureReachability(int i, int j) const {
-	deque<int> q;
-	unordered_set<int> s;
+	std::deque<int> q;
+	std::unordered_set<int> s;
 	q.push_back(i);
 	s.insert(i);
 	while (!q.empty()) {
@@ -50,8 +54,8 @@ bool Graph::runPureReachability(int i, int j) const {
 
 void Graph::runCFLReachability(const Grammar &g) {
 	// TODO: try to use the metainfo to ignore edges?
-	deque<Edge> w; // ((first vertex, second vertex), label)
-	vector<Edge> negligibleEdges;
+	std::deque<Edge> w; // ((first vertex, second vertex), label)
+	std::vector<Edge> negligibleEdges;
 	for (int i = 0; i < numberOfVertices; i++) { // add all non-negligible edges to the worklist, and find out all negligible edges
 		for (auto &sj : adjacencyVector[i]) { // --s--> j
 			if (g.terminals.count(sj.first) == 0) {
@@ -122,10 +126,10 @@ void Graph::runCFLReachability(const Grammar &g) {
 }
 
 // TODO: precision?
-set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
-	set<Edge> closure;
-	set<Edge> vis;
-	deque<Edge> q;
+std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
+	std::set<Edge> closure;
+	std::set<Edge> vis;
+	std::deque<Edge> q;
 	if (hasEdge(i, g.startSymbol, j)) {
 		Edge start = make_edge(i, g.startSymbol, j);
 		vis.insert(start);

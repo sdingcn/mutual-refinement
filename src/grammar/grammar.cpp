@@ -1,10 +1,10 @@
-#include "../common.h"
 #include "grammar.h"
+#include <vector>
 
 void Grammar::fillInv(int total) {
-	unaryProductionsInv = vector<vector<int>>(total);
-	binaryProductionsFirstInv = vector<vector<int>>(total);
-	binaryProductionsSecondInv = vector<vector<int>>(total);
+	unaryProductionsInv = std::vector<std::vector<int>>(total);
+	binaryProductionsFirstInv = std::vector<std::vector<int>>(total);
+	binaryProductionsSecondInv = std::vector<std::vector<int>>(total);
 	int nu = unaryProductions.size();
 	int nb = binaryProductions.size();
 	for (int i = 0; i < nu; i++) {

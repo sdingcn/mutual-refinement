@@ -1,7 +1,14 @@
-#include "../common.h"
 #include "parser.h"
+#include <string>
+#include <utility>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <iostream>
+#include <fstream>
+#include "../common.h"
 
-bool isEdgeLine(const string &line) {
+bool isEdgeLine(const std::string &line) {
 	for (char c : line) {
 		if (c == '>') {
 			return true;
@@ -10,11 +17,11 @@ bool isEdgeLine(const string &line) {
 	return false;
 }
 
-pair<pair<int, int>, pair<string, int>> parseLine(string line) {
+std::pair<std::pair<int, int>, std::pair<std::string, int>> parseLine(std::string line) {
 	int v1, v2;
-	string label;
-	reverse(line.begin(), line.end());
-	string buffer;
+	std::string label;
+	std::reverse(line.begin(), line.end());
+	std::string buffer;
 	while (true) {
 		if (line.back() == '-') {
 			v1 = stoi(buffer);
@@ -46,11 +53,11 @@ pair<pair<int, int>, pair<string, int>> parseLine(string line) {
 		buffer.push_back(line.back());
 		line.pop_back();
 	}
-	return make_pair(make_pair(v1, v2), make_pair(label.substr(0, 2), stoi(label.substr(4))));
+	return std::make_pair(std::make_pair(v1, v2), std::make_pair(label.substr(0, 2), stoi(label.substr(4))));
 }
 
-map<int, int> normalizeNumbers(int start, const vector<int> &numbers) {
-	map<int, int> m;
+std::map<int, int> normalizeNumbers(int start, const std::vector<int> &numbers) {
+	std::map<int, int> m;
 	for (int n : numbers) {
 		m[n] = 0;
 	}
@@ -61,12 +68,12 @@ map<int, int> normalizeNumbers(int start, const vector<int> &numbers) {
 	return m;
 }
 
-pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string &fname) {
-	ifstream in(fname); // file auto closed via destructor
+std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> readFile(const std::string &fname) {
+	std::ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges
-	string line;
-	vector<pair<pair<int, int>, pair<string, int>>> rawEdges;
+	std::string line;
+	std::vector<std::pair<std::pair<int, int>, std::pair<std::string, int>>> rawEdges;
 	while (getline(in, line)) {
 		if (isEdgeLine(line)) {
 			rawEdges.push_back(parseLine(line));
@@ -77,7 +84,7 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string 
 	// 0, 1, ..., n - 1
 
 	// normalize vertices
-	vector<int> v;
+	std::vector<int> v;
 	for (auto &ijtn : rawEdges) {
 		v.push_back(ijtn.first.first);
 		v.push_back(ijtn.first.second);
@@ -90,8 +97,8 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string 
 	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2    D, D_1, D_2, D_3, D_4, ..., D_n1    E, E_1, E_2, E_3, E_4, ..., E_n2
 
 	// normalize labels
-	vector<int> p;
-	vector<int> b;
+	std::vector<int> p;
+	std::vector<int> b;
 	for (auto &ijtn : rawEdges) {
 		if (ijtn.second.first == "op" || ijtn.second.first == "cp") {
 			p.push_back(ijtn.second.second);
@@ -113,10 +120,10 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string 
 			gm.nonterminals.insert(i);
 		}
 		gm.emptyProductions.push_back(start);
-		gm.binaryProductions.push_back(make_pair(start, make_pair(start, start)));
+		gm.binaryProductions.push_back(std::make_pair(start, std::make_pair(start, start)));
 		for (int i = 0; i < n; i++) {
-			gm.binaryProductions.push_back(make_pair(start, make_pair(op_begin + i, start + 1 + i)));
-			gm.binaryProductions.push_back(make_pair(start + 1 + i, make_pair(start, op_begin + n + i)));
+			gm.binaryProductions.push_back(std::make_pair(start, std::make_pair(op_begin + i, start + 1 + i)));
+			gm.binaryProductions.push_back(std::make_pair(start + 1 + i, std::make_pair(start, op_begin + n + i)));
 		}
 		gm.startSymbol = start;
 	};
@@ -127,18 +134,18 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string 
 	gmb.fillInv(total);
 
 	if (n > FP_MASK) {
-		cerr << "Error: The graph contains too many nodes." << endl;
-		exit(EXIT_FAILURE);
+		std::cerr << "Error: The graph contains too many nodes." << std::endl;
+		std::exit(EXIT_FAILURE);
 	}
 
 	if (total > FP_MASK) {
-		cerr << "Error: The grammar contains too many symbols." << endl;
-		exit(EXIT_FAILURE);
+		std::cerr << "Error: The grammar contains too many symbols." << std::endl;
+		std::exit(EXIT_FAILURE);
 	}
 
-	vector<Edge> edges;
+	std::vector<Edge> edges;
 	for (auto &ijtn : rawEdges) {
-		string &t = ijtn.second.first;
+		std::string &t = ijtn.second.first;
 		int n = ijtn.second.second;
 		int sym;
 		if (t == "op") {
@@ -153,5 +160,5 @@ pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> readFile(const string 
 		edges.push_back(make_edge(nv_map[ijtn.first.first], sym, nv_map[ijtn.first.second]));
 	}
 
-	return make_pair(make_pair(edges, make_pair(0, n - 1)), vector<Grammar> {gmp, gmb});
+	return std::make_pair(std::make_pair(edges, std::make_pair(0, n - 1)), std::vector<Grammar> {gmp, gmb});
 }

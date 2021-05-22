@@ -1,4 +1,9 @@
-#include "common.h"
+#include <vector>
+#include <utility>
+#include <set>
+#include <iostream>
+#include <chrono>
+#include <cassert>
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"
@@ -19,9 +24,9 @@ void test() {
 	gm.nonterminals.insert(0);
 	gm.nonterminals.insert(3);
 	gm.emptyProductions.push_back(0);
-	gm.binaryProductions.push_back(make_pair(0, make_pair(0, 0)));
-	gm.binaryProductions.push_back(make_pair(0, make_pair(1, 3)));
-	gm.binaryProductions.push_back(make_pair(3, make_pair(0, 2)));
+	gm.binaryProductions.push_back(std::make_pair(0, std::make_pair(0, 0)));
+	gm.binaryProductions.push_back(std::make_pair(0, std::make_pair(1, 3)));
+	gm.binaryProductions.push_back(std::make_pair(3, std::make_pair(0, 2)));
 	gm.startSymbol = 0;
 	gm.fillInv(11);
 	/*
@@ -89,9 +94,9 @@ int main(int argc, char *argv[]) {
 		test();
 	} else {
 		// read data
-		const pair<pair<vector<Edge>, pair<int, int>>, vector<Grammar>> data = readFile(argv[1]);
-		const vector<Edge> &edges = data.first.first;
-		const vector<Grammar> &grammars = data.second;
+		const std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> data = readFile(argv[1]);
+		const std::vector<Edge> &edges = data.first.first;
+		const std::vector<Grammar> &grammars = data.second;
 		const int n = data.first.second.second + 1;
 
 		// construct graphs
@@ -110,7 +115,7 @@ int main(int argc, char *argv[]) {
 		int totalEC = 0;
 		int totalECFix = 0;
 		for (int source = 0; source < n; source++) {
-			cout << ">>> [main] Query Progress (Source Vertex): " << source << ',' << n - 1 << endl;
+			std::cout << ">>> [main] Query Progress (Source Vertex): " << source << ',' << n - 1 << std::endl;
 			for (int sink = 0; sink < n; sink++) {
 				bool reach1 = gh1.hasEdge(source, grammars[0].startSymbol, sink);
 				bool reach2 = gh2.hasEdge(source, grammars[1].startSymbol, sink);
@@ -126,7 +131,7 @@ int main(int argc, char *argv[]) {
 					// EC
 					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
 					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
-					set<Edge> es;
+					std::set<Edge> es;
 					for (auto &e : c1) {
 						if (c2.count(e) == 1) {
 							es.insert(e);
@@ -165,14 +170,14 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		cout << "totalCFL1: " << totalCFL1 << endl;
-		cout << "totalCFL2: " << totalCFL2 << endl;
-		cout << "totalCFLBoolean: " << totalCFLBoolean << endl;
-		cout << "totalEC: " << totalEC << endl;
-		cout << "totalECFix: " << totalECFix << endl;
+		std::cout << "totalCFL1: " << totalCFL1 << std::endl;
+		std::cout << "totalCFL2: " << totalCFL2 << std::endl;
+		std::cout << "totalCFLBoolean: " << totalCFLBoolean << std::endl;
+		std::cout << "totalEC: " << totalEC << std::endl;
+		std::cout << "totalECFix: " << totalECFix << std::endl;
 	}
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
-	cout << "Total Time (Seconds): " << elapsed_seconds.count() << endl;
+	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
 	return 0;
 }
