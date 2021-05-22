@@ -68,7 +68,7 @@ std::map<int, int> normalizeNumbers(int start, const std::vector<int> &numbers) 
 	return m;
 }
 
-std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> readFile(const std::string &fname) {
+std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> parseFile(const std::string &fname) {
 	std::ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges

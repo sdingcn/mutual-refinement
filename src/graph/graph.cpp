@@ -53,7 +53,6 @@ bool Graph::runPureReachability(int i, int j) const {
 }
 
 void Graph::runCFLReachability(const Grammar &g) {
-	// TODO: try to use the metainfo to ignore edges?
 	std::deque<Edge> w; // ((first vertex, second vertex), label)
 	std::vector<Edge> negligibleEdges;
 	for (int i = 0; i < numberOfVertices; i++) { // add all non-negligible edges to the worklist, and find out all negligible edges
@@ -125,7 +124,6 @@ void Graph::runCFLReachability(const Grammar &g) {
 	}
 }
 
-// TODO: precision?
 std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
 	std::set<Edge> closure;
 	std::set<Edge> vis;

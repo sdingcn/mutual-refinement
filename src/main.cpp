@@ -57,22 +57,6 @@ void test() {
 			}
 		}
 	}
-	/*
-	auto rvc1 = gh.getCFLReachabilityVertexClosure(0, 2, gm);
-	assert(rvc1.size() == 5);
-	assert(rvc1.count(0) == 1);
-	assert(rvc1.count(1) == 1);
-	assert(rvc1.count(2) == 1);
-	assert(rvc1.count(4) == 1);
-	assert(rvc1.count(5) == 1);
-	auto rvc2 = gh.getCFLReachabilityVertexClosure(2, 3, gm);
-	assert(rvc2.size() == 2);
-	assert(rvc2.count(2) == 1);
-	assert(rvc2.count(3) == 1);
-	auto rvc3 = gh.getCFLReachabilityVertexClosure(2, 2, gm);
-	assert(rvc3.size() == 1);
-	assert(rvc3.count(2) == 1);
-	*/
 	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2, gm);
 	assert(rec1.size() == 5);
 	assert(rec1.count(make_edge(0, 1, 1)) == 1);
@@ -94,7 +78,7 @@ int main(int argc, char *argv[]) {
 		test();
 	} else {
 		// read data
-		const std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> data = readFile(argv[1]);
+		const std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> data = parseFile(argv[1]);
 		const std::vector<Edge> &edges = data.first.first;
 		const std::vector<Grammar> &grammars = data.second;
 		const int n = data.first.second.second + 1;

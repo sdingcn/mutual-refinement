@@ -7,6 +7,6 @@
 #include "../grammar/grammar.h"
 #include "../common.h"
 
-std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> readFile(const std::string &fname);
+std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> parseFile(const std::string &fname);
 
 #endif
