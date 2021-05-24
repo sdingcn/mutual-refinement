@@ -111,6 +111,7 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	auto nb_map = normalizeNumbers(2 * n1, b);
 	int n2 = nb_map.size();
 
+	// Once we have the numbers of labels, we can proceed and construct the grammar.
 	Grammar gmp, gmb;
 	auto fillDyck = [](Grammar &gm, int op_begin, int n, int start) -> void {
 		for (int i = op_begin; i < op_begin + 2 * n; i++) {
@@ -141,16 +142,17 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	gmp.fillInv(total);
 	gmb.fillInv(total);
 
+	// check boundaries
 	if (n > FP_MASK) {
 		std::cerr << "Error: The graph contains too many nodes." << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
-
 	if (total > FP_MASK) {
 		std::cerr << "Error: The grammar contains too many symbols." << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
 
+	// construct the normalized graph
 	std::vector<Edge> edges;
 	for (auto &ijtn : rawEdges) {
 		std::string &t = ijtn.second.first;
