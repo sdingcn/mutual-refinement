@@ -80,10 +80,8 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 		}
 	}
 
-	// vertices
-	// 0, 1, ..., n - 1
-
 	// normalize vertices
+	// 0, 1, ..., n - 1
 	std::vector<int> v;
 	for (auto &ijtn : rawEdges) {
 		v.push_back(ijtn.first.first);
@@ -92,11 +90,9 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	auto nv_map = normalizeNumbers(0, v);
 	int n = nv_map.size();
 
-	// symbols
-	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]    [ first Dyck's nonterminals    ]    [ second Dyck's nonterminals   ]
-	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2    D, D_1, D_2, D_3, D_4, ..., D_n1    E, E_1, E_2, E_3, E_4, ..., E_n2
-
 	// normalize labels
+	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]
+	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2
 	std::vector<int> p;
 	std::vector<int> b;
 	for (auto &ijtn : rawEdges) {
@@ -112,35 +108,51 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	int n2 = nb_map.size();
 
 	// Once we have the numbers of labels, we can proceed and construct the grammar.
+#ifdef MORE_PRECISE_GRAMMAR
+	// symbols (universal among all grammars)
+	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]
+	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2
+	// [ first Dyck's nonterminals                         ]    [ second Dyck's nonterminals                        ]
+	// D[(n2 + 1)^2], D_1[(n2 + 1)^2], ..., D_n1[(n2 + 1)^2]    E[(n1 + 1)^2], E_1[(n1 + 1)^2], ..., E_n2[(n1 + 1)^2]
 	Grammar gmp, gmb;
-	auto fillDyck = [](Grammar &gm, int op_begin, int n, int start) -> void {
-		for (int i = op_begin; i < op_begin + 2 * n; i++) {
+#else
+	// symbols (universal among all grammars)
+	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]    [ first Dyck's nonterminals    ]    [ second Dyck's nonterminals   ]
+	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2    D, D_1, D_2, D_3, D_4, ..., D_n1    E, E_1, E_2, E_3, E_4, ..., E_n2
+	Grammar gmp, gmb;
+	auto fillGrammar = [](Grammar &gm, int op1, int n1, int op2, int n2, int start) -> void {
+		for (int i = op1; i < op1 + 2 * n1; i++) {
 			gm.terminals.insert(i);
 		}
-		for (int i = start; i <= start + n; i++) {
+		for (int i = op2; i < op2 + 2 * n2; i++) {
+			gm.terminals.insert(i);
+		}
+		for (int i = start; i <= start + n1; i++) {
 			gm.nonterminals.insert(i);
 		}
+		// D -> empty
 		gm.emptyProductions.push_back(start);
+		// D -> D D
 		gm.binaryProductions.push_back(std::make_pair(start, std::make_pair(start, start)));
-		for (int i = 0; i < n; i++) {
-			gm.binaryProductions.push_back(std::make_pair(start, std::make_pair(op_begin + i, start + 1 + i)));
-			gm.binaryProductions.push_back(std::make_pair(start + 1 + i, std::make_pair(start, op_begin + n + i)));
+		for (int i = 0; i < n1; i++) {
+			// D -> (_i D_i
+			gm.binaryProductions.push_back(std::make_pair(start, std::make_pair(op1 + i, start + 1 + i)));
+			// D_i -> D )_i
+			gm.binaryProductions.push_back(std::make_pair(start + 1 + i, std::make_pair(start, op1 + n1 + i)));
+		}
+		for (int i = op2; i < op2 + 2 * n2; i++) {
+			// D -> [_i
+			// D -> ]_i
+			gm.unaryProductions.push_back(std::make_pair(start, i));
 		}
 		gm.startSymbol = start;
 	};
-	fillDyck(gmp, 0, n1, 2 * n1 + 2 * n2);
-	for (int i = 2 * n1; i < 2 * n1 + 2 * n2; i++) {
-		gmp.terminals.insert(i);
-		gmp.unaryProductions.push_back(std::make_pair(2 * n1 + 2 * n2, i));
-	}
-	fillDyck(gmb, 2 * n1, n2, 2 * n1 + 2 * n2 + n1 + 1);
-	for (int i = 0; i < 2 * n1; i++) {
-		gmb.terminals.insert(i);
-		gmb.unaryProductions.push_back(std::make_pair(2 * n1 + 2 * n2 + n1 + 1, i));
-	}
+	fillGrammar(gmp, 0, n1, 2 * n1, n2, 2 * n1 + 2 * n2);
+	fillGrammar(gmb, 2 * n1, n2, 0, n1, 2 * n1 + 2 * n2 + n1 + 1);
 	int total = 2 * n1 + 2 * n2 + n1 + 1 + n2 + 1;
 	gmp.fillInv(total);
 	gmb.fillInv(total);
+#endif
 
 	// check boundaries
 	if (n > FP_MASK) {
