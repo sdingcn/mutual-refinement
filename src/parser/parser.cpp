@@ -128,7 +128,15 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 		gm.startSymbol = start;
 	};
 	fillDyck(gmp, 0, n1, 2 * n1 + 2 * n2);
+	for (int i = 2 * n1; i < 2 * n1 + 2 * n2; i++) {
+		gmp.terminals.insert(i);
+		gmp.unaryProductions.push_back(std::make_pair(2 * n1 + 2 * n2, i));
+	}
 	fillDyck(gmb, 2 * n1, n2, 2 * n1 + 2 * n2 + n1 + 1);
+	for (int i = 0; i < 2 * n1; i++) {
+		gmb.terminals.insert(i);
+		gmb.unaryProductions.push_back(std::make_pair(2 * n1 + 2 * n2 + n1 + 1, i));
+	}
 	int total = 2 * n1 + 2 * n2 + n1 + 1 + n2 + 1;
 	gmp.fillInv(total);
 	gmb.fillInv(total);

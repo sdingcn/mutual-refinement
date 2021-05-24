@@ -7,7 +7,7 @@
 #include "../grammar/grammar.h"
 
 Graph::Graph(int n) : numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
-                       negligibleRecord(n), unaryRecord(n), binaryRecord(n) {}
+                       unaryRecord(n), binaryRecord(n) {}
 
 void Graph::addEdge(int i, int x, int j) { // i --x--> j
 	fastEdgeTest[i].insert(make_fast_pair(x, j));
@@ -54,20 +54,10 @@ bool Graph::runPureReachability(int i, int j) const {
 
 void Graph::runCFLReachability(const Grammar &g) {
 	std::deque<Edge> w; // ((first vertex, second vertex), label)
-	std::vector<Edge> negligibleEdges;
-	for (int i = 0; i < numberOfVertices; i++) { // add all non-negligible edges to the worklist, and find out all negligible edges
+	for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist
 		for (auto &sj : adjacencyVector[i]) { // --s--> j
-			if (g.terminals.count(sj.first) == 0) {
-				negligibleEdges.push_back(make_edge(i, sj.first, sj.second));
-			} else {
-				w.push_back(make_edge(i, sj.first, sj.second));
-			}
+			w.push_back(make_edge(i, sj.first, sj.second));
 		}
-	}
-	for (auto &e : negligibleEdges) { // handle negligible edges
-		negligibleRecord[e.first.first][e.first.second].insert(e.second);
-		addEdge(e.first.first, g.startSymbol, e.first.second);
-		w.push_back(make_edge(e.first.first, g.startSymbol, e.first.second));
 	}
 	int nep = g.emptyProductions.size();
 	for (int ind = 0; ind < nep; ind++) { // add empty edges to the edge set and the worklist
@@ -139,21 +129,10 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar 
 
 		// i --x--> j
 		int i = cur.first.first, j = cur.first.second, x = cur.second;
-		if (g.nonterminals.count(x) == 0) { // terminals or negligible symbols
-			closure.insert(make_edge(i, x, j));
+		if (g.terminals.count(x) == 1) {
+			closure.insert(cur);
 		}
 
-		if (negligibleRecord[i].count(j) == 1) {
-			if (x == g.startSymbol) {
-				for (int s : negligibleRecord[i].at(j)) {
-					Edge nxt = make_edge(i, s, j);
-					if (vis.count(nxt) == 0) {
-						vis.insert(nxt);
-						q.push_back(nxt);
-					}
-				}
-			}
-		}
 		if (unaryRecord[i].count(j) == 1) {
 			for (int ind : unaryRecord[i].at(j)) {
 				if (g.unaryProductions[ind].first == x) {

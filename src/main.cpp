@@ -21,9 +21,11 @@ void test() {
 	Grammar gm;
 	gm.terminals.insert(1);
 	gm.terminals.insert(2);
+	gm.terminals.insert(10);
 	gm.nonterminals.insert(0);
 	gm.nonterminals.insert(3);
 	gm.emptyProductions.push_back(0);
+	gm.unaryProductions.push_back(std::make_pair(0, 10));
 	gm.binaryProductions.push_back(std::make_pair(0, std::make_pair(0, 0)));
 	gm.binaryProductions.push_back(std::make_pair(0, std::make_pair(1, 3)));
 	gm.binaryProductions.push_back(std::make_pair(3, std::make_pair(0, 2)));

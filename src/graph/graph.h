@@ -8,7 +8,7 @@
 #include "../common.h"
 #include "../grammar/grammar.h"
 
-struct Graph {
+class Graph {
 	int numberOfVertices;
 
 	// edges
@@ -17,10 +17,9 @@ struct Graph {
 	std::vector<std::vector<std::pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
 
 	// records for reachability closures
-	std::vector<std::unordered_map<int, std::unordered_set<int>>> negligibleRecord; // i -> j -> {negligible symbol}
 	std::vector<std::unordered_map<int, std::unordered_set<int>>> unaryRecord; // i -> j -> {unary production number}
 	std::vector<std::unordered_map<int, std::unordered_set<long long>>> binaryRecord; // i -> j -> {FP(binary prodution number, middle vertex)}
-
+public:
 	Graph(int n);
 
 	void addEdge(int i, int x, int j);
