@@ -5,7 +5,7 @@
 
 using Edge = std::pair<std::pair<int, int>, int>; // ((first vertex, second vertex), label)
 
-constexpr long long FP_MASK = 1048576;
+constexpr long long FP_MASK = (1LL << 30);
 
 inline Edge make_edge(int i, int x, int j) {
 	return std::make_pair(std::make_pair(i, j), x);
