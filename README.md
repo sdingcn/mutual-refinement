@@ -9,3 +9,7 @@ make
 ```
 make clean
 ```
+
+## TODO
+
+memory consumption
