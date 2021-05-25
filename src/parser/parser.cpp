@@ -108,8 +108,7 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	int n2 = nb_map.size();
 
 	// Once we have the numbers of labels, we can proceed and construct the grammar.
-#define MORE_PRECISE_GRAMMAR
-#ifdef MORE_PRECISE_GRAMMAR
+#if 0
 	// symbols (universal among all grammars)
 	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]
 	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2
