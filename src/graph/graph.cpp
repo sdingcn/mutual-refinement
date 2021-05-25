@@ -84,9 +84,11 @@ void Graph::runCFLReachability(const Grammar &g) {
 				tba.push_back(make_edge(i, x, j));
 			}
 		}
+		// TODO: not using grammars
 		for (int ind : g.binaryProductionsFirstInv[y]) { // x -> yz
 			auto &p = g.binaryProductions[ind];
 			int x = p.first, z = p.second.second;
+			// TODO: change this to "jumping to the corresponding labels"
 			for (auto &sk : adjacencyVector[j]) { // --s--> k
 				if (sk.first == z) { // --z--> k
 					int k = sk.second;
@@ -137,6 +139,7 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar 
 		}
 
 		if (unaryRecord[i].count(j) == 1) {
+			// TODO: not exhaustive?
 			for (int ind : unaryRecord[i].at(j)) {
 				if (g.unaryProductions[ind].first == x) {
 					Edge nxt = make_edge(i, g.unaryProductions[ind].second, j);
