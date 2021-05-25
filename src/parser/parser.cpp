@@ -108,6 +108,7 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	int n2 = nb_map.size();
 
 	// Once we have the numbers of labels, we can proceed and construct the grammar.
+#define MORE_PRECISE_GRAMMAR
 #ifdef MORE_PRECISE_GRAMMAR
 	// symbols (universal among all grammars)
 	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]
@@ -115,6 +116,85 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	// [ first Dyck's nonterminals                         ]    [ second Dyck's nonterminals                        ]
 	// D[(n2 + 1)^2], D_1[(n2 + 1)^2], ..., D_n1[(n2 + 1)^2]    E[(n1 + 1)^2], E_1[(n1 + 1)^2], ..., E_n2[(n1 + 1)^2]
 	Grammar gmp, gmb;
+	auto fillGrammar = [](Grammar &gm, int op1, int n1, int op2, int n2, int start) -> void {
+		int step = (n2 + 1) * (n2 + 1);
+		for (int i = op1; i < op1 + 2 * n1; i++) {
+			gm.terminals.insert(i);
+		}
+		for (int i = op2; i < op2 + 2 * n2; i++) {
+			gm.terminals.insert(i);
+		}
+		for (int i = start; i < start + (n1 + 1) * step; i++) {
+			gm.nonterminals.insert(i);
+		}
+		// ind in [0, n1]
+		// indl in [0, n2]
+		// indr in [0, n2]
+		auto constructNonterminal = [&](int ind, int indl, int indr) -> int {
+			return start + ind * step + indl * (n2 + 1) + indr;
+		};
+		// D[0, 0] -> empty
+		gm.emptyProductions.push_back(constructNonterminal(0, 0, 0));
+		// D -> D D
+		auto iterAdd = [&](int i, int j) -> void {
+			gm.binaryProductions.push_back(std::make_pair(
+						constructNonterminal(0, i, j),
+						std::make_pair(constructNonterminal(0, i, 0), constructNonterminal(0, 0, j))));
+			for (int k = 1; k <= n2; k++) {
+				gm.binaryProductions.push_back(std::make_pair(
+							constructNonterminal(0, i, j),
+							std::make_pair(constructNonterminal(0, i, 0), constructNonterminal(0, k, j))));
+				gm.binaryProductions.push_back(std::make_pair(
+							constructNonterminal(0, i, j),
+							std::make_pair(constructNonterminal(0, i, k), constructNonterminal(0, 0, j))));
+				gm.binaryProductions.push_back(std::make_pair(
+							constructNonterminal(0, i, j),
+							std::make_pair(constructNonterminal(0, i, k), constructNonterminal(0, k, j))));
+			}
+		};
+		// D[0, 0] -> D[0, 0] D[0, 0] | D[0, 0] D[i, 0] | D[0, i] D[0, 0] | D[0, i] D[i, 0]
+		iterAdd(0, 0);
+		for (int i = 1; i <= n2; i++) {
+			// D[0, i] -> D[0, 0] D[0, i] | D[0, 0] D[j, i] | D[0, j] D[0, i] | D[0, j] D[j, i]
+			iterAdd(0, i);
+			// D[i, 0] -> D[i, 0] D[0, 0] | D[i, 0] D[j, 0] | D[i, j] D[0, 0] | D[i, j] D[j, 0]
+			iterAdd(i, 0);
+		}
+		for (int i = 1; i <= n2; i++) {
+			for (int j = 1; j <= n2; j++) {
+				// D[i, j] -> D[i, 0] D[0, j] | D[i, 0] D[k, j] | D[i, k] D[0, j] | D[i, k] D[k, j]
+				iterAdd(i, j);
+			}
+		}
+		for (int indl = 0; indl <= n2; indl++) {
+			for (int indr = 0; indr <= n2; indr++) {
+				for (int i = 1; i <= n1; i++) {
+					// D[indl, indr] -> (_i D_i[indl, indr]
+					gm.binaryProductions.push_back(std::make_pair(
+								constructNonterminal(0, indl, indr),
+								std::make_pair(op1 + i - 1, constructNonterminal(i, indl, indr))
+								));
+					// D_i[indl, indr] -> D[indl, indr] )_i
+					gm.binaryProductions.push_back(std::make_pair(
+								constructNonterminal(i, indl, indr),
+								std::make_pair(constructNonterminal(0, indl, indr), op1 + n1 + i - 1)
+								));
+				}
+			}
+		}
+		for (int i = 1; i <= n2; i++) {
+			// D[0, i] -> [_i
+			gm.unaryProductions.push_back(std::make_pair(constructNonterminal(0, 0, i), op2 + i - 1));
+			// D[i, 0] -> ]_i
+			gm.unaryProductions.push_back(std::make_pair(constructNonterminal(0, i, 0), op2 + n2 + i - 1));
+		}
+		gm.startSymbol = constructNonterminal(0, 0, 0);
+	};
+	fillGrammar(gmp, 0, n1, 2 * n1, n2, 2 * n1 + 2 * n2);
+	fillGrammar(gmb, 2 * n1, n2, 0, n1, 2 * n1 + 2 * n2 + (n1 + 1) * (n2 + 1) * (n2 + 1));
+	int total = 2 * n1 + 2 * n2 + (n1 + 1) * (n2 + 1) * (n2 + 1) + (n2 + 1) * (n1 + 1) * (n1 + 1);
+	gmp.fillInv(total);
+	gmb.fillInv(total);
 #else
 	// symbols (universal among all grammars)
 	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]    [ first Dyck's nonterminals    ]    [ second Dyck's nonterminals   ]

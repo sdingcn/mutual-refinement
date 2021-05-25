@@ -16,6 +16,7 @@ struct Grammar {
 	std::vector<std::vector<int>> binaryProductionsFirstInv; // right hand side symbol 1 -> {corresponding indices in binaryProductions}
 	std::vector<std::vector<int>> binaryProductionsSecondInv; // right hand side symbol 2 -> {corresponding indices in binaryProductions}
 	void fillInv(int total);
+	void print() const;
 };
 
 #endif
