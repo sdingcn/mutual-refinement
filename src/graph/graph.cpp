@@ -4,7 +4,6 @@
 #include <deque>
 #include <unordered_set>
 #include <utility>
-#include <iostream>
 #include "../grammar/grammar.h"
 
 Graph::Graph(int n) : numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
@@ -149,7 +148,6 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar 
 			}
 		}
 		if (binaryRecord[i].count(j) == 1) {
-std::cerr << "E\n";
 			for (long long fp : binaryRecord[i].at(j)) {
 				auto p = unpack_fast_pair(fp);
 				int ind = p.first, k = p.second; // i --> k --> j
@@ -166,7 +164,6 @@ std::cerr << "E\n";
 					}
 				}
 			}
-std::cerr << "F\n";
 		}
 	}
 	return closure;
