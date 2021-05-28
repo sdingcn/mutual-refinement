@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <iterator>
 #include "grammar/grammar.h"
-#include "parser/paparser.h"
+#include "parser/parser.h"
 #include "graph/graph.h"
 
 void test() {
