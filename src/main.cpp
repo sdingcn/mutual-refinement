@@ -42,7 +42,7 @@ void test() {
 	 *  |                     |
 	 *   ----------1--------->
 	 */
-	Graph gh(6);
+	Graph gh(gm, 6);
 	gh.addEdge(0, 1, 4);
 	gh.addEdge(4, 10, 5);
 	gh.addEdge(5, 2, 2);
@@ -51,7 +51,7 @@ void test() {
 	gh.addEdge(2, 1, 2);
 	gh.addEdge(2, 2, 3);
 	gh.addEdge(0, 1, 2);
-	gh.runCFLReachability(gm);
+	gh.runCFLReachability();
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 6; j++) {
 			if ((i == j) || (i == 0 && j == 2) || (i == 0 && j == 3) ||
@@ -62,18 +62,18 @@ void test() {
 			}
 		}
 	}
-	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2, gm);
+	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2);
 	assert(rec1.size() == 5);
 	assert(rec1.count(make_edge(0, 1, 1)) == 1);
 	assert(rec1.count(make_edge(1, 2, 2)) == 1);
 	assert(rec1.count(make_edge(0, 1, 4)) == 1);
 	assert(rec1.count(make_edge(4, 10, 5)) == 1);
 	assert(rec1.count(make_edge(5, 2, 2)) == 1);
-	auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3, gm);
+	auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3);
 	assert(rec2.size() == 2);
 	assert(rec2.count(make_edge(2, 1, 2)) == 1);
 	assert(rec2.count(make_edge(2, 2, 3)) == 1);
-	auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2, gm);
+	auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2);
 	assert(rec3.size() == 0);
 }
 
@@ -103,13 +103,14 @@ int main(int argc, char *argv[]) {
 		const int n = data.first.second.second + 1;
 
 		// construct graphs
-		Graph gh1(n);
+		Graph gh1(grammars[0], n);
 		gh1.fillEdges(edges);
-		Graph gh2 = gh1;
+		Graph gh2(grammars[1], n);
+		gh2.fillEdges(edges);
 
 		// first run of CFL reachability
-		gh1.runCFLReachability(grammars[0]);
-		gh2.runCFLReachability(grammars[1]);
+		gh1.runCFLReachability();
+		gh2.runCFLReachability();
 
 		// main query loop
 		int totalCFL1 = 0;
@@ -132,15 +133,15 @@ int main(int argc, char *argv[]) {
 					totalCFLBoolean++;
 					
 					// EC
-					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
-					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
+					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
+					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink);
 					std::set<Edge> es;
 					for (auto &e : c1) {
 						if (c2.count(e) == 1) {
 							es.insert(e);
 						}
 					}
-					Graph gh(n);
+					Graph gh(grammars[0], n); // here the grammar doesn't matter
 					gh.fillEdges(es);
 					if (gh.runPureReachability(source, sink)) {
 						totalEC++;
@@ -148,20 +149,20 @@ int main(int argc, char *argv[]) {
 
 					// ECFix
 					while (true) {
-						Graph gh(n);
+						Graph gh(grammars[0], n);
 						gh.fillEdges(es);
-						gh.runCFLReachability(grammars[0]);
+						gh.runCFLReachability();
 						if (!(gh.hasEdge(source, grammars[0].startSymbol, sink))) {
 							break;
 						}
-						auto c1 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[0]);
-						gh = Graph(n);
+						auto c1 = gh.getCFLReachabilityEdgeClosure(source, sink);
+						gh = Graph(grammars[1], n);
 						gh.fillEdges(c1);
-						gh.runCFLReachability(grammars[1]);
+						gh.runCFLReachability();
 						if (!(gh.hasEdge(source, grammars[1].startSymbol, sink))) {
 							break;
 						}
-						auto c2 = gh.getCFLReachabilityEdgeClosure(source, sink, grammars[1]);
+						auto c2 = gh.getCFLReachabilityEdgeClosure(source, sink);
 						if (c2.size() == es.size()) {
 							totalECFix++;
 							break;

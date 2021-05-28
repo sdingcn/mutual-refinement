@@ -9,6 +9,7 @@
 #include "../grammar/grammar.h"
 
 class Graph {
+	Grammar grammar;
 	int numberOfVertices;
 
 	// edges
@@ -20,7 +21,7 @@ class Graph {
 	std::vector<std::unordered_map<int, std::unordered_set<int>>> unaryRecord; // i -> j -> {unary production number}
 	std::vector<std::unordered_map<int, std::unordered_set<long long>>> binaryRecord; // i -> j -> {FP(binary prodution number, middle vertex)}
 public:
-	Graph(int n);
+	Graph(const Grammar &g, int n);
 
 	void addEdge(int i, int x, int j);
 
@@ -32,9 +33,9 @@ public:
 
 	bool runPureReachability(int i, int j) const;
 
-	void runCFLReachability(const Grammar &g);
+	void runCFLReachability();
 
-	std::set<Edge> getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const;
+	std::set<Edge> getCFLReachabilityEdgeClosure(int i, int j) const;
 };
 
 #endif

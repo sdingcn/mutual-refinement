@@ -6,7 +6,7 @@
 #include <utility>
 #include "../grammar/grammar.h"
 
-Graph::Graph(int n) : numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
+Graph::Graph(const Grammar &g, int n) : grammar(g), numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
                        unaryRecord(n), binaryRecord(n) {}
 
 void Graph::addEdge(int i, int x, int j) { // i --x--> j
@@ -52,16 +52,16 @@ bool Graph::runPureReachability(int i, int j) const {
 	return false;
 }
 
-void Graph::runCFLReachability(const Grammar &g) {
+void Graph::runCFLReachability() {
 	std::deque<Edge> w; // ((first vertex, second vertex), label)
 	for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist
 		for (auto &sj : adjacencyVector[i]) { // --s--> j
 			w.push_back(make_edge(i, sj.first, sj.second));
 		}
 	}
-	int nep = g.emptyProductions.size();
+	int nep = grammar.emptyProductions.size();
 	for (int ind = 0; ind < nep; ind++) { // add empty edges to the edge set and the worklist
-		int x = g.emptyProductions[ind];
+		int x = grammar.emptyProductions[ind];
 		for (int i = 0; i < numberOfVertices; i++) {
 			addEdge(i, x, i);
 			w.push_back(make_edge(i, x, i));
@@ -76,8 +76,8 @@ void Graph::runCFLReachability(const Grammar &g) {
 
 		std::vector<Edge> tba;
 
-		for (int ind : g.unaryProductionsInv[y]) { // x -> y
-			auto &p = g.unaryProductions[ind];
+		for (int ind : grammar.unaryProductionsInv[y]) { // x -> y
+			auto &p = grammar.unaryProductions[ind];
 			int x = p.first;
 			unaryRecord[i][j].insert(ind);
 			if (!hasEdge(i, x, j)) {
@@ -85,8 +85,8 @@ void Graph::runCFLReachability(const Grammar &g) {
 			}
 		}
 		// TODO: not using grammars
-		for (int ind : g.binaryProductionsFirstInv[y]) { // x -> yz
-			auto &p = g.binaryProductions[ind];
+		for (int ind : grammar.binaryProductionsFirstInv[y]) { // x -> yz
+			auto &p = grammar.binaryProductions[ind];
 			int x = p.first, z = p.second.second;
 			// TODO: change this to "jumping to the corresponding labels"
 			for (auto &sk : adjacencyVector[j]) { // --s--> k
@@ -99,8 +99,8 @@ void Graph::runCFLReachability(const Grammar &g) {
 				}
 			}
 		}
-		for (int ind : g.binaryProductionsSecondInv[y]) { // x -> zy
-			auto &p = g.binaryProductions[ind];
+		for (int ind : grammar.binaryProductionsSecondInv[y]) { // x -> zy
+			auto &p = grammar.binaryProductions[ind];
 			int x = p.first, z = p.second.first;
 			for (auto &ks : counterAdjacencyVector[i]) {
 				if (ks.second == z) { // k --z-->
@@ -119,12 +119,12 @@ void Graph::runCFLReachability(const Grammar &g) {
 	}
 }
 
-std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar &g) const {
+std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
 	std::set<Edge> closure;
 	std::set<Edge> vis;
 	std::deque<Edge> q;
-	if (hasEdge(i, g.startSymbol, j)) {
-		Edge start = make_edge(i, g.startSymbol, j);
+	if (hasEdge(i, grammar.startSymbol, j)) {
+		Edge start = make_edge(i, grammar.startSymbol, j);
 		vis.insert(start);
 		q.push_back(start);
 	}
@@ -134,15 +134,15 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar 
 
 		// i --x--> j
 		int i = cur.first.first, j = cur.first.second, x = cur.second;
-		if (g.terminals.count(x) == 1) {
+		if (grammar.terminals.count(x) == 1) {
 			closure.insert(cur);
 		}
 
 		if (unaryRecord[i].count(j) == 1) {
 			// TODO: not exhaustive?
 			for (int ind : unaryRecord[i].at(j)) {
-				if (g.unaryProductions[ind].first == x) {
-					Edge nxt = make_edge(i, g.unaryProductions[ind].second, j);
+				if (grammar.unaryProductions[ind].first == x) {
+					Edge nxt = make_edge(i, grammar.unaryProductions[ind].second, j);
 					if (vis.count(nxt) == 0) {
 						vis.insert(nxt);
 						q.push_back(nxt);
@@ -154,9 +154,9 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j, const Grammar 
 			for (long long fp : binaryRecord[i].at(j)) {
 				auto p = unpack_fast_pair(fp);
 				int ind = p.first, k = p.second; // i --> k --> j
-				if (g.binaryProductions[ind].first == x) {
-					Edge nxt1 = make_edge(i, g.binaryProductions[ind].second.first, k);
-					Edge nxt2 = make_edge(k, g.binaryProductions[ind].second.second, j);
+				if (grammar.binaryProductions[ind].first == x) {
+					Edge nxt1 = make_edge(i, grammar.binaryProductions[ind].second.first, k);
+					Edge nxt2 = make_edge(k, grammar.binaryProductions[ind].second.second, j);
 					if (vis.count(nxt1) == 0) {
 						vis.insert(nxt1);
 						q.push_back(nxt1);
