@@ -2,8 +2,11 @@
 #include <utility>
 #include <set>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <chrono>
 #include <cassert>
+#include <string>
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"
@@ -72,6 +75,20 @@ void test() {
 	assert(rec2.count(make_edge(2, 2, 3)) == 1);
 	auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2, gm);
 	assert(rec3.size() == 0);
+}
+
+void dumpVirtualMemoryPeak() {
+        std::ifstream in("/proc/self/status");
+        std::string line;
+        while(getline(in, line)) {
+                std::istringstream sin(line);
+                std::string tag;
+                sin >> tag;
+                if (tag == "VmPeak:") {
+                        std::cout << line << std::endl;
+                        return;
+                }
+        }
 }
 
 int main(int argc, char *argv[]) {
@@ -165,5 +182,6 @@ int main(int argc, char *argv[]) {
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
 	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
+	dumpVirtualMemoryPeak();
 	return 0;
 }
