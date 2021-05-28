@@ -111,26 +111,29 @@ int main(int argc, char *argv[]) {
 		// first run of CFL reachability
 		gh1.runCFLReachability();
 		gh2.runCFLReachability();
+		std::cout << ">>> Completed Preprocessing" << std::endl;
 
 		// main query loop
-		int totalCFL1 = 0;
-		int totalCFL2 = 0;
-		int totalCFLBoolean = 0;
-		int totalEC = 0;
+		// int totalCFL1 = 0;
+		// int totalCFL2 = 0;
+		// int totalCFLBoolean = 0;
+		// int totalEC = 0;
 		int totalECFix = 0;
 		for (int source = 0; source < n; source++) {
-			std::cout << ">>> [main] Query Progress (Source Vertex): " << source << ',' << n - 1 << std::endl;
+			if (source % 10 == 0) {
+				std::cout << ">>> Query Progress: " << source << ',' << n - 1 << std::endl;
+			}
 			for (int sink = 0; sink < n; sink++) {
 				bool reach1 = gh1.hasEdge(source, grammars[0].startSymbol, sink);
 				bool reach2 = gh2.hasEdge(source, grammars[1].startSymbol, sink);
-				if (reach1) {
-					totalCFL1++;
-				}
-				if (reach2) {
-					totalCFL2++;
-				}
+				// if (reach1) {
+				// 	totalCFL1++;
+				// }
+				// if (reach2) {
+				// 	totalCFL2++;
+				// }
 				if (reach1 && reach2) {
-					totalCFLBoolean++;
+					// totalCFLBoolean++;
 					
 					// EC
 					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
@@ -141,11 +144,11 @@ int main(int argc, char *argv[]) {
 							es.insert(e);
 						}
 					}
-					Graph gh(grammars[0], n); // here the grammar doesn't matter
-					gh.fillEdges(es);
-					if (gh.runPureReachability(source, sink)) {
-						totalEC++;
-					}
+					// Graph gh(grammars[0], n); // here the grammar doesn't matter
+					// gh.fillEdges(es);
+					// if (gh.runPureReachability(source, sink)) {
+					// 	totalEC++;
+					// }
 
 					// ECFix
 					while (true) {
@@ -174,11 +177,11 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		std::cout << "totalCFL1: " << totalCFL1 << std::endl;
-		std::cout << "totalCFL2: " << totalCFL2 << std::endl;
-		std::cout << "totalCFLBoolean: " << totalCFLBoolean << std::endl;
-		std::cout << "totalEC: " << totalEC << std::endl;
-		std::cout << "totalECFix: " << totalECFix << std::endl;
+		// std::cout << "totalCFL1: " << totalCFL1 << std::endl;
+		// std::cout << "totalCFL2: " << totalCFL2 << std::endl;
+		// std::cout << "totalCFLBoolean: " << totalCFLBoolean << std::endl;
+		// std::cout << "totalEC: " << totalEC << std::endl;
+		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
 	}
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;

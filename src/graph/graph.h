@@ -31,7 +31,7 @@ public:
 
 	bool hasEdge(int i, int x, int j) const;
 
-	bool runPureReachability(int i, int j) const;
+	// bool runPureReachability(int i, int j) const;
 
 	void runCFLReachability();
 
