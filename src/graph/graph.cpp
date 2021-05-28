@@ -4,7 +4,6 @@
 #include <deque>
 #include <unordered_set>
 #include <utility>
-// #include <iostream>
 #include "../grammar/grammar.h"
 
 Graph::Graph(const Grammar &g, int n) : grammar(g), numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
@@ -31,29 +30,6 @@ void Graph::fillEdges(const std::set<Edge> &edges) {
 bool Graph::hasEdge(int i, int x, int j) const {
 	return fastEdgeTest[i].count(make_fast_pair(x, j)) == 1;
 }
-
-/*
-bool Graph::runPureReachability(int i, int j) const {
-	std::deque<int> q;
-	std::unordered_set<int> s;
-	q.push_back(i);
-	s.insert(i);
-	while (!q.empty()) {
-		int c = q.front();
-		q.pop_front();
-		if (c == j) {
-			return true;
-		}
-		for (auto &sj : adjacencyVector[c]) {
-			if (s.count(sj.second) == 0) {
-				q.push_back(sj.second);
-				s.insert(sj.second);
-			}
-		}
-	}
-	return false;
-}
-*/
 
 void Graph::runCFLReachability() {
 	std::deque<Edge> w; // ((first vertex, second vertex), label)
@@ -91,8 +67,6 @@ void Graph::runCFLReachability() {
 		for (int ind : grammar.binaryProductionsFirstInv[y]) { // x -> yz
 			auto &p = grammar.binaryProductions[ind];
 			int x = p.first, z = p.second.second;
-			// TODO: change this to "jumping to the corresponding labels"
-// std::cerr << adjacencyVector[j].size() << std::endl;
 			for (auto &sk : adjacencyVector[j]) { // --s--> k
 				if (sk.first == z) { // --z--> k
 					int k = sk.second;
@@ -106,7 +80,6 @@ void Graph::runCFLReachability() {
 		for (int ind : grammar.binaryProductionsSecondInv[y]) { // x -> zy
 			auto &p = grammar.binaryProductions[ind];
 			int x = p.first, z = p.second.first;
-// std::cerr << counterAdjacencyVector[i].size() << std::endl;
 			for (auto &ks : counterAdjacencyVector[i]) {
 				if (ks.second == z) { // k --z-->
 					int k = ks.first;
