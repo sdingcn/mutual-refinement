@@ -108,8 +108,7 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 	int n2 = nb_map.size();
 
 	// Once we have the numbers of labels, we can proceed and construct the grammar.
-#define PAIR_ALGO
-#ifdef PAIR_ALGO
+#if 0
 	// symbols (universal among all grammars)
 	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]
 	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2
@@ -226,6 +225,12 @@ std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar
 			gm.unaryProductions.push_back(std::make_pair(start, i));
 		}
 		gm.startSymbol = start;
+		for (int i = op2; i < op2 + n2; i++) {
+			gm.leftToRight[i] = i + n2;
+		}
+		for (int i = op2 + n2; i < op2 + 2 * n2; i++) {
+			gm.rightToLeft[i] = i - n2;
+		}
 	};
 	fillGrammar(gmp, 0, n1, 2 * n1, n2, 2 * n1 + 2 * n2);
 	fillGrammar(gmb, 2 * n1, n2, 0, n1, 2 * n1 + 2 * n2 + n1 + 1);
