@@ -6,6 +6,7 @@
 #include <map>
 #include <iostream>
 #include <fstream>
+#include <tuple>
 #include "../common.h"
 
 bool isEdgeLine(const std::string &line) {
@@ -48,7 +49,7 @@ std::map<std::string, int> normalize(int start, const std::vector<std::string> &
 	return m;
 }
 
-std::pair<std::pair<std::vector<Edge>, int>, std::vector<Grammar>> parsePAGraph(const std::string &fname) {
+std::tuple<std::vector<Edge>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname) {
 	std::ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges
@@ -156,8 +157,8 @@ std::pair<std::pair<std::vector<Edge>, int>, std::vector<Grammar>> parsePAGraph(
 		} else {
 			sym = nb_map[n] + n2;
 		}
-		edges.push_back(make_edge(nv_map[ijtn.first.first], sym, nv_map[ijtn.first.second]));
+		edges.push_back(std::make_tuple(nv_map[ijtn.first.first], sym, nv_map[ijtn.first.second]));
 	}
 
-	return std::make_pair(std::make_pair(edges, n), std::vector<Grammar> {gmp, gmb});
+	return std::make_tuple(edges, n, std::vector<Grammar> {gmp, gmb});
 }

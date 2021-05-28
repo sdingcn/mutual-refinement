@@ -4,30 +4,37 @@
 #include <deque>
 #include <unordered_set>
 #include <utility>
+#include <tuple>
 #include "../grammar/grammar.h"
 
 Graph::Graph(const Grammar &g, int n) : grammar(g), numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
                        unaryRecord(n), binaryRecord(n) {}
 
-void Graph::addEdge(int i, int x, int j) { // i --x--> j
+void Graph::addEdge(const Edge &e) { // i --x--> j
+	int i = std::get<0>(e);
+	int x = std::get<1>(e);
+	int j = std::get<2>(e);
 	fastEdgeTest[i].insert(make_fast_pair(x, j));
 	adjacencyVector[i].push_back(std::make_pair(x, j));
 	counterAdjacencyVector[j].push_back(std::make_pair(i, x));
 }
 
 void Graph::fillEdges(const std::vector<Edge> &edges) {
-	for (auto &ijs : edges) {
-		addEdge(ijs.first.first, ijs.second, ijs.first.second);
+	for (auto &e : edges) {
+		addEdge(e);
 	}
 }
 
 void Graph::fillEdges(const std::set<Edge> &edges) {
-	for (auto &ijs : edges) {
-		addEdge(ijs.first.first, ijs.second, ijs.first.second);
+	for (auto &e : edges) {
+		addEdge(e);
 	}
 }
 
-bool Graph::hasEdge(int i, int x, int j) const {
+bool Graph::hasEdge(const Edge &e) const {
+	int i = std::get<0>(e);
+	int x = std::get<1>(e);
+	int j = std::get<2>(e);
 	return fastEdgeTest[i].count(make_fast_pair(x, j)) == 1;
 }
 
@@ -35,15 +42,17 @@ void Graph::runCFLReachability() {
 	std::deque<Edge> w; // ((first vertex, second vertex), label)
 	for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist
 		for (auto &sj : adjacencyVector[i]) { // --s--> j
-			w.push_back(make_edge(i, sj.first, sj.second));
+			Edge e = std::make_tuple(i, sj.first, sj.second);
+			w.push_back(e);
 		}
 	}
 	int nep = grammar.emptyProductions.size();
 	for (int ind = 0; ind < nep; ind++) { // add empty edges to the edge set and the worklist
 		int x = grammar.emptyProductions[ind];
 		for (int i = 0; i < numberOfVertices; i++) {
-			addEdge(i, x, i);
-			w.push_back(make_edge(i, x, i));
+			Edge e = std::make_tuple(i, x, i);
+			addEdge(e);
+			w.push_back(e);
 		}
 	}
 	while (!w.empty()) {
@@ -51,7 +60,9 @@ void Graph::runCFLReachability() {
 		w.pop_front();
 
 		// i --y--> j
-		int i = e.first.first, j = e.first.second, y = e.second;
+		int i = std::get<0>(e);
+		int y = std::get<1>(e);
+		int j = std::get<2>(e);
 
 		std::vector<Edge> tba;
 
@@ -59,8 +70,9 @@ void Graph::runCFLReachability() {
 			auto &p = grammar.unaryProductions[ind];
 			int x = p.first;
 			unaryRecord[i][j].insert(ind);
-			if (!hasEdge(i, x, j)) {
-				tba.push_back(make_edge(i, x, j));
+			Edge e = std::make_tuple(i, x, j);
+			if (!hasEdge(e)) {
+				tba.push_back(e);
 			}
 		}
 		// TODO: not using grammars
@@ -71,8 +83,9 @@ void Graph::runCFLReachability() {
 				if (sk.first == z) { // --z--> k
 					int k = sk.second;
 					binaryRecord[i][k].insert(make_fast_pair(ind, j));
-					if (!hasEdge(i, x, k)) {
-						tba.push_back(make_edge(i, x, k));
+					Edge e = std::make_tuple(i, x, k);
+					if (!hasEdge(e)) {
+						tba.push_back(e);
 					}
 				}
 			}
@@ -84,14 +97,15 @@ void Graph::runCFLReachability() {
 				if (ks.second == z) { // k --z-->
 					int k = ks.first;
 					binaryRecord[k][j].insert(make_fast_pair(ind, i));
-					if (!hasEdge(k, x, j)) {
-						tba.push_back(make_edge(k, x, j));
+					Edge e = std::make_tuple(k, x, j);
+					if (!hasEdge(e)) {
+						tba.push_back(e);
 					}
 				}
 			}
 		}
 		for (auto &e : tba) {
-			addEdge(e.first.first, e.second, e.first.second);
+			addEdge(e);
 			w.push_back(e);
 		}
 	}
@@ -101,26 +115,28 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
 	std::set<Edge> closure;
 	std::set<Edge> vis;
 	std::deque<Edge> q;
-	if (hasEdge(i, grammar.startSymbol, j)) {
-		Edge start = make_edge(i, grammar.startSymbol, j);
+	Edge start = std::make_tuple(i, grammar.startSymbol, j);
+	if (hasEdge(start)) {
 		vis.insert(start);
 		q.push_back(start);
 	}
 	while (!q.empty()) { // BFS
-		Edge cur = q.front();
+		Edge e = q.front();
 		q.pop_front();
 
 		// i --x--> j
-		int i = cur.first.first, j = cur.first.second, x = cur.second;
+		int i = std::get<0>(e);
+		int x = std::get<1>(e);
+		int j = std::get<2>(e);
 		if (grammar.terminals.count(x) == 1) {
-			closure.insert(cur);
+			closure.insert(e);
 		}
 
 		if (unaryRecord[i].count(j) == 1) {
 			// TODO: not exhaustive?
 			for (int ind : unaryRecord[i].at(j)) {
 				if (grammar.unaryProductions[ind].first == x) {
-					Edge nxt = make_edge(i, grammar.unaryProductions[ind].second, j);
+					Edge nxt = std::make_tuple(i, grammar.unaryProductions[ind].second, j);
 					if (vis.count(nxt) == 0) {
 						vis.insert(nxt);
 						q.push_back(nxt);
@@ -133,8 +149,8 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
 				auto p = unpack_fast_pair(fp);
 				int ind = p.first, k = p.second; // i --> k --> j
 				if (grammar.binaryProductions[ind].first == x) {
-					Edge nxt1 = make_edge(i, grammar.binaryProductions[ind].second.first, k);
-					Edge nxt2 = make_edge(k, grammar.binaryProductions[ind].second.second, j);
+					Edge nxt1 = std::make_tuple(i, grammar.binaryProductions[ind].second.first, k);
+					Edge nxt2 = std::make_tuple(k, grammar.binaryProductions[ind].second.second, j);
 					if (vis.count(nxt1) == 0) {
 						vis.insert(nxt1);
 						q.push_back(nxt1);

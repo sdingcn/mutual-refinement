@@ -8,6 +8,7 @@
 #include <cassert>
 #include <string>
 #include <utility>
+#include <tuple>
 #include <algorithm>
 #include <iterator>
 #include "grammar/grammar.h"
@@ -46,36 +47,36 @@ void test() {
 	 *   ----------1--------->
 	 */
 	Graph gh(gm, 6);
-	gh.addEdge(0, 1, 4);
-	gh.addEdge(4, 10, 5);
-	gh.addEdge(5, 2, 2);
-	gh.addEdge(0, 1, 1);
-	gh.addEdge(1, 2, 2);
-	gh.addEdge(2, 1, 2);
-	gh.addEdge(2, 2, 3);
-	gh.addEdge(0, 1, 2);
+	gh.addEdge(std::make_tuple(0, 1, 4));
+	gh.addEdge(std::make_tuple(4, 10, 5));
+	gh.addEdge(std::make_tuple(5, 2, 2));
+	gh.addEdge(std::make_tuple(0, 1, 1));
+	gh.addEdge(std::make_tuple(1, 2, 2));
+	gh.addEdge(std::make_tuple(2, 1, 2));
+	gh.addEdge(std::make_tuple(2, 2, 3));
+	gh.addEdge(std::make_tuple(0, 1, 2));
 	gh.runCFLReachability();
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 6; j++) {
 			if ((i == j) || (i == 0 && j == 2) || (i == 0 && j == 3) ||
 			    (i == 2 && j == 3) || (i == 4 && j == 5)) {
-				assert(gh.hasEdge(i, gm.startSymbol, j));
+				assert(gh.hasEdge(std::make_tuple(i, gm.startSymbol, j)));
 			} else {
-				assert(!gh.hasEdge(i, gm.startSymbol, j));
+				assert(!gh.hasEdge(std::make_tuple(i, gm.startSymbol, j)));
 			}
 		}
 	}
 	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2);
 	assert(rec1.size() == 5);
-	assert(rec1.count(make_edge(0, 1, 1)) == 1);
-	assert(rec1.count(make_edge(1, 2, 2)) == 1);
-	assert(rec1.count(make_edge(0, 1, 4)) == 1);
-	assert(rec1.count(make_edge(4, 10, 5)) == 1);
-	assert(rec1.count(make_edge(5, 2, 2)) == 1);
+	assert(rec1.count(std::make_tuple(0, 1, 1)) == 1);
+	assert(rec1.count(std::make_tuple(1, 2, 2)) == 1);
+	assert(rec1.count(std::make_tuple(0, 1, 4)) == 1);
+	assert(rec1.count(std::make_tuple(4, 10, 5)) == 1);
+	assert(rec1.count(std::make_tuple(5, 2, 2)) == 1);
 	auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3);
 	assert(rec2.size() == 2);
-	assert(rec2.count(make_edge(2, 1, 2)) == 1);
-	assert(rec2.count(make_edge(2, 2, 3)) == 1);
+	assert(rec2.count(std::make_tuple(2, 1, 2)) == 1);
+	assert(rec2.count(std::make_tuple(2, 2, 3)) == 1);
 	auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2);
 	assert(rec3.size() == 0);
 }
@@ -100,11 +101,11 @@ int main(int argc, char *argv[]) {
 		test();
 	} else {
 		// read data
-		const std::pair<std::pair<std::vector<Edge>, int>, std::vector<Grammar>> data = parsePAGraph(argv[1]);
+		const std::tuple<std::vector<Edge>, int, std::vector<Grammar>> data = parsePAGraph(argv[1]);
 		std::cout << ">>> Completed Parsing" << std::endl;
-		const std::vector<Edge> &edges = data.first.first;
-		const std::vector<Grammar> &grammars = data.second;
-		const int n = data.first.second;
+		const auto &edges = std::get<0>(data);
+		const int n = std::get<1>(data);
+		const auto &grammars = std::get<2>(data);
 
 		// construct graphs
 		Graph gh1(grammars[0], n);
@@ -127,8 +128,10 @@ int main(int argc, char *argv[]) {
 				std::cout << ">>> Query Progress: " << source << ',' << n - 1 << std::endl;
 			}
 			for (int sink = 0; sink < n; sink++) {
-				bool reach1 = gh1.hasEdge(source, grammars[0].startSymbol, sink);
-				bool reach2 = gh2.hasEdge(source, grammars[1].startSymbol, sink);
+				Edge e1 = std::make_tuple(source, grammars[0].startSymbol, sink);
+				Edge e2 = std::make_tuple(source, grammars[1].startSymbol, sink);
+				bool reach1 = gh1.hasEdge(e1);
+				bool reach2 = gh2.hasEdge(e2);
 				// if (reach1) {
 				// 	totalCFL1++;
 				// }
@@ -145,14 +148,14 @@ int main(int argc, char *argv[]) {
 						Graph gha(grammars[0], n);
 						gha.fillEdges(es);
 						gha.runCFLReachability();
-						if (!(gha.hasEdge(source, grammars[0].startSymbol, sink))) {
+						if (!(gha.hasEdge(e1))) {
 							break;
 						}
 						auto ca = gha.getCFLReachabilityEdgeClosure(source, sink);
 						Graph ghb(grammars[1], n);
 						ghb.fillEdges(ca);
 						ghb.runCFLReachability();
-						if (!(ghb.hasEdge(source, grammars[1].startSymbol, sink))) {
+						if (!(ghb.hasEdge(e2))) {
 							break;
 						}
 						auto cb = ghb.getCFLReachabilityEdgeClosure(source, sink);

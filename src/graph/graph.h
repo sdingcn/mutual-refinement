@@ -23,13 +23,13 @@ class Graph {
 public:
 	Graph(const Grammar &g, int n);
 
-	void addEdge(int i, int x, int j);
+	void addEdge(const Edge &e);
 
 	void fillEdges(const std::vector<Edge> &edges);
 
 	void fillEdges(const std::set<Edge> &edges);
 
-	bool hasEdge(int i, int x, int j) const;
+	bool hasEdge(const Edge &e) const;
 
 	void runCFLReachability();
 

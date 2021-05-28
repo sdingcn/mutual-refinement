@@ -2,14 +2,11 @@
 #define COMMON_H
 
 #include <utility>
+#include <tuple>
 
-using Edge = std::pair<std::pair<int, int>, int>; // ((first vertex, second vertex), label)
+using Edge = std::tuple<int, int, int>; // (first vertex, label, second vertex)
 
 constexpr long long FP_MASK = (1LL << 30);
-
-inline Edge make_edge(int i, int x, int j) {
-	return std::make_pair(std::make_pair(i, j), x);
-}
 
 inline long long make_fast_pair(int a, int b) { // assuming a >= 0 && b >= 0
 	return a * FP_MASK + b;
