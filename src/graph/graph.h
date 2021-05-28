@@ -29,11 +29,13 @@ public:
 
 	void fillEdges(const std::set<Edge> &edges);
 
+	void fillEdges(const std::unordered_set<long long> &edges);
+
 	bool hasEdge(const Edge &e) const;
 
 	void runCFLReachability();
 
-	std::set<Edge> getCFLReachabilityEdgeClosure(int i, int j) const;
+	std::unordered_set<long long> getCFLReachabilityEdgeClosure(int i, int j) const;
 };
 
 #endif

@@ -68,15 +68,15 @@ void test() {
 	}
 	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2);
 	assert(rec1.size() == 5);
-	assert(rec1.count(std::make_tuple(0, 1, 1)) == 1);
-	assert(rec1.count(std::make_tuple(1, 2, 2)) == 1);
-	assert(rec1.count(std::make_tuple(0, 1, 4)) == 1);
-	assert(rec1.count(std::make_tuple(4, 10, 5)) == 1);
-	assert(rec1.count(std::make_tuple(5, 2, 2)) == 1);
+	assert(rec1.count(make_fast_triple(0, 1, 1)) == 1);
+	assert(rec1.count(make_fast_triple(1, 2, 2)) == 1);
+	assert(rec1.count(make_fast_triple(0, 1, 4)) == 1);
+	assert(rec1.count(make_fast_triple(4, 10, 5)) == 1);
+	assert(rec1.count(make_fast_triple(5, 2, 2)) == 1);
 	auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3);
 	assert(rec2.size() == 2);
-	assert(rec2.count(std::make_tuple(2, 1, 2)) == 1);
-	assert(rec2.count(std::make_tuple(2, 2, 3)) == 1);
+	assert(rec2.count(make_fast_triple(2, 1, 2)) == 1);
+	assert(rec2.count(make_fast_triple(2, 2, 3)) == 1);
 	auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2);
 	assert(rec3.size() == 0);
 }
@@ -142,8 +142,12 @@ int main(int argc, char *argv[]) {
 					// totalCFLBoolean++;
 					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
 					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink);
-					std::set<Edge> es;
-					std::set_intersection(c1.begin(), c1.end(), c2.begin(), c2.end(), std::inserter(es, es.begin()));
+					std::unordered_set<long long> es;
+					for (long long e : c1) {
+						if (c2.count(e) == 1) {
+							es.insert(e);
+						}
+					}
 					while (true) {
 						Graph gha(grammars[0], n);
 						gha.fillEdges(es);
@@ -179,5 +183,4 @@ int main(int argc, char *argv[]) {
 	std::chrono::duration<double> elapsed_seconds = end - start;
 	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
 	dumpVirtualMemoryPeak();
-	return 0;
 }

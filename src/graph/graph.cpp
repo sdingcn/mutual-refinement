@@ -7,8 +7,9 @@
 #include <tuple>
 #include "../grammar/grammar.h"
 
-Graph::Graph(const Grammar &g, int n) : grammar(g), numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n), counterAdjacencyVector(n),
-                       unaryRecord(n), binaryRecord(n) {}
+Graph::Graph(const Grammar &g, int n)
+	: grammar(g), numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n),
+	counterAdjacencyVector(n), unaryRecord(n), binaryRecord(n) {}
 
 void Graph::addEdge(const Edge &e) { // i --x--> j
 	int i = std::get<0>(e);
@@ -28,6 +29,12 @@ void Graph::fillEdges(const std::vector<Edge> &edges) {
 void Graph::fillEdges(const std::set<Edge> &edges) {
 	for (auto &e : edges) {
 		addEdge(e);
+	}
+}
+
+void Graph::fillEdges(const std::unordered_set<long long> &edges) {
+	for (auto &e : edges) {
+		addEdge(unpack_fast_triple(e));
 	}
 }
 
@@ -111,13 +118,13 @@ void Graph::runCFLReachability() {
 	}
 }
 
-std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
-	std::set<Edge> closure;
-	std::set<Edge> vis;
+std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
+	std::unordered_set<long long> closure;
+	std::unordered_set<long long> vis;
 	std::deque<Edge> q;
 	Edge start = std::make_tuple(i, grammar.startSymbol, j);
 	if (hasEdge(start)) {
-		vis.insert(start);
+		vis.insert(pack_fast_triple(start));
 		q.push_back(start);
 	}
 	while (!q.empty()) { // BFS
@@ -129,7 +136,7 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
 		int x = std::get<1>(e);
 		int j = std::get<2>(e);
 		if (grammar.terminals.count(x) == 1) {
-			closure.insert(e);
+			closure.insert(pack_fast_triple(e));
 		}
 
 		if (unaryRecord[i].count(j) == 1) {
@@ -137,8 +144,8 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
 			for (int ind : unaryRecord[i].at(j)) {
 				if (grammar.unaryProductions[ind].first == x) {
 					Edge nxt = std::make_tuple(i, grammar.unaryProductions[ind].second, j);
-					if (vis.count(nxt) == 0) {
-						vis.insert(nxt);
+					if (vis.count(pack_fast_triple(nxt)) == 0) {
+						vis.insert(pack_fast_triple(nxt));
 						q.push_back(nxt);
 					}
 				}
@@ -151,12 +158,12 @@ std::set<Edge> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
 				if (grammar.binaryProductions[ind].first == x) {
 					Edge nxt1 = std::make_tuple(i, grammar.binaryProductions[ind].second.first, k);
 					Edge nxt2 = std::make_tuple(k, grammar.binaryProductions[ind].second.second, j);
-					if (vis.count(nxt1) == 0) {
-						vis.insert(nxt1);
+					if (vis.count(pack_fast_triple(nxt1)) == 0) {
+						vis.insert(pack_fast_triple(nxt1));
 						q.push_back(nxt1);
 					}
-					if (vis.count(nxt2) == 0) {
-						vis.insert(nxt2);
+					if (vis.count(pack_fast_triple(nxt2)) == 0) {
+						vis.insert(pack_fast_triple(nxt2));
 						q.push_back(nxt2);
 					}
 				}
