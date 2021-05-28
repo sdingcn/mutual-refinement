@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cassert>
 #include <string>
+#include <utility>
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"
@@ -98,6 +99,7 @@ int main(int argc, char *argv[]) {
 	} else {
 		// read data
 		const std::pair<std::pair<std::vector<Edge>, std::pair<int, int>>, std::vector<Grammar>> data = parseFile(argv[1]);
+		std::cout << ">>> Completed Parsing" << std::endl;
 		const std::vector<Edge> &edges = data.first.first;
 		const std::vector<Grammar> &grammars = data.second;
 		const int n = data.first.second.second + 1;
@@ -152,25 +154,25 @@ int main(int argc, char *argv[]) {
 
 					// ECFix
 					while (true) {
-						Graph gh(grammars[0], n);
-						gh.fillEdges(es);
-						gh.runCFLReachability();
-						if (!(gh.hasEdge(source, grammars[0].startSymbol, sink))) {
+						Graph gha(grammars[0], n);
+						gha.fillEdges(es);
+						gha.runCFLReachability();
+						if (!(gha.hasEdge(source, grammars[0].startSymbol, sink))) {
 							break;
 						}
-						auto c1 = gh.getCFLReachabilityEdgeClosure(source, sink);
-						gh = Graph(grammars[1], n);
-						gh.fillEdges(c1);
-						gh.runCFLReachability();
-						if (!(gh.hasEdge(source, grammars[1].startSymbol, sink))) {
+						auto ca = gha.getCFLReachabilityEdgeClosure(source, sink);
+						Graph ghb(grammars[1], n);
+						ghb.fillEdges(ca);
+						ghb.runCFLReachability();
+						if (!(ghb.hasEdge(source, grammars[1].startSymbol, sink))) {
 							break;
 						}
-						auto c2 = gh.getCFLReachabilityEdgeClosure(source, sink);
-						if (c2.size() == es.size()) {
+						auto cb = ghb.getCFLReachabilityEdgeClosure(source, sink);
+						if (cb.size() == es.size()) {
 							totalECFix++;
 							break;
 						} else {
-							es = c2;
+							es = std::move(cb);
 						}
 					}
 				}

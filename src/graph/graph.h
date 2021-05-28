@@ -9,7 +9,7 @@
 #include "../grammar/grammar.h"
 
 class Graph {
-	Grammar grammar;
+	const Grammar &grammar;
 	int numberOfVertices;
 
 	// edges
