@@ -8,6 +8,8 @@
 #include <cassert>
 #include <string>
 #include <utility>
+#include <algorithm>
+#include <iterator>
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"
@@ -141,11 +143,12 @@ int main(int argc, char *argv[]) {
 					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
 					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink);
 					std::set<Edge> es;
-					for (auto &e : c1) {
-						if (c2.count(e) == 1) {
-							es.insert(e);
-						}
-					}
+					// for (auto &e : c1) {
+					// 	if (c2.count(e) == 1) {
+					// 		es.insert(e);
+					// 	}
+					// }
+					std::set_intersection(c1.begin(), c1.end(), c2.begin(), c2.end(), std::inserter(es, es.begin()));
 					// Graph gh(grammars[0], n); // here the grammar doesn't matter
 					// gh.fillEdges(es);
 					// if (gh.runPureReachability(source, sink)) {
