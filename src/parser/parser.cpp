@@ -133,11 +133,11 @@ std::tuple<std::vector<Edge>, int, std::vector<Grammar>> parsePAGraph(const std:
 	gmb.fillInv(total);
 
 	// check boundaries
-	if (n > MASK) {
+	if (n - 1 > static_cast<int>(MASK)) {
 		std::cerr << "Error: The graph contains too many nodes." << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
-	if (total > MASK) {
+	if (total - 1 > static_cast<int>(MASK)) {
 		std::cerr << "Error: The grammar contains too many symbols." << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
