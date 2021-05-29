@@ -47,38 +47,44 @@ void test() {
 	 *   ----------1--------->
 	 */
 	Graph gh(gm, 6);
-	gh.addEdge(std::make_tuple(0, 1, 4));
-	gh.addEdge(std::make_tuple(4, 10, 5));
-	gh.addEdge(std::make_tuple(5, 2, 2));
-	gh.addEdge(std::make_tuple(0, 1, 1));
-	gh.addEdge(std::make_tuple(1, 2, 2));
-	gh.addEdge(std::make_tuple(2, 1, 2));
-	gh.addEdge(std::make_tuple(2, 2, 3));
-	gh.addEdge(std::make_tuple(0, 1, 2));
+	gh.addEdge(make_fast_triple(0, 1, 4));
+	gh.addEdge(make_fast_triple(4, 10, 5));
+	gh.addEdge(make_fast_triple(5, 2, 2));
+	gh.addEdge(make_fast_triple(0, 1, 1));
+	gh.addEdge(make_fast_triple(1, 2, 2));
+	gh.addEdge(make_fast_triple(2, 1, 2));
+	gh.addEdge(make_fast_triple(2, 2, 3));
+	gh.addEdge(make_fast_triple(0, 1, 2));
 	gh.runCFLReachability();
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 6; j++) {
 			if ((i == j) || (i == 0 && j == 2) || (i == 0 && j == 3) ||
 			    (i == 2 && j == 3) || (i == 4 && j == 5)) {
-				assert(gh.hasEdge(std::make_tuple(i, gm.startSymbol, j)));
+				assert(gh.hasEdge(make_fast_triple(i, gm.startSymbol, j)));
 			} else {
-				assert(!gh.hasEdge(std::make_tuple(i, gm.startSymbol, j)));
+				assert(!gh.hasEdge(make_fast_triple(i, gm.startSymbol, j)));
 			}
 		}
 	}
-	auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2);
-	assert(rec1.size() == 5);
-	assert(rec1.count(make_fast_triple(0, 1, 1)) == 1);
-	assert(rec1.count(make_fast_triple(1, 2, 2)) == 1);
-	assert(rec1.count(make_fast_triple(0, 1, 4)) == 1);
-	assert(rec1.count(make_fast_triple(4, 10, 5)) == 1);
-	assert(rec1.count(make_fast_triple(5, 2, 2)) == 1);
-	auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3);
-	assert(rec2.size() == 2);
-	assert(rec2.count(make_fast_triple(2, 1, 2)) == 1);
-	assert(rec2.count(make_fast_triple(2, 2, 3)) == 1);
-	auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2);
-	assert(rec3.size() == 0);
+	{
+		auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2);
+		assert(rec1.size() == 5);
+		assert(rec1.count(make_fast_triple(0, 1, 1)) == 1);
+		assert(rec1.count(make_fast_triple(1, 2, 2)) == 1);
+		assert(rec1.count(make_fast_triple(0, 1, 4)) == 1);
+		assert(rec1.count(make_fast_triple(4, 10, 5)) == 1);
+		assert(rec1.count(make_fast_triple(5, 2, 2)) == 1);
+	}
+	{
+		auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3);
+		assert(rec2.size() == 2);
+		assert(rec2.count(make_fast_triple(2, 1, 2)) == 1);
+		assert(rec2.count(make_fast_triple(2, 2, 3)) == 1);
+	}
+	{
+		auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2);
+		assert(rec3.size() == 0);
+	}
 }
 
 void dumpVirtualMemoryPeak() {
@@ -101,7 +107,7 @@ int main(int argc, char *argv[]) {
 		test();
 	} else {
 		// read data
-		const std::tuple<std::vector<Edge>, int, std::vector<Grammar>> data = parsePAGraph(argv[1]);
+		const std::tuple<std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[1]);
 		std::cout << ">>> Completed Parsing" << std::endl;
 		const auto &edges = std::get<0>(data);
 		const int n = std::get<1>(data);
@@ -128,8 +134,8 @@ int main(int argc, char *argv[]) {
 				std::cout << ">>> Query Progress: " << source << ',' << n - 1 << std::endl;
 			}
 			for (int sink = 0; sink < n; sink++) {
-				Edge e1 = std::make_tuple(source, grammars[0].startSymbol, sink);
-				Edge e2 = std::make_tuple(source, grammars[1].startSymbol, sink);
+				long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
+				long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
 				bool reach1 = gh1.hasEdge(e1);
 				bool reach2 = gh2.hasEdge(e2);
 				// if (reach1) {
@@ -140,12 +146,14 @@ int main(int argc, char *argv[]) {
 				// }
 				if (reach1 && reach2) {
 					// totalCFLBoolean++;
-					auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
-					auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink);
 					std::unordered_set<long long> es;
-					for (long long e : c1) {
-						if (c2.count(e) == 1) {
-							es.insert(e);
+					{
+						auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
+						auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink);
+						for (long long e : c1) {
+							if (c2.count(e) == 1) {
+								es.insert(e);
+							}
 						}
 					}
 					while (true) {

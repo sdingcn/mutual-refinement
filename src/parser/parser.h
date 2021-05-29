@@ -7,6 +7,6 @@
 #include "../grammar/grammar.h"
 #include "../common.h"
 
-std::tuple<std::vector<Edge>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname);
+std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname);
 
 #endif

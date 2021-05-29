@@ -49,7 +49,7 @@ std::map<std::string, int> normalize(int start, const std::vector<std::string> &
 	return m;
 }
 
-std::tuple<std::vector<Edge>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname) {
+std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname) {
 	std::ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges
@@ -143,7 +143,7 @@ std::tuple<std::vector<Edge>, int, std::vector<Grammar>> parsePAGraph(const std:
 	}
 
 	// construct the normalized graph
-	std::vector<Edge> edges;
+	std::vector<long long> edges;
 	for (auto &ijtn : rawEdges) {
 		std::string &t = ijtn.second.first;
 		std::string &n = ijtn.second.second;
@@ -157,8 +157,8 @@ std::tuple<std::vector<Edge>, int, std::vector<Grammar>> parsePAGraph(const std:
 		} else {
 			sym = nb_map[n] + n2;
 		}
-		edges.push_back(std::make_tuple(nv_map[ijtn.first.first], sym, nv_map[ijtn.first.second]));
+		edges.push_back(make_fast_triple(nv_map[ijtn.first.first], sym, nv_map[ijtn.first.second]));
 	}
 
-	return std::make_tuple(edges, n, std::vector<Grammar> {gmp, gmb});
+	return std::make_tuple(std::move(edges), n, std::vector<Grammar> {gmp, gmb});
 }
