@@ -101,13 +101,20 @@ void dumpVirtualMemoryPeak() {
         }
 }
 
+void printUsage(const char *name) {
+	std::cerr << "Usage:" << std::endl
+		<< '\t' << name << " test" << std::endl
+		<< '\t' << name << " pa" << " <graph-file-path>" << std::endl
+		<< '\t' << name << " bp" << " <graph-file-path>" << std::endl;
+}
+
 int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
-	if (argc == 1) {
+	if (argc == 2 && argv[1] == std::string("test")) {
 		test();
-	} else {
+	} else if (argc == 3 && argv[1] == std::string("pa")) {
 		// read data
-		const std::tuple<std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[1]);
+		const std::tuple<std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[2]);
 		std::cout << ">>> Completed Parsing" << std::endl;
 		const auto &edges = std::get<0>(data);
 		const int n = std::get<1>(data);
@@ -186,9 +193,45 @@ int main(int argc, char *argv[]) {
 		// std::cout << "totalCFL2: " << totalCFL2 << std::endl;
 		// std::cout << "totalCFLBoolean: " << totalCFLBoolean << std::endl;
 		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
+	} else if (argc == 3 && argv[1] == std::string("bp")) {
+		std::tuple<std::vector<long long>, int, std::pair<int, int>, std::vector<Grammar>> data = parseBPGraph(argv[2]);
+		const auto &edges = std::get<0>(data);
+		const int nv = std::get<1>(data);
+		const int source = std::get<2>(data).first;
+		const int sink = std::get<2>(data).second;
+		const auto &grammars = std::get<3>(data);
+		const int ng = grammars.size();
+
+		std::unordered_set<long long> es(edges.begin(), edges.end());
+		int ite = 0;
+		while (true) {
+			std::cerr << "ITERATION " << (++ite) << std::endl;
+			auto es_size = es.size();
+			for (int i = 0; i < ng; i++) {
+				std::cerr << "GRAMMAR " << i << std::endl;
+				Graph gh(grammars[i], nv);
+				gh.fillEdges(es);
+				gh.runCFLReachability();
+				std::cerr << "DONE CFLReach" << std::endl;
+				if (!gh.hasEdge(make_fast_triple(source, grammars[i].startSymbol, sink))) {
+					std::cout << "Definitely Unreachable" << std::endl;
+					goto END;
+				}
+				es = gh.getCFLReachabilityEdgeClosure(source, sink);
+				std::cerr << "DONE EdgeClosure" << std::endl;
+			}
+			if (es.size() == es_size) {
+				break;
+			}
+		}
+		std::cout << "Possibly Reachable" << std::endl;
+	} else {
+		printUsage(argv[0]);
 	}
+END:
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
+	std::cout << "--------------------------------" << std::endl;
 	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
 	dumpVirtualMemoryPeak();
 }
