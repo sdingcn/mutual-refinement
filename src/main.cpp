@@ -202,6 +202,7 @@ int main(int argc, char *argv[]) {
 		const auto &grammars = std::get<3>(data);
 		const int ng = grammars.size();
 
+		// TODO: change to pure reachability closure, and only proceed if purely reachable
 		std::unordered_set<long long> es(edges.begin(), edges.end());
 		int ite = 0;
 		while (true) {
