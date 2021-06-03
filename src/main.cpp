@@ -137,9 +137,7 @@ int main(int argc, char *argv[]) {
 		// int totalCFLBoolean = 0;
 		int totalECFix = 0;
 		for (int source = 0; source < n; source++) {
-			if (source % 10 == 0) {
-				std::cout << ">>> Query Progress: " << source << ',' << n - 1 << std::endl;
-			}
+			std::cout << ">>> Query Progress: " << source << ',' << n - 1 << std::endl;
 			for (int sink = 0; sink < n; sink++) {
 				long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
 				long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
