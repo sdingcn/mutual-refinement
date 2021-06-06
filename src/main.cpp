@@ -108,6 +108,15 @@ void printUsage(const char *name) {
 		<< '\t' << name << " bp" << " <graph-file-path>" << std::endl;
 }
 
+#define check_resource(str) do {\
+	auto end = std::chrono::steady_clock::now();\
+	std::chrono::duration<double> elapsed_seconds = end - start;\
+	std::cout << "[--- begin resource check: " << str << " ---]" << std::endl;\
+	std::cout << "Time (Seconds): " << elapsed_seconds.count() << std::endl;\
+	dumpVirtualMemoryPeak();\
+	std::cout << "[--- end resource check ---]" << std::endl;\
+} while (0)
+
 int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
 	if (argc == 2 && argv[1] == std::string("test")) {
@@ -130,6 +139,7 @@ int main(int argc, char *argv[]) {
 		gh1.runCFLReachability();
 		gh2.runCFLReachability();
 		std::cout << ">>> Completed Preprocessing" << std::endl;
+		check_resource("preprocessing");
 
 		// main query loop
 		// int totalCFL1 = 0;
@@ -191,6 +201,7 @@ int main(int argc, char *argv[]) {
 		// std::cout << "totalCFL2: " << totalCFL2 << std::endl;
 		// std::cout << "totalCFLBoolean: " << totalCFLBoolean << std::endl;
 		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
+		check_resource("total");
 	} else if (argc == 3 && argv[1] == std::string("bp")) {
 		std::tuple<std::vector<long long>, int, std::pair<int, int>, std::vector<Grammar>> data = parseBPGraph(argv[2]);
 		const auto &edges = std::get<0>(data);
@@ -224,13 +235,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		std::cout << "Possibly Reachable" << std::endl;
+END:;
 	} else {
 		printUsage(argv[0]);
 	}
-END:
-	auto end = std::chrono::steady_clock::now();
-	std::chrono::duration<double> elapsed_seconds = end - start;
-	std::cout << "--------------------------------" << std::endl;
-	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
-	dumpVirtualMemoryPeak();
 }
