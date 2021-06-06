@@ -74,72 +74,65 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 		v.push_back(ijtn.first.first);
 		v.push_back(ijtn.first.second);
 	}
-	auto nv_map = normalize(0, v);
-	int n = nv_map.size();
+	auto v_map = normalize(0, v);
+	int nv = v_map.size();
 
 	// normalize labels
 	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]
 	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2
-	std::vector<std::string> p;
-	std::vector<std::string> b;
+	std::vector<std::string> d1;
+	std::vector<std::string> d2;
 	for (auto &ijtn : rawEdges) {
 		if (ijtn.second.first == "op" || ijtn.second.first == "cp") {
-			p.push_back(ijtn.second.second);
+			d1.push_back(ijtn.second.second);
 		} else {
-			b.push_back(ijtn.second.second);
+			d2.push_back(ijtn.second.second);
 		}
 	}
-	auto np_map = normalize(0, p);
-	int n1 = np_map.size();
-	auto nb_map = normalize(2 * n1, b);
-	int n2 = nb_map.size();
+	auto d1_map = normalize(0, d1);
+	int nd1 = d1_map.size();
+	auto d2_map = normalize(2 * nd1, d2);
+	int nd2 = d2_map.size();
 
 	// Once we have the numbers of labels, we can proceed and construct the grammar using those numbers.
 	// symbols (universal among all grammars)
-	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]    [ first Dyck's nonterminals    ]    [ second Dyck's nonterminals   ]
-	// (_1, ..., (_n1, )_1, ..., )_n1    [_1, ..., [_n2, ]_1, ..., ]_n2    D, D_1, D_2, D_3, D_4, ..., D_n1    E, E_1, E_2, E_3, E_4, ..., E_n2
-	Grammar gmp, gmb;
-	auto fillGrammar = [](Grammar &gm, int op1, int n1, int op2, int n2, int start) -> void {
-		for (int i = op1; i < op1 + 2 * n1; i++) {
+	// [ first Dyck's terminals   ]    [ second Dyck's terminals  ]    [ first Dyck's nonterminals   ]    [ second Dyck's nonterminals  ]
+	// (_1 ... (_nd1, )_1 ... )_nd1    [_1 ... [_nd2, ]_1 ... ]_nd2    D, DX_1...DX_nd1, DY_1...DY_nd1    E, EX_1...EX_nd2, EY_1...E_Ynd2
+	Grammar gm1, gm2;
+	auto fillGrammar = [](Grammar &gm, int t_start, int nd, int other_t_start, int other_nd, int nt_start) -> void {
+		for (int i = t_start; i < t_start + 2 * nd; i++) {
 			gm.terminals.insert(i);
 		}
-		for (int i = op2; i < op2 + 2 * n2; i++) {
+		for (int i = other_t_start; i < other_t_start + 2 * other_nd; i++) {
 			gm.terminals.insert(i);
 		}
-		for (int i = start; i <= start + n1; i++) {
+		for (int i = nt_start; i <= nt_start + nd * 2; i++) {
 			gm.nonterminals.insert(i);
 		}
 		// D -> empty
-		gm.emptyProductions.push_back(start);
-		// D -> D D
-		gm.binaryProductions.push_back(std::make_pair(start, std::make_pair(start, start)));
-		for (int i = 0; i < n1; i++) {
-			// D -> (_i D_i
-			gm.binaryProductions.push_back(std::make_pair(start, std::make_pair(op1 + i, start + 1 + i)));
-			// D_i -> D )_i
-			gm.binaryProductions.push_back(std::make_pair(start + 1 + i, std::make_pair(start, op1 + n1 + i)));
+		gm.emptyProductions.push_back(nt_start);
+		for (int i = 0; i < nd; i++) {
+			// D -> (_i DX_i
+			gm.binaryProductions.push_back(std::make_pair(nt_start, std::make_pair(t_start + i, nt_start + i + 1)));
+			// DX_i -> D DY_i
+			gm.binaryProductions.push_back(std::make_pair(nt_start + i + 1, std::make_pair(nt_start, nt_start + nd + i + 1)));
+			// DY_i -> )_i D
+			gm.binaryProductions.push_back(std::make_pair(nt_start + nd + i + 1, std::make_pair(t_start + nd + i, nt_start)));
 		}
-		for (int i = op2; i < op2 + 2 * n2; i++) {
-			// D -> [_i
-			// D -> ]_i
-			gm.unaryProductions.push_back(std::make_pair(start, i));
+		for (int i = other_t_start; i < other_t_start + 2 * other_nd; i++) {
+			// D -> i D
+			gm.binaryProductions.push_back(std::make_pair(nt_start, std::make_pair(i, nt_start)));
 		}
-		gm.startSymbol = start;
-		for (int i = op2; i < op2 + n2; i++) {
-			gm.leftToRight[i] = i + n2;
-		}
-		for (int i = op2 + n2; i < op2 + 2 * n2; i++) {
-			gm.rightToLeft[i] = i - n2;
-		}
+		gm.startSymbol = nt_start;
 	};
-	fillGrammar(gmp, 0, n1, 2 * n1, n2, 2 * n1 + 2 * n2);
-	fillGrammar(gmb, 2 * n1, n2, 0, n1, 2 * n1 + 2 * n2 + n1 + 1);
-	int total = 2 * n1 + 2 * n2 + n1 + 1 + n2 + 1;
-	gmp.fillInv(total);
-	gmb.fillInv(total);
+	fillGrammar(gm1, 0, nd1, 2 * nd1, nd2, 2 * nd1 + 2 * nd2);
+	fillGrammar(gm2, 2 * nd1, nd2, 0, nd1, 2 * nd1 + 2 * nd2 + 2 * nd1 + 1);
+	int total = 2 * nd1 + 2 * nd2 + 2 * nd1 + 1 + 2 * nd2 + 1;
+	gm1.fillInv(total);
+	gm2.fillInv(total);
 
 	// check boundaries
-	if (n - 1 > static_cast<int>(MASK)) {
+	if (nv - 1 > static_cast<int>(MASK)) {
 		std::cerr << "Error: The graph contains too many nodes." << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
@@ -155,18 +148,18 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 		std::string &n = ijtn.second.second;
 		int sym;
 		if (t == "op") {
-			sym = np_map[n];
+			sym = d1_map[n];
 		} else if (t == "cp") {
-			sym = np_map[n] + n1;
+			sym = d1_map[n] + nd1;
 		} else if (t == "ob") {
-			sym = nb_map[n];
+			sym = d2_map[n];
 		} else {
-			sym = nb_map[n] + n2;
+			sym = d2_map[n] + nd2;
 		}
-		edges.push_back(make_fast_triple(nv_map[ijtn.first.first], sym, nv_map[ijtn.first.second]));
+		edges.push_back(make_fast_triple(v_map[ijtn.first.first], sym, v_map[ijtn.first.second]));
 	}
 
-	return std::make_tuple(std::move(edges), n, std::vector<Grammar> {gmp, gmb});
+	return std::make_tuple(std::move(edges), nv, std::vector<Grammar> {gm1, gm2});
 }
 
 // BP parser
