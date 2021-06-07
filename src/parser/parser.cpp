@@ -94,7 +94,13 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 	auto d2_map = normalize(2 * nd1, d2);
 	int nd2 = d2_map.size();
 
+	// ***** Up to this point, everything is shared among the two grammars. *****
+
 	// Once we have the numbers of labels, we can proceed and construct the grammar using those numbers.
+
+#define UNAMBIGUOUS_GRAMMAR
+
+#ifdef UNAMBIGUOUS_GRAMMAR
 	// symbols (universal among all grammars)
 	// [ first Dyck's terminals   ]    [ second Dyck's terminals  ]    [ first Dyck's nonterminals   ]    [ second Dyck's nonterminals  ]
 	// (_1 ... (_nd1, )_1 ... )_nd1    [_1 ... [_nd2, ]_1 ... ]_nd2    D, DX_1...DX_nd1, DY_1...DY_nd1    E, EX_1...EX_nd2, EY_1...E_Ynd2
@@ -130,6 +136,45 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 	int total = 2 * nd1 + 2 * nd2 + 2 * nd1 + 1 + 2 * nd2 + 1;
 	gm1.fillInv(total);
 	gm2.fillInv(total);
+#else
+	// symbols (universal among all grammars)
+	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]    [ first Dyck's nonterminals    ]    [ second Dyck's nonterminals   ]
+	// (_1, ... (_nd1, )_1, ... )_nd1    [_1, ... [_nd2, ]_1, ... ]_nd2    D, D_1, D_2, D_3, D_4, ... D_nd1    E, E_1, E_2, E_3, E_4, ... E_nd2
+	Grammar gm1, gm2;
+	auto fillGrammar = [](Grammar &gm, int t_start, int nd, int other_t_start, int other_nd, int nt_start) -> void {
+		for (int i = t_start; i < t_start + 2 * nd; i++) {
+			gm.terminals.insert(i);
+		}
+		for (int i = other_t_start; i < other_t_start + 2 * other_nd; i++) {
+			gm.terminals.insert(i);
+		}
+		for (int i = nt_start; i <= nt_start + nd; i++) {
+			gm.nonterminals.insert(i);
+		}
+		// D -> empty
+		gm.emptyProductions.push_back(nt_start);
+		// D -> D D
+		gm.binaryProductions.push_back(std::make_pair(nt_start, std::make_pair(nt_start, nt_start)));
+		for (int i = 0; i < nd; i++) {
+			// D -> (_i D_i
+			gm.binaryProductions.push_back(std::make_pair(nt_start, std::make_pair(t_start + i, nt_start + 1 + i)));
+			// D_i -> D )_i
+			gm.binaryProductions.push_back(std::make_pair(nt_start + 1 + i, std::make_pair(nt_start, t_start + nd + i)));
+		}
+		for (int i = other_t_start; i < other_t_start + 2 * other_nd; i++) {
+			// D -> ...
+			gm.unaryProductions.push_back(std::make_pair(nt_start, i));
+		}
+		gm.startSymbol = nt_start;
+	};
+	fillGrammar(gm1, 0, nd1, 2 * nd1, nd2, 2 * nd1 + 2 * nd2);
+	fillGrammar(gm2, 2 * nd1, nd2, 0, nd1, 2 * nd1 + 2 * nd2 + nd1 + 1);
+	int total = 2 * nd1 + 2 * nd2 + nd1 + 1 + nd2 + 1;
+	gm1.fillInv(total);
+	gm2.fillInv(total);
+#endif
+
+	// After this point, everything is the same across the two grammars.
 
 	// check boundaries
 	if (nv - 1 > static_cast<int>(MASK)) {
