@@ -142,9 +142,9 @@ int main(int argc, char *argv[]) {
 		check_resource("preprocessing");
 
 		// main query loop
-		// int totalCFL1 = 0;
-		// int totalCFL2 = 0;
-		// int totalCFLBoolean = 0;
+		int totalL1 = 0;
+		int totalL2 = 0;
+		int totalBoolean = 0;
 		int totalECFix = 0;
 		for (int source = 0; source < n; source++) {
 			std::cout << ">>> Query Progress: " << source << ',' << n - 1 << std::endl;
@@ -153,14 +153,14 @@ int main(int argc, char *argv[]) {
 				long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
 				bool reach1 = gh1.hasEdge(e1);
 				bool reach2 = gh2.hasEdge(e2);
-				// if (reach1) {
-				// 	totalCFL1++;
-				// }
-				// if (reach2) {
-				// 	totalCFL2++;
-				// }
+				if (reach1) {
+					totalL1++;
+				}
+				if (reach2) {
+					totalL2++;
+				}
 				if (reach1 && reach2) {
-					// totalCFLBoolean++;
+					totalBoolean++;
 					std::unordered_set<long long> es;
 					{
 						auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
@@ -197,9 +197,9 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		// std::cout << "totalCFL1: " << totalCFL1 << std::endl;
-		// std::cout << "totalCFL2: " << totalCFL2 << std::endl;
-		// std::cout << "totalCFLBoolean: " << totalCFLBoolean << std::endl;
+		std::cout << "totalL1: " << totalL1 << std::endl;
+		std::cout << "totalL2: " << totalL2 << std::endl;
+		std::cout << "totalBoolean: " << totalBoolean << std::endl;
 		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
 		check_resource("total");
 	} else if (argc == 3 && argv[1] == std::string("bp")) {
