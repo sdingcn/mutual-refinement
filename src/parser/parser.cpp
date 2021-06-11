@@ -98,7 +98,7 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 
 	// Once we have the numbers of labels, we can proceed and construct the grammar using those numbers.
 
-#define REGULAR_AUGMENTED_GRAMMAR
+#define AMBIGUOUS_GRAMMAR
 
 #ifdef UNAMBIGUOUS_GRAMMAR
 	// symbols (universal among all grammars)

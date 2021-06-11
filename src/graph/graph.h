@@ -19,6 +19,8 @@ class Graph {
 	// records for reachability closures
 	std::vector<std::unordered_map<int, std::unordered_set<int>>> unaryRecord; // i -> j -> {unary production number}
 	std::vector<std::unordered_map<int, std::unordered_set<long long>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
+
+	std::vector<long long> startSummaries;
 public:
 	Graph(const Grammar &g, int n);
 
@@ -33,6 +35,8 @@ public:
 	void runCFLReachability();
 
 	std::unordered_set<long long> getCFLReachabilityEdgeClosure(int i, int j) const;
+
+	std::unordered_set<long long> getCFLReachabilityEdgeClosureAll() const;
 };
 
 #endif

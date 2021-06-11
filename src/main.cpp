@@ -104,7 +104,8 @@ void dumpVirtualMemoryPeak() {
 void printUsage(const char *name) {
 	std::cerr << "Usage:" << std::endl
 		<< '\t' << name << " test" << std::endl
-		<< '\t' << name << " pa" << " <graph-file-path>" << std::endl
+		<< '\t' << name << " pa-ssss" << " <graph-file-path>" << std::endl
+		<< '\t' << name << " pa-all" << " <graph-file-path>" << std::endl
 		<< '\t' << name << " bp" << " <graph-file-path>" << std::endl;
 }
 
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
 	if (argc == 2 && argv[1] == std::string("test")) {
 		test();
-	} else if (argc == 3 && argv[1] == std::string("pa")) {
+	} else if (argc == 3 && argv[1] == std::string("pa-ssss")) {
 		// read data
 		const std::tuple<std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[2]);
 		std::cout << ">>> Completed Parsing" << std::endl;
@@ -200,6 +201,45 @@ int main(int argc, char *argv[]) {
 		std::cout << "totalL1: " << totalL1 << std::endl;
 		std::cout << "totalL2: " << totalL2 << std::endl;
 		std::cout << "totalBoolean: " << totalBoolean << std::endl;
+		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
+		check_resource("total");
+	} else if (argc == 3 && argv[1] == std::string("pa-all")) {
+		// read data
+		const std::tuple<std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[2]);
+		std::cout << ">>> Completed Parsing" << std::endl;
+		const auto &edges = std::get<0>(data);
+		const int n = std::get<1>(data);
+		const auto &grammars = std::get<2>(data);
+
+		int totalECFix = 0;
+		std::unordered_set<long long> es;
+		for (long long e : edges) {
+			es.insert(e);
+		}
+		while (true) {
+			Graph gh1(grammars[0], n);
+			gh1.fillEdges(es);
+			gh1.runCFLReachability();
+			auto ec1 = gh1.getCFLReachabilityEdgeClosureAll();
+			Graph gh2(grammars[1], n);
+			gh2.fillEdges(ec1);
+			gh2.runCFLReachability();
+			auto ec2 = gh2.getCFLReachabilityEdgeClosureAll();
+			if (ec2.size() == es.size()) {
+				for (int source = 0; source < n; source++) {
+					for (int sink = 0; sink < n; sink++) {
+						long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
+						long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
+						if (gh1.hasEdge(e1) && gh2.hasEdge(e2)) {
+							totalECFix++;
+						}
+					}
+				}
+				break;
+			} else {
+				es = std::move(ec2);
+			}
+		}
 		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
 		check_resource("total");
 	} else if (argc == 3 && argv[1] == std::string("bp")) {
