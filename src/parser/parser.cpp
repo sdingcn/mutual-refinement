@@ -13,6 +13,7 @@
 
 // common functions
 
+// line -> contains(line, '>')
 bool isEdgeLine(const std::string &line) {
 	for (char c : line) {
 		if (c == '>') {
@@ -22,6 +23,7 @@ bool isEdgeLine(const std::string &line) {
 	return false;
 }
 
+// start number, original names -> v_map (original name -> number)
 std::map<std::string, int> normalize(int start, const std::vector<std::string> &ss) {
 	std::map<std::string, int> m;
 	for (auto &s : ss) {
@@ -34,8 +36,7 @@ std::map<std::string, int> normalize(int start, const std::vector<std::string> &
 	return m;
 }
 
-// PA parser
-
+// line -> ((vertex1, vertex2), (label1, label2))
 std::pair<std::pair<std::string, std::string>, std::pair<std::string, std::string>> parsePALine(std::string line) {
 	std::string::size_type p1, p2, p3, v1pos, v1len, v2pos, v2len, l1pos, l1len, l2pos, l2len;
 	p1 = line.find("->");
@@ -55,7 +56,8 @@ std::pair<std::pair<std::string, std::string>, std::pair<std::string, std::strin
 			);
 }
 
-std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname) {
+// fname -> (v_map (original vertex name -> number), edges, number of vertices, grammars)
+std::tuple<std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname) {
 	std::ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges
@@ -89,6 +91,7 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 			d2.push_back(ijtn.second.second);
 		}
 	}
+	// d_i_map : original parenthesis index (string) -> the number of the corresponding open parenthesis
 	auto d1_map = normalize(0, d1);
 	int nd1 = d1_map.size();
 	auto d2_map = normalize(2 * nd1, d2);
@@ -169,8 +172,8 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 		}
 		gm.startSymbol = nt_start;
 	};
-	fillGrammar(gm1, 0, nd1, 2 * nd1, nd2, 2 * nd1 + 2 * nd2);
-	fillGrammar(gm2, 2 * nd1, nd2, 0, nd1, 2 * nd1 + 2 * nd2 + nd1 + 1);
+	fillGrammar(gm1,       0, nd1, 2 * nd1, nd2, 2 * nd1 + 2 * nd2);
+	fillGrammar(gm2, 2 * nd1, nd2,       0, nd1, 2 * nd1 + 2 * nd2 + nd1 + 1);
 	int total = 2 * nd1 + 2 * nd2 + nd1 + 1 + nd2 + 1;
 	gm1.fillInv(total);
 	gm2.fillInv(total);
@@ -238,7 +241,7 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 	gm2.fillInv(total);
 #endif
 
-	// After this point, everything is the same across the grammars.
+	// ********** After this point, everything is the same across the grammars. **********
 
 	// check boundaries
 	if (nv - 1 > static_cast<int>(MASK)) {
@@ -268,7 +271,7 @@ std::tuple<std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const
 		edges.push_back(make_fast_triple(v_map[ijtn.first.first], sym, v_map[ijtn.first.second]));
 	}
 
-	return std::make_tuple(std::move(edges), nv, std::vector<Grammar> {gm1, gm2});
+	return std::make_tuple(std::move(v_map), std::move(edges), nv, std::vector<Grammar> {gm1, gm2});
 }
 
 // BP parser

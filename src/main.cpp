@@ -1,6 +1,7 @@
 #include <vector>
 #include <utility>
 #include <set>
+#include <map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -36,16 +37,22 @@ int main(int argc, char *argv[]) {
 		test();
 	} else if (argc == 3 && argv[1] == std::string("pa-ssss")) {
 		// read data
-		const std::tuple<std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[2]);
+		const std::tuple<std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[2]);
 		std::cout << ">>> Completed Parsing" << std::endl;
-		const auto &edges = std::get<0>(data);
-		const int n = std::get<1>(data);
-		const auto &grammars = std::get<2>(data);
+		const auto &v_map = std::get<0>(data); // original vertex name -> number
+		const auto &edges = std::get<1>(data);
+		const int nv = std::get<2>(data);
+		const auto &grammars = std::get<3>(data);
+
+		std::map<int, std::string> counter_v_map; // number -> original vertex name
+		for (auto &pr : v_map) {
+			counter_v_map[pr.second] = pr.first;
+		}
 
 		// construct graphs
-		Graph gh1(grammars[0], n);
+		Graph gh1(grammars[0], nv);
 		gh1.fillEdges(edges);
-		Graph gh2(grammars[1], n);
+		Graph gh2(grammars[1], nv);
 		gh2.fillEdges(edges);
 
 		// first run of CFL reachability
@@ -59,9 +66,9 @@ int main(int argc, char *argv[]) {
 		int totalL2 = 0;
 		int totalBoolean = 0;
 		int totalECFix = 0;
-		for (int source = 0; source < n; source++) {
-			std::cout << ">>> Query Progress: " << source << ',' << n - 1 << std::endl;
-			for (int sink = 0; sink < n; sink++) {
+		for (int source = 0; source < nv; source++) {
+			std::cout << ">>> Query Progress: " << source << ',' << nv - 1 << std::endl;
+			for (int sink = 0; sink < nv; sink++) {
 				long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
 				long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
 				bool reach1 = gh1.hasEdge(e1);
@@ -85,14 +92,14 @@ int main(int argc, char *argv[]) {
 						}
 					}
 					while (true) {
-						Graph gha(grammars[0], n);
+						Graph gha(grammars[0], nv);
 						gha.fillEdges(es);
 						gha.runCFLReachability();
 						if (!(gha.hasEdge(e1))) {
 							break;
 						}
 						auto ca = gha.getCFLReachabilityEdgeClosure(source, sink);
-						Graph ghb(grammars[1], n);
+						Graph ghb(grammars[1], nv);
 						ghb.fillEdges(ca);
 						ghb.runCFLReachability();
 						if (!(ghb.hasEdge(e2))) {
@@ -117,11 +124,17 @@ int main(int argc, char *argv[]) {
 		check_resource("total");
 	} else if (argc == 3 && argv[1] == std::string("pa-all")) {
 		// read data
-		const std::tuple<std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[2]);
+		const std::tuple<std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>> data = parsePAGraph(argv[2]);
 		std::cout << ">>> Completed Parsing" << std::endl;
-		const auto &edges = std::get<0>(data);
-		const int n = std::get<1>(data);
-		const auto &grammars = std::get<2>(data);
+		const auto &v_map = std::get<0>(data); // original vertex name -> number
+		const auto &edges = std::get<1>(data);
+		const int nv = std::get<2>(data);
+		const auto &grammars = std::get<3>(data);
+
+		std::map<int, std::string> counter_v_map; // number -> original vertex name
+		for (auto &pr : v_map) {
+			counter_v_map[pr.second] = pr.first;
+		}
 
 		int totalECFix = 0;
 		std::unordered_set<long long> es;
@@ -129,17 +142,17 @@ int main(int argc, char *argv[]) {
 			es.insert(e);
 		}
 		while (true) {
-			Graph gh1(grammars[0], n);
+			Graph gh1(grammars[0], nv);
 			gh1.fillEdges(es);
 			gh1.runCFLReachability();
 			auto ec1 = gh1.getCFLReachabilityEdgeClosureAll();
-			Graph gh2(grammars[1], n);
+			Graph gh2(grammars[1], nv);
 			gh2.fillEdges(ec1);
 			gh2.runCFLReachability();
 			auto ec2 = gh2.getCFLReachabilityEdgeClosureAll();
 			if (ec2.size() == es.size()) {
-				for (int source = 0; source < n; source++) {
-					for (int sink = 0; sink < n; sink++) {
+				for (int source = 0; source < nv; source++) {
+					for (int sink = 0; sink < nv; sink++) {
 						long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
 						long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
 						if (gh1.hasEdge(e1) && gh2.hasEdge(e2)) {
