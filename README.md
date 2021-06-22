@@ -1,4 +1,4 @@
-# boolean-program-reachability
+# mutual-refinement-of-graph-reachability
 
 ## compile
 ```
