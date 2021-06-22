@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
 	if (argc == 2 && argv[1] == std::string("test")) {
 		test();
-	} else if (argc == 4 && argv[1] == std::string("pa-cfl")) {
+	} else if (argc == 4 && argv[1] == std::string("pa")) {
 		// parse data
 		const std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
 			data = parsePAGraph(argv[3]);
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 			}
 			std::cout << "CFL2: " << totalCFL2 << std::endl;
 			check_resource("CFL2");
-		} else if (argv[2] == std::string("bool")){
+		} else if (argv[2] == std::string("cflbool")){
 			Graph gh1(grammars[0], nv);
 			gh1.fillEdges(edges);
 			gh1.runCFLReachability();
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 			}
 			std::cout << "Boolean: " << totalBoolean << std::endl;
 			check_resource("Boolean");
-		} else if (argv[2] == std::string("apmr")) {
+		} else if (argv[2] == std::string("cflapmr")) {
 			int totalAPMR = 0;
 			std::unordered_set<long long> es;
 			for (long long e : edges) {
@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
 			}
 			std::cout << "All Pairs Mutual Refinement: " << totalAPMR << std::endl;
 			check_resource("All Pairs Mutual Refinement");
-		} else if (argv[2] == std::string("spmr")) {
+		} else if (argv[2] == std::string("cflspmr")) {
 			Graph gh1(grammars[0], nv);
 			gh1.fillEdges(edges);
 			Graph gh2(grammars[1], nv);
@@ -312,6 +312,6 @@ void dumpVirtualMemoryPeak() {
 void printUsage(const char *name) {
 	std::cerr << "Usage:" << std::endl
 		<< '\t' << name << " test" << std::endl
-		<< '\t' << name << " pa-cfl <cfl1|cfl2|bool|apmr|spmr> <graph-file-path>" << std::endl
+		<< '\t' << name << " pa <cfl1|cfl2|cflbool|cflapmr|cflspmr> <graph-file-path>" << std::endl
 		<< '\t' << name << " bp <graph-file-path>" << std::endl;
 }
