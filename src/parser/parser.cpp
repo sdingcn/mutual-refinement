@@ -57,7 +57,8 @@ std::pair<std::pair<std::string, std::string>, std::pair<std::string, std::strin
 }
 
 // fname -> (v_map (original vertex name -> number), edges, number of vertices, grammars)
-std::tuple<std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>> parsePAGraph(const std::string &fname) {
+std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
+parsePAGraph(const std::string &fname) {
 	std::ifstream in(fname); // file auto closed via destructor
 
 	// read raw edges
@@ -255,6 +256,7 @@ std::tuple<std::map<std::string, int>, std::vector<long long>, int, std::vector<
 
 	// construct the normalized graph
 	std::vector<long long> edges;
+	std::map<std::string, int> l_map;
 	for (auto &ijtn : rawEdges) {
 		std::string &t = ijtn.second.first;
 		std::string &n = ijtn.second.second;
@@ -268,10 +270,11 @@ std::tuple<std::map<std::string, int>, std::vector<long long>, int, std::vector<
 		} else {
 			sym = d2_map[n] + nd2;
 		}
+		l_map[t + "--" + n] = sym;
 		edges.push_back(make_fast_triple(v_map[ijtn.first.first], sym, v_map[ijtn.first.second]));
 	}
 
-	return std::make_tuple(std::move(v_map), std::move(edges), nv, std::vector<Grammar> {gm1, gm2});
+	return std::make_tuple(std::move(v_map), std::move(l_map), std::move(edges), nv, std::vector<Grammar> {gm1, gm2});
 }
 
 // BP parser
