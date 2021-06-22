@@ -15,6 +15,9 @@
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"
+#ifdef INTEGRATION
+#include "../CFLReach.h"
+#endif
 
 void test();
 
@@ -43,8 +46,6 @@ int main(int argc, char *argv[]) {
 		check_resource("Parsing");
 
 		// obtain references to the original data
-		const auto &v_map = std::get<0>(data); // original vertex name -> number
-		const auto &l_map = std::get<1>(data); // original edge label -> number
 		const auto &edges = std::get<2>(data);
 		const int &nv = std::get<3>(data);
 		const auto &grammars = std::get<4>(data);
@@ -94,8 +95,8 @@ int main(int argc, char *argv[]) {
 					}
 				}
 			}
-			std::cout << "Boolean: " << totalBoolean << std::endl;
-			check_resource("Boolean");
+			std::cout << "CFL Boolean: " << totalBoolean << std::endl;
+			check_resource("CFL Boolean");
 		} else if (argv[2] == std::string("cflapmr")) {
 			int totalAPMR = 0;
 			std::unordered_set<long long> es;
@@ -126,8 +127,8 @@ int main(int argc, char *argv[]) {
 					es = std::move(ec2);
 				}
 			}
-			std::cout << "All Pairs Mutual Refinement: " << totalAPMR << std::endl;
-			check_resource("All Pairs Mutual Refinement");
+			std::cout << "CFL All Pairs Mutual Refinement: " << totalAPMR << std::endl;
+			check_resource("CFL All Pairs Mutual Refinement");
 		} else if (argv[2] == std::string("cflspmr")) {
 			Graph gh1(grammars[0], nv);
 			gh1.fillEdges(edges);
@@ -136,7 +137,7 @@ int main(int argc, char *argv[]) {
 
 			gh1.runCFLReachability();
 			gh2.runCFLReachability();
-			check_resource("Preprocessing");
+			check_resource("CFLSPMR Preprocessing");
 
 			int totalSPMR = 0;
 			for (int source = 0; source < nv; source++) {
@@ -179,8 +180,45 @@ int main(int argc, char *argv[]) {
 					}
 				}
 			}
-			std::cout << "Single Pair Mutual Refinement: " << totalSPMR << std::endl;
-			check_resource("Single Pair Mutual Refinement");
+			std::cout << "CFL Single Pair Mutual Refinement: " << totalSPMR << std::endl;
+			check_resource("CFL Single Pair Mutual Refinement");
+#ifdef INTEGRATION
+		} else if (argv[2] == std::string("lcl")) {
+			// prepare converters
+			const auto &v_map = std::get<0>(data); // original vertex name -> number
+			std::map<int, std::string> v_map_r;
+			for (auto &pr : v_map) {
+				v_map_r[pr.second] = pr.first;
+			}
+			const auto &l_map = std::get<1>(data); // original edge label -> number
+			std::map<int, std::string> l_map_r;
+			for (auto &pr : l_map) {
+				l_map_r[pr.second] = pr.first;
+			}
+
+			// begin lcl computation
+			std::stringstream lcl_buffer;
+			for (long long e : edges) {
+				int v1 = fast_triple_first(e);
+				int l = fast_triple_second(e);
+				int v2 = fast_triple_third(e);
+				lcl_buffer << v_map_r[v1] << "->" << v_map_r[v2] << "[label=\"" << l_map_r[l] << "\"]\n";
+			}
+			SimpleDotParser lcl_parser;
+			std::unordered_map<std::string, unsigned> lcl_v_map;
+			std::unordered_map<unsigned, std::string> lcl_v_map_r;
+			unsigned lcl_nv = lcl_parser.BuildNodeMap(lcl_buffer, lcl_v_map, lcl_v_map_r);
+			std::vector<std::vector<std::unordered_set<std::string>>>
+				lcl_output(lcl_nv, std::vector<std::unordered_set<std::string>>(lcl_nv));
+			arrayversion("1", "1", "1", lcl_v_map, lcl_v_map_r, lcl_nv, lcl_buffer, lcl_output);
+			check_resource("LCL");
+		} else if (argv[2] == std::string("lclbool")) {
+			check_resource("LCL Boolean");
+		} else if (argv[2] == std::string("lclapmr")) {
+			check_resource("LCL All Pairs Mutual Refinement");
+		} else if (argv[2] == std::string("lclspmr")) {
+			check_resource("LCL Single Pair Mutual Refinement");
+#endif
 		} else {
 			printUsage(argv[0]);
 		}
@@ -312,6 +350,11 @@ void dumpVirtualMemoryPeak() {
 void printUsage(const char *name) {
 	std::cerr << "Usage:" << std::endl
 		<< '\t' << name << " test" << std::endl
-		<< '\t' << name << " pa <cfl1|cfl2|cflbool|cflapmr|cflspmr> <graph-file-path>" << std::endl
+		<< '\t' << name <<
+			" pa <cfl1|cfl2|cflbool|cflapmr|cflspmr"
+#ifdef INTEGRATION
+			"|lcl|lclbool|lclapmr|lclspmr"
+#endif
+			"> <graph-file-path>" << std::endl
 		<< '\t' << name << " bp <graph-file-path>" << std::endl;
 }
