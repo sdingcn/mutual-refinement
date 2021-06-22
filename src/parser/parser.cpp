@@ -180,68 +180,6 @@ parsePAGraph(const std::string &fname) {
 	gm2.fillInv(total);
 #endif
 
-#ifdef REGULAR_AUGMENTED_GRAMMAR
-	// symbols (universal among all grammars)
-	// [ first Dyck's terminals     ]    [ second Dyck's terminals    ]    [ first Dyck's nonterminals   ]    [ second Dyck's nonterminals  ]
-	// (_1, ... (_nd1, )_1, ... )_nd1    [_1, ... [_nd2, ]_1, ... ]_nd2    D[3], D_1[3],  ...,  D_nd1[3] D    E[3], E_1[3],  ...,  E_nd2[3] E
-	Grammar gm1, gm2;
-	auto fillGrammar = [](Grammar &gm, int t_start, int nd, int other_t_start, int other_nd, int nt_start) -> void {
-		for (int i = t_start; i < t_start + 2 * nd; i++) {
-			gm.terminals.insert(i);
-		}
-		for (int i = other_t_start; i < other_t_start + 2 * other_nd; i++) {
-			gm.terminals.insert(i);
-		}
-		for (int i = nt_start; i < nt_start + 3 * (nd + 1) + 1; i++) {
-			gm.nonterminals.insert(i);
-		}
-		// D[0] -> empty
-		gm.emptyProductions.push_back(nt_start);
-		// D[a] -> D[0] D[a]; D[1] -> D[1] D[*]; D[2] -> D[2][*]
-		gm.binaryProductions.push_back(std::make_pair(nt_start, std::make_pair(nt_start, nt_start)));
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 1, std::make_pair(nt_start, nt_start + 1)));
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 2, std::make_pair(nt_start, nt_start + 2)));
-
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 1, std::make_pair(nt_start + 1, nt_start)));
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 1, std::make_pair(nt_start + 1, nt_start + 1)));
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 1, std::make_pair(nt_start + 1, nt_start + 2)));
-
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 2, std::make_pair(nt_start + 2, nt_start)));
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 2, std::make_pair(nt_start + 2, nt_start + 1)));
-		gm.binaryProductions.push_back(std::make_pair(nt_start + 2, std::make_pair(nt_start + 2, nt_start + 2)));
-
-		for (int i = 0; i < nd; i++) {
-			// D[a] -> (_i D_i[a]
-			gm.binaryProductions.push_back(std::make_pair(nt_start, std::make_pair(t_start + i, nt_start + 3 * (1 + i))));
-			gm.binaryProductions.push_back(std::make_pair(nt_start + 1, std::make_pair(t_start + i, nt_start + 3 * (1 + i) + 1)));
-			gm.binaryProductions.push_back(std::make_pair(nt_start + 2, std::make_pair(t_start + i, nt_start + 3 * (1 + i) + 2)));
-			// D_i[a] -> D[a] )_i
-			gm.binaryProductions.push_back(std::make_pair(nt_start + 3 * (1 + i), std::make_pair(nt_start, t_start + nd + i)));
-			gm.binaryProductions.push_back(std::make_pair(nt_start + 3 * (1 + i) + 1, std::make_pair(nt_start + 1, t_start + nd + i)));
-			gm.binaryProductions.push_back(std::make_pair(nt_start + 3 * (1 + i) + 2, std::make_pair(nt_start + 2, t_start + nd + i)));
-		}
-		for (int i = other_t_start; i < other_t_start + other_nd; i++) {
-			// D[1] -> [_i
-			gm.unaryProductions.push_back(std::make_pair(nt_start + 1, i));
-		}
-		for (int i = other_t_start + other_nd; i < other_t_start + 2 * other_nd; i++) {
-			// D[2] -> ]_i
-			gm.unaryProductions.push_back(std::make_pair(nt_start + 2, i));
-		}
-
-		// D -> D[0]
-		gm.unaryProductions.push_back(std::make_pair(nt_start + 3 * (nd + 1), nt_start));
-		// D -> D[1]
-		gm.unaryProductions.push_back(std::make_pair(nt_start + 3 * (nd + 1), nt_start + 1));
-		gm.startSymbol = nt_start + 3 * (nd + 1);
-	};
-	fillGrammar(gm1,       0, nd1, 2 * nd1, nd2, 2 * nd1 + 2 * nd2);
-	fillGrammar(gm2, 2 * nd1, nd2,       0, nd1, 2 * nd1 + 2 * nd2 + 3 * (nd1 + 1) + 1);
-	int total = 2 * nd1 + 2 * nd2 + 3 * (nd1 + 1) + 1 + 3 * (nd2 + 1) + 1;
-	gm1.fillInv(total);
-	gm2.fillInv(total);
-#endif
-
 	// ********** After this point, everything is the same across the grammars. **********
 
 	// check boundaries

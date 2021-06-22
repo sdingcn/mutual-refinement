@@ -35,21 +35,17 @@ int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
 	if (argc == 2 && argv[1] == std::string("test")) {
 		test();
-	} else if (argc == 3 && argv[1] == std::string("pa-all-precise")) {
+	} else if (argc == 3 && argv[1] == std::string("pa-cfl-single")) {
 		// read data
 		const std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
 			data = parsePAGraph(argv[2]);
-		std::cout << ">>> Completed Parsing" << std::endl;
+		check_resource("completed parsing");
+
 		const auto &v_map = std::get<0>(data); // original vertex name -> number
-		// const auto &l_map = std::get<1>(data);
+		const auto &l_map = std::get<1>(data); // original edge label -> number
 		const auto &edges = std::get<2>(data);
 		const int nv = std::get<3>(data);
 		const auto &grammars = std::get<4>(data);
-
-		std::map<int, std::string> counter_v_map; // number -> original vertex name
-		for (auto &pr : v_map) {
-			counter_v_map[pr.second] = pr.first;
-		}
 
 		// construct graphs
 		Graph gh1(grammars[0], nv);
@@ -60,8 +56,7 @@ int main(int argc, char *argv[]) {
 		// first run of CFL reachability
 		gh1.runCFLReachability();
 		gh2.runCFLReachability();
-		std::cout << ">>> Completed Preprocessing" << std::endl;
-		check_resource("preprocessing");
+		check_resource("completed preprocessing");
 
 		// main query loop
 		int totalL1 = 0;
@@ -124,21 +119,17 @@ int main(int argc, char *argv[]) {
 		std::cout << "totalBoolean: " << totalBoolean << std::endl;
 		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
 		check_resource("total");
-	} else if (argc == 3 && argv[1] == std::string("pa-all")) {
+	} else if (argc == 3 && argv[1] == std::string("pa-cfl-all")) {
 		// read data
 		const std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
 			data = parsePAGraph(argv[2]);
-		std::cout << ">>> Completed Parsing" << std::endl;
+		check_resource("completed parsing");
+
 		const auto &v_map = std::get<0>(data); // original vertex name -> number
-		// const auto &l_map = std::get<1>(data);
+		const auto &l_map = std::get<1>(data); // original label name -> number
 		const auto &edges = std::get<2>(data);
 		const int nv = std::get<3>(data);
 		const auto &grammars = std::get<4>(data);
-
-		std::map<int, std::string> counter_v_map; // number -> original vertex name
-		for (auto &pr : v_map) {
-			counter_v_map[pr.second] = pr.first;
-		}
 
 		int totalECFix = 0;
 		std::unordered_set<long long> es;
@@ -171,81 +162,6 @@ int main(int argc, char *argv[]) {
 		}
 		std::cout << "Total Pairs of ECFix: " << totalECFix << std::endl;
 		check_resource("total");
-	} else if (argc == 6 && argv[1] == std::string("pa-ssss")) {
-		// read data
-		std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
-			data = parsePAGraph(argv[2]);
-		auto &v_map = std::get<0>(data); // original vertex name -> number
-		auto &l_map = std::get<1>(data);
-		const int nv = std::get<3>(data);
-		const auto &grammars = std::get<4>(data);
-
-		std::string edge_file = argv[3];
-		int source = v_map[std::string(argv[4])];
-		int sink = v_map[std::string(argv[5])];
-
-		auto parsePALine = [](std::string line) {
-			std::string::size_type p1, p2, p3, v1pos, v1len, v2pos, v2len, l1pos, l1len, l2pos, l2len;
-			p1 = line.find("->");
-			p2 = line.find('[');
-			p3 = line.find(']');
-			v1pos = 0;
-			v1len = p1 - v1pos;
-			v2pos = p1 + 2;
-			v2len = p2 - v2pos;
-			l1pos = p2 + 8;
-			l1len = 2;
-			l2pos = p2 + 12;
-			l2len = p3 - 1 - l2pos;
-			return std::make_pair(
-					std::make_pair(line.substr(v1pos, v1len), line.substr(v2pos, v2len)),
-					std::make_pair(line.substr(l1pos, l1len), line.substr(l2pos, l2len))
-					);
-		};
-
-		std::ifstream in(edge_file); // file auto closed via destructor
-
-		// read raw edges
-		std::string line;
-		std::vector<std::pair<std::pair<std::string, std::string>, std::pair<std::string, std::string>>> rawEdges;
-		while (getline(in, line)) {
-			rawEdges.push_back(parsePALine(line));
-		}
-
-		std::unordered_set<long long> es;
-		for (auto &ijtn : rawEdges) {
-			es.insert(make_fast_triple(v_map[ijtn.first.first],
-						l_map[ijtn.second.first + "--" + ijtn.second.second],
-						v_map[ijtn.first.second]));
-		}
-
-		long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
-		long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
-
-		while (true) {
-			Graph gha(grammars[0], nv);
-			gha.fillEdges(es);
-			gha.runCFLReachability();
-			if (!(gha.hasEdge(e1))) {
-				std::cout << "not reachable" << std::endl;
-				return 0;
-			}
-			auto ca = gha.getCFLReachabilityEdgeClosure(source, sink);
-			Graph ghb(grammars[1], nv);
-			ghb.fillEdges(ca);
-			ghb.runCFLReachability();
-			if (!(ghb.hasEdge(e2))) {
-				std::cout << "not reachable" << std::endl;
-				return 0;
-			}
-			auto cb = ghb.getCFLReachabilityEdgeClosure(source, sink);
-			if (cb.size() == es.size()) {
-				std::cout << "possibly reachable" << std::endl;
-				return 0;
-			} else {
-				es = std::move(cb);
-			}
-		}
 	} else if (argc == 3 && argv[1] == std::string("bp")) {
 		std::tuple<std::vector<long long>, int, std::pair<int, int>, std::vector<Grammar>> data = parseBPGraph(argv[2]);
 		const auto &edges = std::get<0>(data);
@@ -374,8 +290,7 @@ void dumpVirtualMemoryPeak() {
 void printUsage(const char *name) {
 	std::cerr << "Usage:" << std::endl
 		<< '\t' << name << " test" << std::endl
-		<< '\t' << name << " pa-all-precise" << " <graph-file-path>" << std::endl
-		<< '\t' << name << " pa-all" << " <graph-file-path>" << std::endl
-		<< '\t' << name << " pa-ssss" << " <graph-file-path> <edge-file> <source> <sink>" << std::endl
+		<< '\t' << name << " pa-cfl-single" << " <graph-file-path>" << std::endl
+		<< '\t' << name << " pa-cfl-all" << " <graph-file-path>" << std::endl
 		<< '\t' << name << " bp" << " <graph-file-path>" << std::endl;
 }
