@@ -131,12 +131,12 @@ int main(int argc, char *argv[]) {
 								bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
 								TestItemInSet(goodq2[NodeS], NodeT))
 							{ // if S and T are reachable
-								int s = v_map[NodeID_R[ii]];
-								int t = v_map[NodeID_R[jj]];
+								int s = v_map.at(NodeID_R[ii]);
+								int t = v_map.at(NodeID_R[jj]);
 								ret_ps.insert(make_fast_pair(s, t));
 							}
 						} else {
-							int st = v_map[NodeID_R[ii]];
+							int st = v_map.at(NodeID_R[ii]);
 							ret_ps.insert(make_fast_pair(st, st));
 						}
 					}
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
 						if (output[i][j].size() > 0) {
 							for (auto x : output[i][j]) {
 								ret_es.insert(
-									make_fast_triple(v_map[NodeID_R[i]], l_map[x], v_map[NodeID_R[j]])
+									make_fast_triple(v_map.at(NodeID_R[i]), l_map.at(x), v_map.at(NodeID_R[j]))
 								);
 							}
 						}
@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
 				auto r2 = lcl_all(es1, true, true);
 				auto es2 = r2.second;
 				if (es2.size() == es.size()) {
-					std::cout << "ampr c1l: " << es2.first.size() << std::endl;
+					std::cout << "ampr c1l: " << r2.first.size() << std::endl;
 					break;
 				} else {
 					es = std::move(es2);
