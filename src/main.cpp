@@ -7,6 +7,7 @@
 #include <sstream>
 #include <chrono>
 #include <cassert>
+#include <cstdlib>
 #include <string>
 #include <utility>
 #include <tuple>
@@ -17,7 +18,7 @@
 #include "graph/graph.h"
 #ifdef INTEGRATION
 #include "../CFLReach.h"
-#include "bitmap.h"
+#include "../bitmap.h"
 #endif
 
 void test();
@@ -40,250 +41,166 @@ int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
 	if (argc == 2 && argv[1] == std::string("test")) {
 		test();
-	} else if (argc == 4 && argv[1] == std::string("pa")) {
+	} else if (argc == 5 && argv[1] == std::string("pa")) {
 		// parse data
 		const std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
-			data = parsePAGraph(argv[3]);
+			data = parsePAGraph(argv[4]);
 		check_resource("Parsing");
 
 		// obtain references to the original data
-		const auto &edges = std::get<2>(data);
-		const int &nv = std::get<3>(data);
-		const auto &grammars = std::get<4>(data);
+		const std::map<std::string, int> &v_map = std::get<0>(data); // original vertex name -> number
+		const std::map<std::string, int> &l_map = std::get<1>(data); // original edge label -> number
+		const std::vector<long long> &edges     = std::get<2>(data);
+		const int &nv                           = std::get<3>(data);
+		const std::vector<Grammar> &grammars    = std::get<4>(data);
 
-		// CFL1
-		if (argv[2] == std::string("cfl1")) {
-			Graph gh1(grammars[0], nv);
-			gh1.fillEdges(edges);
-			gh1.runCFLReachability();
-			int totalCFL1 = 0;
-			for (int source = 0; source < nv; source++) {
-				for (int sink = 0; sink < nv; sink++) {
-					if (gh1.hasEdge(make_fast_triple(source, grammars[0].startSymbol, sink))) {
-						totalCFL1++;
-					}
-				}
-			}
-			std::cout << "CFL1: " << totalCFL1 << std::endl;
-			check_resource("CFL1");
-		} else if (argv[2] == std::string("cfl2")) {
-			Graph gh2(grammars[1], nv);
-			gh2.fillEdges(edges);
-			gh2.runCFLReachability();
-			int totalCFL2 = 0;
-			for (int source = 0; source < nv; source++) {
-				for (int sink = 0; sink < nv; sink++) {
-					if (gh2.hasEdge(make_fast_triple(source, grammars[1].startSymbol, sink))) {
-						totalCFL2++;
-					}
-				}
-			}
-			std::cout << "CFL2: " << totalCFL2 << std::endl;
-			check_resource("CFL2");
-		} else if (argv[2] == std::string("cflbool")){
-			Graph gh1(grammars[0], nv);
-			gh1.fillEdges(edges);
-			gh1.runCFLReachability();
-			Graph gh2(grammars[1], nv);
-			gh2.fillEdges(edges);
-			gh2.runCFLReachability();
-			int totalBoolean = 0;
-			for (int source = 0; source < nv; source++) {
-				for (int sink = 0; sink < nv; sink++) {
-					if (gh1.hasEdge(make_fast_triple(source, grammars[0].startSymbol, sink))
-					 && gh2.hasEdge(make_fast_triple(source, grammars[1].startSymbol, sink))) {
-						totalBoolean++;
-					}
-				}
-			}
-			std::cout << "CFL Boolean: " << totalBoolean << std::endl;
-			check_resource("CFL Boolean");
-		} else if (argv[2] == std::string("cflapmr")) {
-			int totalAPMR = 0;
-			std::unordered_set<long long> es;
-			for (long long e : edges) {
-				es.insert(e);
-			}
-			while (true) {
-				Graph gh1(grammars[0], nv);
-				gh1.fillEdges(es);
-				gh1.runCFLReachability();
-				auto ec1 = gh1.getCFLReachabilityEdgeClosureAll();
-				Graph gh2(grammars[1], nv);
-				gh2.fillEdges(ec1);
-				gh2.runCFLReachability();
-				auto ec2 = gh2.getCFLReachabilityEdgeClosureAll();
-				if (ec2.size() == es.size()) {
-					for (int source = 0; source < nv; source++) {
-						for (int sink = 0; sink < nv; sink++) {
-							long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
-							long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
-							if (gh1.hasEdge(e1) && gh2.hasEdge(e2)) {
-								totalAPMR++;
-							}
-						}
-					}
-					break;
-				} else {
-					es = std::move(ec2);
-				}
-			}
-			std::cout << "CFL All Pairs Mutual Refinement: " << totalAPMR << std::endl;
-			check_resource("CFL All Pairs Mutual Refinement");
-		} else if (argv[2] == std::string("cflspmr")) {
-			Graph gh1(grammars[0], nv);
-			gh1.fillEdges(edges);
-			Graph gh2(grammars[1], nv);
-			gh2.fillEdges(edges);
+		// helpers
+		std::map<int, std::string> v_map_r;
+		for (auto &pr : v_map) {
+			v_map_r[pr.second] = pr.first;
+		}
+		std::map<int, std::string> l_map_r;
+		for (auto &pr : l_map) {
+			l_map_r[pr.second] = pr.first;
+		}
 
-			gh1.runCFLReachability();
-			gh2.runCFLReachability();
-			check_resource("CFLSPMR Preprocessing");
+		using PairSet = std::unordered_set<long long>;
+		using EdgeSet = std::unordered_set<long long>;
 
-			int totalSPMR = 0;
-			for (int source = 0; source < nv; source++) {
-				for (int sink = 0; sink < nv; sink++) {
-					long long e1 = make_fast_triple(source, grammars[0].startSymbol, sink);
-					long long e2 = make_fast_triple(source, grammars[1].startSymbol, sink);
-					if (gh1.hasEdge(e1) && gh2.hasEdge(e2)) {
-						std::unordered_set<long long> es;
-						{
-							auto c1 = gh1.getCFLReachabilityEdgeClosure(source, sink);
-							auto c2 = gh2.getCFLReachabilityEdgeClosure(source, sink);
-							for (long long e : c1) {
-								if (c2.count(e) == 1) {
-									es.insert(e);
-								}
-							}
-						}
-						while (true) {
-							Graph gha(grammars[0], nv);
-							gha.fillEdges(es);
-							gha.runCFLReachability();
-							if (!(gha.hasEdge(e1))) {
-								break;
-							}
-							auto ca = gha.getCFLReachabilityEdgeClosure(source, sink);
-							Graph ghb(grammars[1], nv);
-							ghb.fillEdges(ca);
-							ghb.runCFLReachability();
-							if (!(ghb.hasEdge(e2))) {
-								break;
-							}
-							auto cb = ghb.getCFLReachabilityEdgeClosure(source, sink);
-							if (cb.size() == es.size()) {
-								totalSPMR++;
-								break;
-							} else {
-								es = std::move(cb);
-							}
+		// workers
+		auto cfl_all = [&v_map, &v_map_r, &l_map, &l_map_r, &nv]
+			(const Grammar &gr, const EdgeSet &es, bool need_ps, bool need_es) -> std::pair<PairSet, EdgeSet> {
+			Graph gh(gr, nv);
+			gh.fillEdges(es);
+			gh.runCFLReachability();
+			auto ret_ps = PairSet();
+			if (need_ps) {
+				for (int s = 0; s < nv; s++) {
+					for (int t = 0; t < nv; t++) {
+						if (gh.hasEdge(make_fast_triple(s, gr.startSymbol, t))) {
+							ret_ps.insert(make_fast_pair(s, t));
 						}
 					}
 				}
 			}
-			std::cout << "CFL Single Pair Mutual Refinement: " << totalSPMR << std::endl;
-			check_resource("CFL Single Pair Mutual Refinement");
+			auto ret_es = EdgeSet();
+			if (need_es) {
+				ret_es = gh.getCFLReachabilityEdgeClosureAll();
+			}
+			return std::make_pair(ret_ps, ret_es);
+		};
 #ifdef INTEGRATION
-		} else if (argv[2] == std::string("lcl")) {
-			// prepare converters
-			const auto &v_map = std::get<0>(data); // original vertex name -> number
-			std::map<int, std::string> v_map_r;
-			for (auto &pr : v_map) {
-				v_map_r[pr.second] = pr.first;
-			}
-			const auto &l_map = std::get<1>(data); // original edge label -> number
-			std::map<int, std::string> l_map_r;
-			for (auto &pr : l_map) {
-				l_map_r[pr.second] = pr.first;
-			}
-			// *** begin integration ***
-			unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
+		auto lcl_all = [&v_map, &v_map_r, &l_map, &l_map_r, &nv]
+			(const EdgeSet &es, bool need_ps, bool need_es) -> std::pair<PairSet, EdgeSet> {
 			std::stringstream buffer;
-			// PART1: Prepare the input.
-			for (long long e : edges) {
+
+			// convert my edge set to the raw edge set
+			for (long long e : es) {
 				int v1 = fast_triple_first(e);
 				int l = fast_triple_second(e);
 				int v2 = fast_triple_third(e);
 				buffer << v_map_r[v1] << "->" << v_map_r[v2] << "[label=\"" << l_map_r[l] << "\"]\n";
 			}
-			// initialization
+
+			// parse the raw edge set
 			SimpleDotParser dotparser;
 			std::unordered_map<std::string, unsigned> NodeID;
 			std::unordered_map<unsigned, std::string> NodeID_R;
 			unsigned NodeNum = dotparser.BuildNodeMap(buffer, NodeID, NodeID_R);
-			std::vector<std::vector<std::unordered_set<std::string>>>
-				output(NodeNum, std::vector<std::unordered_set<std::string>>(NodeNum));
+
+			// do the LCL computation
 			std::vector<std::vector<std::unordered_map<LinEdgeTy, std::unordered_set<LinEdgeTy>>>> trace_L(NodeNum);
 			std::vector<std::vector<std::unordered_map<LinEdgeTy, std::unordered_set<LinEdgeTy>>>> trace_R(NodeNum);
 			CFLMatrixLin cm1(NodeNum);
 			bitmap_obstack_initialize(NULL);
-			bitmap* S[NodeNum];
+			bitmap* S[NodeNum]; // VLA
 			std::vector<std::vector<std::unordered_set<std::string>>> orig_graph(NodeNum);
-			long **observed  = (long **)malloc(sizeof(long *)*NodeNum);
-			long **goodq2 = (long **)malloc(sizeof(long *)*NodeNum);
-			// PART2: Do the computation. 
+			long **observed  = (long **)std::malloc(sizeof(long *)*NodeNum);
+			long **goodq2 = (long **)std::malloc(sizeof(long *)*NodeNum);
 			LCLReach(NodeID, NodeID_R, NodeNum, buffer, trace_L, trace_R, cm1, S, orig_graph, observed, goodq2);
-			// PART3: Query
-			// Code for all-pairs contributing query
-			// std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
-			// 	visited(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
-			int totalLCL = 0;
-			for (unsigned ii = 0; ii < NodeNum; ii++) {
-				for (unsigned jj = 0; jj < NodeNum; jj++) {
-					if (ii != jj) {
-						unsigned NodeS = ii;
-						unsigned NodeT = jj;
-						if (TestItemInSet(observed[NodeS], NodeT) &&
-							bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
-							TestItemInSet(goodq2[NodeS], NodeT)) { // This is the condition to check if S and T are reachable.
-							totalLCL++;
-							// dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited, S, observed, orig_graph, NodeID_R, output);
-						}
-					} else {
-						totalLCL++;
-					}
-				}
-			}
-			std::cout << "LCL: " << totalLCL << std::endl;
-			// Code for single-source contributing query.
-			/*
-			std::string SS = "24520";
-			std::string TT = "10108";
-			assert(NodeID.find(SS) != NodeID.end() && NodeID.find(TT) != NodeID.end());
-			unsigned NodeS = NodeID[SS]; 
-			unsigned NodeT = NodeID[TT];
-			assert(NodeS != NodeT);
-			std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
-				visited1(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
-			if (TestItemInSet(observed[NodeS], NodeT) &&
-				bitmap_bit_p(S[NodeS][NodeT], q2_mLin)
-				&& TestItemInSet(goodq2[NodeS], NodeT)) {
-				dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited1, S, observed, orig_graph, NodeID_R, output);
-			}
-			*/
-			// PART4 (optional): print the output.
-			/*
-			for (unsigned i = 0; i < NodeNum; i++) {
-				for (unsigned j = 0; j < NodeNum; j++) {
-					if (output[i][j].size() > 0) {
-						for (string x : output[i][j]) {
-							std::cout << "INFO: " << NodeID_R[i] << "->" << NodeID_R[j] 
-								<< "[label=\"" << x << "\"]" << std::endl;
+
+			auto ret_ps = PairSet();
+			if (need_ps) {
+				unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
+				for (unsigned ii = 0; ii < NodeNum; ii++) {
+					for (unsigned jj = 0; jj < NodeNum; jj++) {
+						if (ii != jj) {
+							unsigned NodeS = ii;
+							unsigned NodeT = jj;
+							if (TestItemInSet(observed[NodeS], NodeT) &&
+								bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
+								TestItemInSet(goodq2[NodeS], NodeT))
+							{ // if S and T are reachable
+								int s = v_map[NodeID_R[ii]];
+								int t = v_map[NodeID_R[jj]];
+								ret_ps.insert(make_fast_pair(s, t));
+							}
+						} else {
+							int st = v_map[NodeID_R[ii]];
+							ret_ps.insert(make_fast_pair(st, st));
 						}
 					}
 				}
 			}
-			*/
-			// end integration
-			check_resource("LCL");
-		} else if (argv[2] == std::string("lclbool")) {
-			check_resource("LCL Boolean");
-		} else if (argv[2] == std::string("lclapmr")) {
-			check_resource("LCL All Pairs Mutual Refinement");
-		} else if (argv[2] == std::string("lclspmr")) {
-			check_resource("LCL Single Pair Mutual Refinement");
+
+			auto ret_es = EdgeSet();
+			if (need_es) {
+				unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
+				std::vector<std::vector<std::unordered_set<std::string>>>
+					output(NodeNum, std::vector<std::unordered_set<std::string>>(NodeNum));
+				std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
+					visited(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
+				for (unsigned ii = 0; ii < NodeNum; ii++) {
+					for (unsigned jj = 0; jj < NodeNum; jj++) {
+						if (ii != jj) {
+							unsigned NodeS = ii;
+							unsigned NodeT = jj;
+							if (TestItemInSet(observed[NodeS], NodeT) &&
+								bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
+								TestItemInSet(goodq2[NodeS], NodeT)) {
+								dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited, S, observed, orig_graph, NodeID_R, output);
+							}
+						}
+					}
+				}
+				for (unsigned i = 0; i < NodeNum; i++) {
+					for (unsigned j = 0; j < NodeNum; j++) {
+						if (output[i][j].size() > 0) {
+							for (auto x : output[i][j]) {
+								ret_es.insert(
+									make_fast_triple(v_map[NodeID_R[i]], l_map[x], v_map[NodeID_R[j]])
+								);
+							}
+						}
+					}
+				}
+			}
+			return std::make_pair(ret_ps, ret_es);
+		};
 #endif
-		} else {
+
+#ifdef INTEGRATION
+		if (argv[2] == std::string("apmr") && argv[3] == std::string("c1l")) {
+			int total = 0;
+			std::unordered_set<long long> es;
+			for (long long e : edges) {
+				es.insert(e);
+			}
+			while (true) {
+				auto r1 = cfl_all(grammars[0], es, false, true);
+				auto es1 = r1.second;
+				auto r2 = lcl_all(es1, true, true);
+				auto es2 = r2.second;
+				if (es2.size() == es.size()) {
+					std::cout << "ampr c1l: " << es2.first.size() << std::endl;
+					break;
+				} else {
+					es = std::move(es2);
+				}
+			}
+		} else
+#endif
+		{
 			printUsage(argv[0]);
 		}
 	} else if (argc == 3 && argv[1] == std::string("bp")) {
@@ -415,9 +332,9 @@ void printUsage(const char *name) {
 	std::cerr << "Usage:" << std::endl
 		<< '\t' << name << " test" << std::endl
 		<< '\t' << name <<
-			" pa <cfl1|cfl2|cflbool|cflapmr|cflspmr"
+			" pa <bool|apmr|spmr> <c1c2"
 #ifdef INTEGRATION
-			"|lcl|lclbool|lclapmr|lclspmr"
+			"|c1l|c2l|c1c2l"
 #endif
 			"> <graph-file-path>" << std::endl
 		<< '\t' << name << " bp <graph-file-path>" << std::endl;
