@@ -45,7 +45,6 @@ int main(int argc, char *argv[]) {
 		// parse data
 		const std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
 			data = parsePAGraph(argv[4]);
-		check_resource("Parsing");
 
 		// obtain references to the original data
 		const std::map<std::string, int> &v_map = std::get<0>(data); // original vertex name -> number
@@ -55,14 +54,16 @@ int main(int argc, char *argv[]) {
 		const std::vector<Grammar> &grammars    = std::get<4>(data);
 
 		// helpers
-		std::map<int, std::string> v_map_r;
+		std::map<int, std::string> v_map_r_core;
 		for (auto &pr : v_map) {
-			v_map_r[pr.second] = pr.first;
+			v_map_r_core[pr.second] = pr.first;
 		}
-		std::map<int, std::string> l_map_r;
+		std::map<int, std::string> l_map_r_core;
 		for (auto &pr : l_map) {
-			l_map_r[pr.second] = pr.first;
+			l_map_r_core[pr.second] = pr.first;
 		}
+		const std::map<int, std::string> &v_map_r = v_map_r_core;
+		const std::map<int, std::string> &l_map_r = l_map_r_core;
 
 		using PairSet = std::unordered_set<long long>;
 		using EdgeSet = std::unordered_set<long long>;
@@ -99,7 +100,7 @@ int main(int argc, char *argv[]) {
 				int v1 = fast_triple_first(e);
 				int l = fast_triple_second(e);
 				int v2 = fast_triple_third(e);
-				buffer << v_map_r[v1] << "->" << v_map_r[v2] << "[label=\"" << l_map_r[l] << "\"]\n";
+				buffer << v_map_r.at(v1) << "->" << v_map_r.at(v2) << "[label=\"" << l_map_r.at(l) << "\"]\n";
 			}
 
 			// parse the raw edge set
@@ -135,9 +136,6 @@ int main(int argc, char *argv[]) {
 								int t = v_map.at(NodeID_R[jj]);
 								ret_ps.insert(make_fast_pair(s, t));
 							}
-						} else {
-							int st = v_map.at(NodeID_R[ii]);
-							ret_ps.insert(make_fast_pair(st, st));
 						}
 					}
 				}
@@ -175,24 +173,27 @@ int main(int argc, char *argv[]) {
 					}
 				}
 			}
+			std::free(observed);
+			std::free(goodq2);
 			return std::make_pair(ret_ps, ret_es);
 		};
 #endif
 
 #ifdef INTEGRATION
 		if (argv[2] == std::string("apmr") && argv[3] == std::string("c1l")) {
-			int total = 0;
 			std::unordered_set<long long> es;
 			for (long long e : edges) {
 				es.insert(e);
 			}
+			int round = 0;
 			while (true) {
-				auto r1 = cfl_all(grammars[0], es, false, true);
+				std::cout << ">>> Round " << (++round) << std::endl;
+				auto r1 = cfl_all(grammars[0], es, true, true);
 				auto es1 = r1.second;
-				auto r2 = lcl_all(es1, true, true);
+				auto r2 = lcl_all(es1, false, true);
 				auto es2 = r2.second;
 				if (es2.size() == es.size()) {
-					std::cout << "ampr c1l: " << r2.first.size() << std::endl;
+					std::cout << ">>> APMR C1L: " << r1.first.size() << std::endl;
 					break;
 				} else {
 					es = std::move(es2);

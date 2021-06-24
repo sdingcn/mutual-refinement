@@ -77,7 +77,6 @@ void Graph::runCFLReachability() {
 				tba.push_back(e);
 			}
 		}
-		// TODO: not using grammars
 		for (int ind : grammar.binaryProductionsFirstInv[y]) { // x -> yz
 			auto &p = grammar.binaryProductions[ind];
 			int x = p.first, z = p.second.second;
@@ -135,7 +134,6 @@ std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure(int i, int j)
 		}
 
 		if (unaryRecord[i].count(j) == 1) {
-			// TODO: not exhaustive?
 			for (int ind : unaryRecord[i].at(j)) {
 				if (grammar.unaryProductions[ind].first == x) {
 					long long nxt = make_fast_triple(i, grammar.unaryProductions[ind].second, j);
@@ -188,7 +186,6 @@ std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosureAll() const {
 		}
 
 		if (unaryRecord[i].count(j) == 1) {
-			// TODO: not exhaustive?
 			for (int ind : unaryRecord[i].at(j)) {
 				if (grammar.unaryProductions[ind].first == x) {
 					long long nxt = make_fast_triple(i, grammar.unaryProductions[ind].second, j);
