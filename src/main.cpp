@@ -17,6 +17,7 @@
 #include "graph/graph.h"
 #ifdef INTEGRATION
 #include "../CFLReach.h"
+#include "bitmap.h"
 #endif
 
 void test();
@@ -195,22 +196,85 @@ int main(int argc, char *argv[]) {
 			for (auto &pr : l_map) {
 				l_map_r[pr.second] = pr.first;
 			}
-
-			// begin lcl computation
-			std::stringstream lcl_buffer;
+			// *** begin integration ***
+			unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
+			std::stringstream buffer;
+			// PART1: Prepare the input.
 			for (long long e : edges) {
 				int v1 = fast_triple_first(e);
 				int l = fast_triple_second(e);
 				int v2 = fast_triple_third(e);
-				lcl_buffer << v_map_r[v1] << "->" << v_map_r[v2] << "[label=\"" << l_map_r[l] << "\"]\n";
+				buffer << v_map_r[v1] << "->" << v_map_r[v2] << "[label=\"" << l_map_r[l] << "\"]\n";
 			}
-			SimpleDotParser lcl_parser;
-			std::unordered_map<std::string, unsigned> lcl_v_map;
-			std::unordered_map<unsigned, std::string> lcl_v_map_r;
-			unsigned lcl_nv = lcl_parser.BuildNodeMap(lcl_buffer, lcl_v_map, lcl_v_map_r);
+			// initialization
+			SimpleDotParser dotparser;
+			std::unordered_map<std::string, unsigned> NodeID;
+			std::unordered_map<unsigned, std::string> NodeID_R;
+			unsigned NodeNum = dotparser.BuildNodeMap(buffer, NodeID, NodeID_R);
 			std::vector<std::vector<std::unordered_set<std::string>>>
-				lcl_output(lcl_nv, std::vector<std::unordered_set<std::string>>(lcl_nv));
-			arrayversion("1", "1", "1", lcl_v_map, lcl_v_map_r, lcl_nv, lcl_buffer, lcl_output);
+				output(NodeNum, std::vector<std::unordered_set<std::string>>(NodeNum));
+			std::vector<std::vector<std::unordered_map<LinEdgeTy, std::unordered_set<LinEdgeTy>>>> trace_L(NodeNum);
+			std::vector<std::vector<std::unordered_map<LinEdgeTy, std::unordered_set<LinEdgeTy>>>> trace_R(NodeNum);
+			CFLMatrixLin cm1(NodeNum);
+			bitmap_obstack_initialize(NULL);
+			bitmap* S[NodeNum];
+			std::vector<std::vector<std::unordered_set<std::string>>> orig_graph(NodeNum);
+			long **observed  = (long **)malloc(sizeof(long *)*NodeNum);
+			long **goodq2 = (long **)malloc(sizeof(long *)*NodeNum);
+			// PART2: Do the computation. 
+			LCLReach(NodeID, NodeID_R, NodeNum, buffer, trace_L, trace_R, cm1, S, orig_graph, observed, goodq2);
+			// PART3: Query
+			// Code for all-pairs contributing query
+			// std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
+			// 	visited(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
+			int totalLCL = 0;
+			for (unsigned ii = 0; ii < NodeNum; ii++) {
+				for (unsigned jj = 0; jj < NodeNum; jj++) {
+					if (ii != jj) {
+						unsigned NodeS = ii;
+						unsigned NodeT = jj;
+						if (TestItemInSet(observed[NodeS], NodeT) &&
+							bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
+							TestItemInSet(goodq2[NodeS], NodeT)) { // This is the condition to check if S and T are reachable.
+							totalLCL++;
+							// dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited, S, observed, orig_graph, NodeID_R, output);
+						}
+					} else {
+						totalLCL++;
+					}
+				}
+			}
+			std::cout << "LCL: " << totalLCL << std::endl;
+			// Code for single-source contributing query.
+			/*
+			std::string SS = "24520";
+			std::string TT = "10108";
+			assert(NodeID.find(SS) != NodeID.end() && NodeID.find(TT) != NodeID.end());
+			unsigned NodeS = NodeID[SS]; 
+			unsigned NodeT = NodeID[TT];
+			assert(NodeS != NodeT);
+			std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
+				visited1(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
+			if (TestItemInSet(observed[NodeS], NodeT) &&
+				bitmap_bit_p(S[NodeS][NodeT], q2_mLin)
+				&& TestItemInSet(goodq2[NodeS], NodeT)) {
+				dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited1, S, observed, orig_graph, NodeID_R, output);
+			}
+			*/
+			// PART4 (optional): print the output.
+			/*
+			for (unsigned i = 0; i < NodeNum; i++) {
+				for (unsigned j = 0; j < NodeNum; j++) {
+					if (output[i][j].size() > 0) {
+						for (string x : output[i][j]) {
+							std::cout << "INFO: " << NodeID_R[i] << "->" << NodeID_R[j] 
+								<< "[label=\"" << x << "\"]" << std::endl;
+						}
+					}
+				}
+			}
+			*/
+			// end integration
 			check_resource("LCL");
 		} else if (argv[2] == std::string("lclbool")) {
 			check_resource("LCL Boolean");
