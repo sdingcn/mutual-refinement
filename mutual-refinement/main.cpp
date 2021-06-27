@@ -199,7 +199,9 @@ int main(int argc, char *argv[]) {
 							ps.insert(p);
 						}
 					}
-					std::cout << ">>> APMR C1L: " << ps.size() << std::endl;
+					std::cout << ">>> APMR-C1L C1: " << ps1.size() << std::endl;
+					std::cout << ">>> APMR-C1L L: " << (ps2.size() + nv) << std::endl;
+					std::cout << ">>> APMR-C1L C1 & L: " << ps.size() << std::endl;
 					break;
 				} else {
 					es = std::move(es2);
