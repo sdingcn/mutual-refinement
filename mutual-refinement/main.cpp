@@ -17,8 +17,8 @@
 #include "parser/parser.h"
 #include "graph/graph.h"
 #ifdef INTEGRATION
-#include "../CFLReach.h"
-#include "../bitmap.h"
+#include "../../CFLReach.h"
+#include "../../bitmap.h"
 #endif
 
 void test();
