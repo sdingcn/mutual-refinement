@@ -120,6 +120,8 @@ int main(int argc, char *argv[]) {
 			long **observed  = (long **)std::malloc(sizeof(long *)*NodeNum);
 			long **goodq2 = (long **)std::malloc(sizeof(long *)*NodeNum);
 			LCLReach(NodeID, NodeID_R, NodeNum, buffer, trace_L, trace_R, cm1, S, orig_graph, observed, goodq2);
+			
+			unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
 
 			auto ret_ps = PairSet();
 			if (need_ps) {
@@ -142,7 +144,6 @@ int main(int argc, char *argv[]) {
 
 			auto ret_es = EdgeSet();
 			if (need_es) {
-				unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
 				std::vector<std::vector<std::unordered_set<std::string>>>
 					output(NodeNum, std::vector<std::unordered_set<std::string>>(NodeNum));
 				std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
