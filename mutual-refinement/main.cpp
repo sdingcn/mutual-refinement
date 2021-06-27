@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
 							if (TestItemInSet(observed[NodeS], NodeT) &&
 								bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
 								TestItemInSet(goodq2[NodeS], NodeT)) {
-								ret_ps.insert(make_fast_pair(NodeS, NodeT));
+								ret_ps.insert(make_fast_pair(v_map.at(NodeID_R[NodeS]), v_map.at(NodeID_R[NodeT])));
 							}
 						}
 					}
