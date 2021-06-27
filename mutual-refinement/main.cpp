@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 		const int &nv                           = std::get<3>(data);
 		const std::vector<Grammar> &grammars    = std::get<4>(data);
 
-		// helpers
+		// converters
 		std::map<int, std::string> v_map_r_core;
 		for (auto &pr : v_map) {
 			v_map_r_core[pr.second] = pr.first;
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 		const std::map<int, std::string> &v_map_r = v_map_r_core;
 		const std::map<int, std::string> &l_map_r = l_map_r_core;
 
+		// type aliases
 		using PairSet = std::unordered_set<long long>;
 		using EdgeSet = std::unordered_set<long long>;
 
@@ -92,7 +93,7 @@ int main(int argc, char *argv[]) {
 		};
 #ifdef INTEGRATION
 		auto lcl_all = [&v_map, &v_map_r, &l_map, &l_map_r, &nv]
-			(const EdgeSet &es) -> EdgeSet {
+			(const EdgeSet &es, bool need_ps, bool need_es) -> std::pair<PairSet, EdgeSet> {
 			std::stringstream buffer;
 
 			// convert my edge set to the raw edge set
@@ -120,38 +121,58 @@ int main(int argc, char *argv[]) {
 			long **goodq2 = (long **)std::malloc(sizeof(long *)*NodeNum);
 			LCLReach(NodeID, NodeID_R, NodeNum, buffer, trace_L, trace_R, cm1, S, orig_graph, observed, goodq2);
 
-			// retrieve the edges
-			auto ret_es = EdgeSet();
-			unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
-			std::vector<std::vector<std::unordered_set<std::string>>>
-				output(NodeNum, std::vector<std::unordered_set<std::string>>(NodeNum));
-			std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
-				visited(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
-			for (unsigned ii = 0; ii < NodeNum; ii++) {
-				for (unsigned jj = 0; jj < NodeNum; jj++) {
-					unsigned NodeS = ii;
-					unsigned NodeT = jj;
-					if (TestItemInSet(observed[NodeS], NodeT) &&
-						bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
-						TestItemInSet(goodq2[NodeS], NodeT)) {
-						dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited, S, observed, orig_graph, NodeID_R, output);
+			auto ret_ps = PairSet();
+			if (need_ps) {
+				for (unsigned ii = 0; ii < NodeNum; ii++) {
+					for (unsigned jj = 0; jj < NodeNum; jj++) {
+						unsigned NodeS = ii;
+						unsigned NodeT = jj;
+						if (NodeS == NodeT) {
+							ret_ps.insert(make_fast_pair(NodeS, NodeT));
+						} else {
+							if (TestItemInSet(observed[NodeS], NodeT) &&
+								bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
+								TestItemInSet(goodq2[NodeS], NodeT)) {
+								ret_ps.insert(make_fast_pair(NodeS, NodeT));
+							}
+						}
 					}
 				}
 			}
-			for (unsigned i = 0; i < NodeNum; i++) {
-				for (unsigned j = 0; j < NodeNum; j++) {
-					if (output[i][j].size() > 0) {
-						for (auto x : output[i][j]) {
-							ret_es.insert(
-								make_fast_triple(v_map.at(NodeID_R[i]), l_map.at(x), v_map.at(NodeID_R[j]))
-							);
+
+			auto ret_es = EdgeSet();
+			if (need_es) {
+				unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
+				std::vector<std::vector<std::unordered_set<std::string>>>
+					output(NodeNum, std::vector<std::unordered_set<std::string>>(NodeNum));
+				std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
+					visited(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
+				for (unsigned ii = 0; ii < NodeNum; ii++) {
+					for (unsigned jj = 0; jj < NodeNum; jj++) {
+						unsigned NodeS = ii;
+						unsigned NodeT = jj;
+						if (TestItemInSet(observed[NodeS], NodeT) &&
+							bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
+							TestItemInSet(goodq2[NodeS], NodeT)) {
+							dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited, S, observed, orig_graph, NodeID_R, output);
+						}
+					}
+				}
+				for (unsigned i = 0; i < NodeNum; i++) {
+					for (unsigned j = 0; j < NodeNum; j++) {
+						if (output[i][j].size() > 0) {
+							for (auto x : output[i][j]) {
+								ret_es.insert(
+									make_fast_triple(v_map.at(NodeID_R[i]), l_map.at(x), v_map.at(NodeID_R[j]))
+								);
+							}
 						}
 					}
 				}
 			}
 			std::free(observed);
 			std::free(goodq2);
-			return ret_es;
+			return std::make_pair(ret_ps, ret_es);
 		};
 #endif
 
@@ -166,9 +187,18 @@ int main(int argc, char *argv[]) {
 				std::cout << ">>> Round " << (++round) << std::endl;
 				auto r1 = cfl_all(grammars[0], es, true, true);
 				auto es1 = r1.second;
-				auto es2 = lcl_all(es1);
+				auto r2 = lcl_all(es1, true, true);
+				auto es2 = r2.second;
 				if (es2.size() == es.size()) {
-					std::cout << ">>> APMR C1L: " << r1.first.size() << std::endl;
+					auto ps1 = r1.first;
+					auto ps2 = r2.first;
+					PairSet ps;
+					for (auto p : ps1) {
+						if (ps2.count(p) > 0) {
+							ps.insert(p);
+						}
+					}
+					std::cout << ">>> APMR C1L: " << ps.size() << std::endl;
 					break;
 				} else {
 					es = std::move(es2);
