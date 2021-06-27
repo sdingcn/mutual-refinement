@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 		};
 #ifdef INTEGRATION
 		auto lcl_all = [&v_map, &v_map_r, &l_map, &l_map_r, &nv]
-			(const EdgeSet &es, bool need_ps, bool need_es) -> std::pair<PairSet, EdgeSet> {
+			(const EdgeSet &es, bool need_ps, bool need_es) -> std::pair<PairSet, EdgeSet> { // This worker only returns pairs with distinct vertices.
 			std::stringstream buffer;
 
 			// convert my edge set to the raw edge set
@@ -129,9 +129,7 @@ int main(int argc, char *argv[]) {
 					for (unsigned jj = 0; jj < NodeNum; jj++) {
 						unsigned NodeS = ii;
 						unsigned NodeT = jj;
-						if (NodeS == NodeT) {
-							ret_ps.insert(make_fast_pair(NodeS, NodeT));
-						} else {
+						if (NodeS != NodeT) {
 							if (TestItemInSet(observed[NodeS], NodeT) &&
 								bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
 								TestItemInSet(goodq2[NodeS], NodeT)) {
@@ -195,7 +193,9 @@ int main(int argc, char *argv[]) {
 					auto ps2 = r2.first;
 					PairSet ps;
 					for (auto p : ps1) {
-						if (ps2.count(p) > 0) {
+						if (fast_pair_first(p) == fast_pair_second(p)) {
+							ps.insert(p);
+						} else if (ps2.count(p) > 0) {
 							ps.insert(p);
 						}
 					}
