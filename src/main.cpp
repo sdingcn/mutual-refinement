@@ -151,23 +151,29 @@ int main(int argc, char *argv[]) {
 		// type aliases
 		using PairSet = std::unordered_set<long long>;
 		using EdgeSet = std::unordered_set<long long>;
-			Graph gh(gr, nv);
-			gh.fillEdges(es);
-			gh.runCFLReachability();
-			auto ret_ps = PairSet();
-			if (need_ps) {
-				for (int s = 0; s < nv; s++) {
-					for (int t = 0; t < nv; t++) {
-						if (gh.hasEdge(make_fast_triple(s, gr.startSymbol, t))) {
-							ret_ps.insert(make_fast_pair(s, t));
-						}
-					}
+		Graph gh1(grammars[0], nv);
+		gh1.fillEdges(edges);
+		gh1.runCFLReachability();
+		int ctr1 = 0;
+		for (int s = 0; s < nv; s++) {
+			for (int t = 0; t < nv; t++) {
+				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t))) {
+					ctr1++;
 				}
 			}
-			auto ret_es = EdgeSet();
-			if (need_es) {
-				ret_es = gh.getCFLReachabilityEdgeClosureAll();
+		}
+		Graph gh2(grammars[1], nv);
+		gh2.fillEdges(edges);
+		gh2.runCFLReachability();
+		int ctr2 = 0;
+		for (int s = 0; s < nv; s++) {
+			for (int t = 0; t < nv; t++) {
+				if (gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+					ctr2++;
+				}
 			}
+		}
+		std::cout << "CFL1 = " << ctr1 << ", CFL2 = " << ctr2 << std::endl;
 	} else {
 		printUsage(argv[0]);
 	}

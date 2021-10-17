@@ -7,9 +7,15 @@
 #include <tuple>
 #include "../grammar/grammar.h"
 
-Graph::Graph(const Grammar &g, int n)
-	: grammar(g), numberOfVertices(n), fastEdgeTest(n), adjacencyVector(n),
-	counterAdjacencyVector(n), unaryRecord(n), binaryRecord(n) {}
+Graph::Graph(const Grammar &g, int n) :
+	grammar(g),
+	numberOfVertices(n),
+	fastEdgeTest(n),
+	adjacencyVector(n),
+	counterAdjacencyVector(n),
+	// startSummaries(std::vector<long long>()),
+	unaryRecord(n),
+	binaryRecord(n) {}
 
 void Graph::addEdge(long long e) { // i --x--> j
 	int i = fast_triple_first(e);
@@ -44,7 +50,7 @@ bool Graph::hasEdge(long long e) const {
 
 void Graph::runCFLReachability() {
 	std::deque<long long> w;
-	for (int i = 0; i < numberOfVertices; i++) { // add all edges to the worklist
+	for (int i = 0; i < numberOfVertices; i++) { // add all original edges to the worklist
 		for (long long sj : adjacencyVector[i]) { // --s--> j
 			w.push_back(make_fast_triple(i, fast_pair_first(sj), fast_pair_second(sj)));
 		}
@@ -112,66 +118,21 @@ void Graph::runCFLReachability() {
 	}
 }
 
-std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure(int i, int j) const {
+std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure(bool all, int i = -1, int j = -1) const {
 	std::unordered_set<long long> closure;
 	std::unordered_set<long long> vis;
 	std::deque<long long> q;
-	long long start = make_fast_triple(i, grammar.startSymbol, j);
-	if (hasEdge(start)) {
-		vis.insert(start);
-		q.push_back(start);
-	}
-	while (!q.empty()) { // BFS
-		long long e = q.front();
-		q.pop_front();
-
-		// i --x--> j
-		int i = fast_triple_first(e);
-		int x = fast_triple_second(e);
-		int j = fast_triple_third(e);
-		if (grammar.terminals.count(x) == 1) {
-			closure.insert(e);
+	if (all == false) {
+		long long start = make_fast_triple(i, grammar.startSymbol, j);
+		if (hasEdge(start)) {
+			vis.insert(start);
+			q.push_back(start);
 		}
-
-		if (unaryRecord[i].count(j) == 1) {
-			for (int ind : unaryRecord[i].at(j)) {
-				if (grammar.unaryProductions[ind].first == x) {
-					long long nxt = make_fast_triple(i, grammar.unaryProductions[ind].second, j);
-					if (vis.count(nxt) == 0) {
-						vis.insert(nxt);
-						q.push_back(nxt);
-					}
-				}
-			}
+	} else {
+		for (long long start : startSummaries) {
+			vis.insert(start);
+			q.push_back(start);
 		}
-		if (binaryRecord[i].count(j) == 1) {
-			for (long long ind_k : binaryRecord[i].at(j)) {
-				int ind = fast_pair_first(ind_k), k = fast_pair_second(ind_k);
-				if (grammar.binaryProductions[ind].first == x) {
-					long long nxt1 = make_fast_triple(i, grammar.binaryProductions[ind].second.first, k);
-					long long nxt2 = make_fast_triple(k, grammar.binaryProductions[ind].second.second, j);
-					if (vis.count(nxt1) == 0) {
-						vis.insert(nxt1);
-						q.push_back(nxt1);
-					}
-					if (vis.count(nxt2) == 0) {
-						vis.insert(nxt2);
-						q.push_back(nxt2);
-					}
-				}
-			}
-		}
-	}
-	return closure;
-}
-
-std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosureAll() const {
-	std::unordered_set<long long> closure;
-	std::unordered_set<long long> vis;
-	std::deque<long long> q;
-	for (long long start : startSummaries) {
-		vis.insert(start);
-		q.push_back(start);
 	}
 	while (!q.empty()) { // BFS
 		long long e = q.front();
