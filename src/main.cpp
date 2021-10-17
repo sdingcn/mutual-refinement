@@ -69,7 +69,7 @@ void test() {
 		}
 	}
 	{
-		auto rec1 = gh.getCFLReachabilityEdgeClosure(0, 2);
+		auto rec1 = gh.getCFLReachabilityEdgeClosure(false, 0, 2);
 		assert(rec1.size() == 5);
 		assert(rec1.count(make_fast_triple(0, 1, 1)) == 1);
 		assert(rec1.count(make_fast_triple(1, 2, 2)) == 1);
@@ -78,13 +78,13 @@ void test() {
 		assert(rec1.count(make_fast_triple(5, 2, 2)) == 1);
 	}
 	{
-		auto rec2 = gh.getCFLReachabilityEdgeClosure(2, 3);
+		auto rec2 = gh.getCFLReachabilityEdgeClosure(false, 2, 3);
 		assert(rec2.size() == 2);
 		assert(rec2.count(make_fast_triple(2, 1, 2)) == 1);
 		assert(rec2.count(make_fast_triple(2, 2, 3)) == 1);
 	}
 	{
-		auto rec3 = gh.getCFLReachabilityEdgeClosure(2, 2);
+		auto rec3 = gh.getCFLReachabilityEdgeClosure(false, 2, 2);
 		assert(rec3.size() == 0);
 	}
 }
@@ -104,6 +104,7 @@ void dumpVirtualMemoryPeak() {
 }
 
 void printUsage(const char *name) {
+	std::cerr << "Passed all tests." << std::endl;
 	std::cerr << "Usage: " << name << " <graph-file-path>" << std::endl;
 }
 
@@ -175,6 +176,7 @@ int main(int argc, char *argv[]) {
 		}
 		std::cout << "CFL1 = " << ctr1 << ", CFL2 = " << ctr2 << std::endl;
 	} else {
+		test();
 		printUsage(argv[0]);
 	}
 }
