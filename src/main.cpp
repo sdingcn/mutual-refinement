@@ -131,27 +131,12 @@ int main(int argc, char *argv[]) {
 		> data = parsePAGraph(argv[1]);
 
 		// obtain references to the original data
-		const std::map<std::string, int> &v_map = std::get<0>(data); // original vertex name -> number
-		const std::map<std::string, int> &l_map = std::get<1>(data); // original edge label -> number
+		// const std::map<std::string, int> &v_map = std::get<0>(data); // original vertex name -> number
+		// const std::map<std::string, int> &l_map = std::get<1>(data); // original edge label -> number
 		const std::vector<long long> &edges     = std::get<2>(data);
 		const int &nv                           = std::get<3>(data);
 		const std::vector<Grammar> &grammars    = std::get<4>(data);
 
-		// converters
-		std::map<int, std::string> v_map_r_core;
-		for (auto &pr : v_map) {
-			v_map_r_core[pr.second] = pr.first;
-		}
-		std::map<int, std::string> l_map_r_core;
-		for (auto &pr : l_map) {
-			l_map_r_core[pr.second] = pr.first;
-		}
-		const std::map<int, std::string> &v_map_r = v_map_r_core;
-		const std::map<int, std::string> &l_map_r = l_map_r_core;
-
-		// type aliases
-		using PairSet = std::unordered_set<long long>;
-		using EdgeSet = std::unordered_set<long long>;
 		Graph gh1(grammars[0], nv);
 		gh1.fillEdges(edges);
 		gh1.runCFLReachability();
@@ -174,9 +159,11 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
+		check_resource("CFL1 and CFL2");
 		std::cout << "CFL1 = " << ctr1 << ", CFL2 = " << ctr2 << std::endl;
 	} else {
 		test();
+		check_resource("TEST");
 		printUsage(argv[0]);
 	}
 }
