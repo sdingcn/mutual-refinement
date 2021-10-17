@@ -16,10 +16,6 @@
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"
-#ifdef INTEGRATION
-#include "../../CFLReach.h"
-#include "../../bitmap.h"
-#endif
 
 void test();
 
@@ -91,161 +87,9 @@ int main(int argc, char *argv[]) {
 			}
 			return std::make_pair(ret_ps, ret_es);
 		};
-#ifdef INTEGRATION
-		auto lcl_all = [&v_map, &v_map_r, &l_map, &l_map_r, &nv]
-			(const EdgeSet &es, bool need_ps, bool need_es) -> std::pair<PairSet, EdgeSet> { // This worker only returns pairs with distinct vertices.
-			std::stringstream buffer;
-
-			// convert my edge set to the raw edge set
-			for (long long e : es) {
-				int v1 = fast_triple_first(e);
-				int l = fast_triple_second(e);
-				int v2 = fast_triple_third(e);
-				buffer << v_map_r.at(v1) << "->" << v_map_r.at(v2) << "[label=\"" << l_map_r.at(l) << "\"]\n";
-			}
-
-			// parse the raw edge set
-			SimpleDotParser dotparser;
-			std::unordered_map<std::string, unsigned> NodeID;
-			std::unordered_map<unsigned, std::string> NodeID_R;
-			unsigned NodeNum = dotparser.BuildNodeMap(buffer, NodeID, NodeID_R);
-
-			// do the LCL computation
-			std::vector<std::vector<std::unordered_map<LinEdgeTy, std::unordered_set<LinEdgeTy>>>> trace_L(NodeNum);
-			std::vector<std::vector<std::unordered_map<LinEdgeTy, std::unordered_set<LinEdgeTy>>>> trace_R(NodeNum);
-			CFLMatrixLin cm1(NodeNum);
-			bitmap_obstack_initialize(NULL);
-			bitmap* S[NodeNum]; // VLA
-			std::vector<std::vector<std::unordered_set<std::string>>> orig_graph(NodeNum);
-			long **observed  = (long **)std::malloc(sizeof(long *)*NodeNum);
-			long **goodq2 = (long **)std::malloc(sizeof(long *)*NodeNum);
-			LCLReach(NodeID, NodeID_R, NodeNum, buffer, trace_L, trace_R, cm1, S, orig_graph, observed, goodq2);
-			
-			unsigned q2_mLin = q2Lin*numLinEdgeTy + mLin;
-
-			auto ret_ps = PairSet();
-			if (need_ps) {
-				for (unsigned ii = 0; ii < NodeNum; ii++) {
-					for (unsigned jj = 0; jj < NodeNum; jj++) {
-						unsigned NodeS = ii;
-						unsigned NodeT = jj;
-						if (NodeS != NodeT) {
-							if (TestItemInSet(observed[NodeS], NodeT) &&
-								bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
-								TestItemInSet(goodq2[NodeS], NodeT)) {
-								ret_ps.insert(make_fast_pair(v_map.at(NodeID_R[NodeS]), v_map.at(NodeID_R[NodeT])));
-							}
-						}
-					}
-				}
-			}
-
-			auto ret_es = EdgeSet();
-			if (need_es) {
-				std::vector<std::vector<std::unordered_set<std::string>>>
-					output(NodeNum, std::vector<std::unordered_set<std::string>>(NodeNum));
-				std::vector<std::vector<std::unordered_set<LinEdgeTy>>>
-					visited(NodeNum, std::vector<std::unordered_set<LinEdgeTy>>(NodeNum));
-				for (unsigned ii = 0; ii < NodeNum; ii++) {
-					for (unsigned jj = 0; jj < NodeNum; jj++) {
-						unsigned NodeS = ii;
-						unsigned NodeT = jj;
-						if (TestItemInSet(observed[NodeS], NodeT) &&
-							bitmap_bit_p(S[NodeS][NodeT], q2_mLin) &&
-							TestItemInSet(goodq2[NodeS], NodeT)) {
-							dfs(NodeS, NodeT, q2_mLin, trace_L, trace_R, cm1, visited, S, observed, orig_graph, NodeID_R, output);
-						}
-					}
-				}
-				for (unsigned i = 0; i < NodeNum; i++) {
-					for (unsigned j = 0; j < NodeNum; j++) {
-						if (output[i][j].size() > 0) {
-							for (auto x : output[i][j]) {
-								ret_es.insert(
-									make_fast_triple(v_map.at(NodeID_R[i]), l_map.at(x), v_map.at(NodeID_R[j]))
-								);
-							}
-						}
-					}
-				}
-			}
-			std::free(observed);
-			std::free(goodq2);
-			return std::make_pair(ret_ps, ret_es);
-		};
-#endif
-
-#ifdef INTEGRATION
-		if (argv[2] == std::string("apmr") && argv[3] == std::string("c1l")) {
-			std::unordered_set<long long> es;
-			for (long long e : edges) {
-				es.insert(e);
-			}
-			int round = 0;
-			while (true) {
-				std::cout << ">>> Round " << (++round) << std::endl;
-				auto r1 = cfl_all(grammars[0], es, true, true);
-				auto es1 = r1.second;
-				auto r2 = lcl_all(es1, true, true);
-				auto es2 = r2.second;
-				if (es2.size() == es.size()) {
-					auto ps1 = r1.first;
-					auto ps2 = r2.first;
-					PairSet ps;
-					for (auto p : ps1) {
-						if (fast_pair_first(p) == fast_pair_second(p)) {
-							ps.insert(p);
-						} else if (ps2.count(p) > 0) {
-							ps.insert(p);
-						}
-					}
-					std::cout << ">>> APMR-C1L C1: " << ps1.size() << std::endl;
-					std::cout << ">>> APMR-C1L L: " << (ps2.size() + nv) << std::endl;
-					std::cout << ">>> APMR-C1L C1 & L: " << ps.size() << std::endl;
-					break;
-				} else {
-					es = std::move(es2);
-				}
-			}
-		} else
-#endif
 		{
 			printUsage(argv[0]);
 		}
-	} else if (argc == 3 && argv[1] == std::string("bp")) {
-		std::tuple<std::vector<long long>, int, std::pair<int, int>, std::vector<Grammar>> data = parseBPGraph(argv[2]);
-		const auto &edges = std::get<0>(data);
-		const int nv = std::get<1>(data);
-		const int source = std::get<2>(data).first;
-		const int sink = std::get<2>(data).second;
-		const auto &grammars = std::get<3>(data);
-		const int ng = grammars.size();
-
-		// TODO: change to pure reachability closure, and only proceed if purely reachable
-		std::unordered_set<long long> es(edges.begin(), edges.end());
-		int ite = 0;
-		while (true) {
-			std::cerr << "ITERATION " << (++ite) << std::endl;
-			auto es_size = es.size();
-			for (int i = 0; i < ng; i++) {
-				std::cerr << "GRAMMAR " << i << std::endl;
-				Graph gh(grammars[i], nv);
-				gh.fillEdges(es);
-				gh.runCFLReachability();
-				std::cerr << "DONE CFLReach" << std::endl;
-				if (!gh.hasEdge(make_fast_triple(source, grammars[i].startSymbol, sink))) {
-					std::cout << "Definitely Unreachable" << std::endl;
-					goto END;
-				}
-				es = gh.getCFLReachabilityEdgeClosure(source, sink);
-				std::cerr << "DONE EdgeClosure" << std::endl;
-			}
-			if (es.size() == es_size) {
-				break;
-			}
-		}
-		std::cout << "Possibly Reachable" << std::endl;
-END:;
 	} else {
 		printUsage(argv[0]);
 	}
@@ -341,10 +185,6 @@ void printUsage(const char *name) {
 	std::cerr << "Usage:" << std::endl
 		<< '\t' << name << " test" << std::endl
 		<< '\t' << name <<
-			" pa <bool|apmr|spmr> <c1c2"
-#ifdef INTEGRATION
-			"|c1l|c2l|c1c2l"
-#endif
-			"> <graph-file-path>" << std::endl
+			" pa <bool|apmr|spmr> <c1c2> <graph-file-path>" << std::endl
 		<< '\t' << name << " bp <graph-file-path>" << std::endl;
 }

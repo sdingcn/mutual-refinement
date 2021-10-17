@@ -13,6 +13,4 @@
 std::tuple<std::map<std::string, int>, std::map<std::string, int>, std::vector<long long>, int, std::vector<Grammar>>
 	parsePAGraph(const std::string &fname);
 
-std::tuple<std::vector<long long>, int, std::pair<int, int>, std::vector<Grammar>> parseBPGraph(const std::string &fname);
-
 #endif
