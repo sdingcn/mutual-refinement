@@ -1,5 +1,5 @@
-main : mutual-refinement/common.h mutual-refinement/grammar/grammar.h mutual-refinement/grammar/grammar.cpp mutual-refinement/graph/graph.h mutual-refinement/graph/graph.cpp mutual-refinement/parser/parser.h mutual-refinement/parser/parser.cpp mutual-refinement/main.cpp
-	g++ -O3 -o main -Wall -Wextra -pedantic mutual-refinement/grammar/grammar.cpp mutual-refinement/graph/graph.cpp mutual-refinement/parser/parser.cpp mutual-refinement/main.cpp
+main : src/common.h src/grammar/grammar.h src/grammar/grammar.cpp src/graph/graph.h src/graph/graph.cpp src/parser/parser.h src/parser/parser.cpp src/main.cpp
+	g++ -O3 -o main -Wall -Wextra -pedantic src/grammar/grammar.cpp src/graph/graph.cpp src/parser/parser.cpp src/main.cpp
 
 .PHONY : clean
 clean :
