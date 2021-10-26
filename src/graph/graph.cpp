@@ -52,7 +52,7 @@ void Graph::runCFLReachability() {
 	std::deque<long long> w;
 	for (int i = 0; i < numberOfVertices; i++) { // add all original edges to the worklist
 		for (long long sj : adjacencyVector[i]) { // --s--> j
-			w.push_back(make_fast_triple(i, fast_pair_first(sj), fast_pair_second(sj)));
+			w.push_front(make_fast_triple(i, fast_pair_first(sj), fast_pair_second(sj)));
 		}
 	}
 	int nep = grammar.emptyProductions.size();
@@ -61,7 +61,7 @@ void Graph::runCFLReachability() {
 		for (int i = 0; i < numberOfVertices; i++) {
 			long long e = make_fast_triple(i, x, i);
 			addEdge(e);
-			w.push_back(e);
+			w.push_front(e);
 		}
 	}
 	while (!w.empty()) {
@@ -113,7 +113,7 @@ void Graph::runCFLReachability() {
 		}
 		for (long long e : tba) {
 			addEdge(e);
-			w.push_back(e);
+			w.push_front(e);
 		}
 	}
 }
