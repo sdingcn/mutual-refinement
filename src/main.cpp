@@ -1,7 +1,7 @@
 #include <vector>
 #include <utility>
 #include <set>
-#include <map>
+#include <unordered_map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -123,19 +123,16 @@ int main(int argc, char *argv[]) {
 	if (argc == 2) {
 		// parse data
 		const std::tuple<
-			std::map<std::string, int>,
-			std::map<std::string, int>,
+			std::unordered_map<std::string, int>,
+			std::unordered_map<std::string, int>,
 			std::vector<long long>,
-			int,
 			std::vector<Grammar>
 		> data = parsePAGraph(argv[1]);
 
 		// obtain references to the original data
-		// const std::map<std::string, int> &v_map = std::get<0>(data); // original vertex name -> number
-		// const std::map<std::string, int> &l_map = std::get<1>(data); // original edge label -> number
 		const std::vector<long long> &edges     = std::get<2>(data);
-		const int &nv                           = std::get<3>(data);
-		const std::vector<Grammar> &grammars    = std::get<4>(data);
+		const int &nv                           = std::get<0>(data).size();
+		const std::vector<Grammar> &grammars    = std::get<3>(data);
 
 		Graph gh1(grammars[0], nv);
 		gh1.fillEdges(edges);
