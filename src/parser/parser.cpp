@@ -9,7 +9,6 @@
 #include <tuple>
 #include "../common.h"
 
-// line -> contains(line, '>')
 bool isEdgeLine(const std::string &line) {
 	for (char c : line) {
 		if (c == '>') {
@@ -19,7 +18,6 @@ bool isEdgeLine(const std::string &line) {
 	return false;
 }
 
-// line -> ((vertex1, vertex2), label)
 std::pair<std::pair<std::string, std::string>, std::string> parsePALine(const std::string &line) {
 	// 100->200[label="cp--10"]
 	std::string::size_type p1 = line.find("->");
@@ -48,11 +46,9 @@ std::tuple<
 		}
 	}
 
-	// encode original vertices and labels
+	// encode vertices
 	std::unordered_map<std::string, int> v_map;
 	int v_ctr = 0;
-	std::unordered_map<std::string, int> l_map;
-	int l_ctr = 0;
 	for (auto &ijl : rawEdges) {
 		if (v_map.count(ijl.first.first) == 0) {
 			v_map[ijl.first.first] = v_ctr++;
@@ -60,31 +56,32 @@ std::tuple<
 		if (v_map.count(ijl.first.second) == 0) {
 			v_map[ijl.first.second] = v_ctr++;
 		}
-		if (l_map.count(ijl.second) == 0) {
-			l_map[ijl.second] = l_ctr++;
-		}
 	}
 
 	// find out numbers for each Dyck
 	std::unordered_map<std::string, std::unordered_set<std::string>> numbers;
-	for (auto &p : l_map) {
-		if (p.first.substr(0, 2) == "op" || p.first.substr(0, 2) == "cp") {
-			numbers["p"].insert(p.first.substr(4, p.first.size() - 4));
+	for (auto &ijl : rawEdges) {
+		if (ijl.second.substr(0, 2) == "op" || ijl.second.substr(0, 2) == "cp") {
+			numbers["p"].insert(ijl.second.substr(4, ijl.second.size() - 4));
 		}
-	}
-	for (auto &p : l_map) {
-		if (p.first.substr(0, 2) == "ob" || p.first.substr(0, 2) == "cb") {
-			numbers["b"].insert(p.first.substr(4, p.first.size() - 4));
+		if (ijl.second.substr(0, 2) == "ob" || ijl.second.substr(0, 2) == "cb") {
+			numbers["b"].insert(ijl.second.substr(4, ijl.second.size() - 4));
 		}
 	}
 
-	// encode nonterminals
+	// encode labels
+	std::unordered_map<std::string, int> l_map;
+	int l_ctr = 0;
 	l_map["dp"] = l_ctr++;
 	for (auto &n : numbers["p"]) {
+		l_map["op--" + n] = l_ctr++;
+		l_map["cp--" + n] = l_ctr++;
 		l_map["dp--" + n] = l_ctr++;
 	}
 	l_map["db"] = l_ctr++;
 	for (auto &n : numbers["b"]) {
+		l_map["ob--" + n] = l_ctr++;
+		l_map["cb--" + n] = l_ctr++;
 		l_map["db--" + n] = l_ctr++;
 	}
 

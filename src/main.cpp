@@ -130,8 +130,8 @@ int main(int argc, char *argv[]) {
 		> data = parsePAGraph(argv[1]);
 
 		// obtain references to the original data
-		const std::vector<long long> &edges     = std::get<2>(data);
 		const int &nv                           = std::get<0>(data).size();
+		const std::vector<long long> &edges     = std::get<2>(data);
 		const std::vector<Grammar> &grammars    = std::get<3>(data);
 
 		Graph gh1(grammars[0], nv);

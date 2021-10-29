@@ -8,7 +8,7 @@
 #include "../grammar/grammar.h"
 #include "../common.h"
 
-// v_map (vertex name -> number), l_map (label -> number), edges, grammars
+// v_map, l_map, edges, grammars
 std::tuple<
 	std::unordered_map<std::string, int>,
 	std::unordered_map<std::string, int>,
