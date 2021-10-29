@@ -1,7 +1,7 @@
 #include <vector>
 #include <utility>
 #include <set>
-#include <unordered_map>
+#include <map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -123,8 +123,8 @@ int main(int argc, char *argv[]) {
 	if (argc == 2) {
 		// parse data
 		const std::tuple<
-			std::unordered_map<std::string, int>,
-			std::unordered_map<std::string, int>,
+			std::map<std::string, int>,
+			std::map<std::vector<std::string>, int>,
 			std::vector<long long>,
 			std::vector<Grammar>
 		> data = parsePAGraph(argv[1]);

@@ -2,7 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <unordered_set>
 #include <iostream>
 #include <fstream>
@@ -30,12 +30,16 @@ std::pair<std::pair<std::string, std::string>, std::string> parsePALine(const st
 }
 
 std::tuple<
-	std::unordered_map<std::string, int>,
-	std::unordered_map<std::string, int>,
+	std::map<std::string, int>,
+	std::map<std::vector<std::string>, int>,
 	std::vector<long long>,
 	std::vector<Grammar>
 > parsePAGraph(const std::string &fname) {
-	std::ifstream in(fname); // file auto closed via destructor
+	// the label type
+	using label = std::vector<std::string>;
+
+	// file auto closed via destructor
+	std::ifstream in(fname);
 
 	// read raw edges
 	std::string line;
@@ -47,19 +51,21 @@ std::tuple<
 	}
 
 	// encode vertices
-	std::unordered_map<std::string, int> v_map;
+	std::map<std::string, int> v_map;
 	int v_ctr = 0;
 	for (auto &ijl : rawEdges) {
-		if (v_map.count(ijl.first.first) == 0) {
-			v_map[ijl.first.first] = v_ctr++;
+		auto i = ijl.first.first;
+		auto j = ijl.first.second;
+		if (v_map.count(i) == 0) {
+			v_map[i] = v_ctr++;
 		}
-		if (v_map.count(ijl.first.second) == 0) {
-			v_map[ijl.first.second] = v_ctr++;
+		if (v_map.count(j) == 0) {
+			v_map[j] = v_ctr++;
 		}
 	}
 
 	// find out numbers for each Dyck
-	std::unordered_map<std::string, std::unordered_set<std::string>> numbers;
+	std::map<std::string, std::unordered_set<std::string>> numbers;
 	for (auto &ijl : rawEdges) {
 		if (ijl.second.substr(0, 2) == "op" || ijl.second.substr(0, 2) == "cp") {
 			numbers["p"].insert(ijl.second.substr(4, ijl.second.size() - 4));
@@ -70,57 +76,74 @@ std::tuple<
 	}
 
 	// encode labels
-	std::unordered_map<std::string, int> l_map;
+	std::map<label, int> l_map;
 	int l_ctr = 0;
-	l_map["dp"] = l_ctr++;
+	l_map[label{"dp"}] = l_ctr++;
 	for (auto &n : numbers["p"]) {
-		l_map["op--" + n] = l_ctr++;
-		l_map["cp--" + n] = l_ctr++;
-		l_map["dp--" + n] = l_ctr++;
+		l_map[label{"op", n}] = l_ctr++;
+		l_map[label{"cp", n}] = l_ctr++;
+		l_map[label{"dp", n}] = l_ctr++;
 	}
-	l_map["db"] = l_ctr++;
+	l_map[label{"db"}] = l_ctr++;
 	for (auto &n : numbers["b"]) {
-		l_map["ob--" + n] = l_ctr++;
-		l_map["cb--" + n] = l_ctr++;
-		l_map["db--" + n] = l_ctr++;
+		l_map[label{"ob", n}] = l_ctr++;
+		l_map[label{"cb", n}] = l_ctr++;
+		l_map[label{"db", n}] = l_ctr++;
 	}
 
 	// grammar constructor
 	auto construct_grammar = [&numbers, &l_map](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
-			gm.terminals.insert(l_map["o" + dyck + "--" + n]);
-			gm.terminals.insert(l_map["c" + dyck + "--" + n]);
+			gm.terminals.insert(l_map[label{"o" + dyck, n}]);
+			gm.terminals.insert(l_map[label{"c" + dyck, n}]);
 		}
 		for (auto &n : numbers[other_dyck]) {
-			gm.terminals.insert(l_map["o" + other_dyck + "--" + n]);
-			gm.terminals.insert(l_map["c" + other_dyck + "--" + n]);
+			gm.terminals.insert(l_map[label{"o" + other_dyck, n}]);
+			gm.terminals.insert(l_map[label{"c" + other_dyck, n}]);
 		}
-		gm.nonterminals.insert(l_map["d" + dyck]);
+		gm.nonterminals.insert(l_map[label{"d" + dyck}]);
 		for (auto &n : numbers[dyck]) {
-			gm.nonterminals.insert(l_map["d" + dyck + "--" + n]);
+			gm.nonterminals.insert(l_map[label{"d" + dyck, n}]);
 		}
 		// d      -> empty
-		gm.emptyProductions.push_back(l_map["d" + dyck]);
+		gm.emptyProductions.push_back(l_map[label{"d" + dyck}]);
 		// d      -> d d
-		gm.binaryProductions.push_back(std::make_pair(l_map["d" + dyck], std::make_pair(l_map["d" + dyck], l_map["d" + dyck])));
+		gm.binaryProductions.push_back(std::make_pair(
+					l_map[label{"d" + dyck}],
+					std::make_pair(
+						l_map[label{"d" + dyck}],
+						l_map[label{"d" + dyck}]
+						)
+					));
 		// d      -> o--[n] d--[n]
 		// d--[n] -> d      c--[n]
 		for (auto &n : numbers[dyck]) {
 			gm.binaryProductions.push_back(std::make_pair(
-						l_map["d" + dyck],
-						std::make_pair(l_map["o" + dyck + "--" + n], l_map["d" + dyck + "--" + n])
+						l_map[label{"d" + dyck}],
+						std::make_pair(
+							l_map[label{"o" + dyck, n}],
+							l_map[label{"d" + dyck, n}]
+							)
 						));
 			gm.binaryProductions.push_back(std::make_pair(
-						l_map["d" + dyck + "--" + n],
-						std::make_pair(l_map["d" + dyck], l_map["c" + dyck + "--" + n])
+						l_map[label{"d" + dyck, n}],
+						std::make_pair(
+							l_map[label{"d" + dyck}],
+							l_map[label{"c" + dyck, n}])
 						));
 		}
 		// d      -> ...
 		for (auto &n : numbers[other_dyck]) {
-			gm.unaryProductions.push_back(std::make_pair(l_map["d" + dyck], l_map["o" + other_dyck + "--" + n]));
-			gm.unaryProductions.push_back(std::make_pair(l_map["d" + dyck], l_map["c" + other_dyck + "--" + n]));
+			gm.unaryProductions.push_back(std::make_pair(
+						l_map[label{"d" + dyck}],
+						l_map[label{"o" + other_dyck, n}]
+						));
+			gm.unaryProductions.push_back(std::make_pair(
+						l_map[label{"d" + dyck}],
+						l_map[label{"c" + other_dyck, n}]
+						));
 		}
-		gm.startSymbol = l_map["d" + dyck];
+		gm.startSymbol = l_map[label{"d" + dyck}];
 		gm.fillInv(l_map.size());
 	};
 
@@ -142,7 +165,11 @@ std::tuple<
 	// construct the normalized graph
 	std::vector<long long> edges;
 	for (auto &ijl : rawEdges) {
-		edges.push_back(make_fast_triple(v_map[ijl.first.first], l_map[ijl.second], v_map[ijl.first.second]));
+		edges.push_back(make_fast_triple(
+					v_map[ijl.first.first],
+					l_map[label{ijl.second.substr(0, 2), ijl.second.substr(4, ijl.second.size() - 4)}],
+					v_map[ijl.first.second]
+					));
 	}
 
 	return std::make_tuple(std::move(v_map), std::move(l_map), std::move(edges), std::vector<Grammar> {gmp, gmb});
