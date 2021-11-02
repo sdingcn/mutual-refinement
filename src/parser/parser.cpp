@@ -79,6 +79,62 @@ std::tuple<
 		}
 	}
 
+#ifdef AUGMENT
+	// markers for nonterminals
+	std::map<std::string, std::vector<std::pair<std::string, std::string>>> markers;
+	// for p
+	for (auto &left : numbers["b"]) {
+		for (auto &right : numbers["b"]) {
+			markers["p"].push_back(std::make_pair(left, right));
+		}
+	}
+	for (auto &left : numbers["b"]) {
+		markers["p"].push_back(std::make_pair(left, ""));
+	}
+	for (auto &right : numbers["b"]) {
+		markers["p"].push_back(std::make_pair("", right));
+	}
+	markers["p"].push_back(std::make_pair("", ""));
+	// for b
+	for (auto &left : numbers["p"]) {
+		for (auto &right : numbers["p"]) {
+			markers["b"].push_back(std::make_pair(left, right));
+		}
+	}
+	for (auto &left : numbers["p"]) {
+		markers["b"].push_back(std::make_pair(left, ""));
+	}
+	for (auto &right : numbers["p"]) {
+		markers["b"].push_back(std::make_pair("", right));
+	}
+	markers["b"].push_back(std::make_pair("", ""));
+#endif
+
+#ifdef AUGMENT
+	// encode labels
+	std::map<label, int> l_map;
+	int l_ctr = 0;
+	for (auto &m : markers["p"]) {
+		l_map[label{"dp", m.first, m.second}] = l_ctr++;
+	}
+	for (auto &n : numbers["p"]) {
+		l_map[label{"op", n}] = l_ctr++;
+		l_map[label{"cp", n}] = l_ctr++;
+		for (auto &m : markers["p"]) {
+			l_map[label{"dp", n, m.first, m.second}] = l_ctr++;
+		}
+	}
+	for (auto &m : markers["b"]) {
+		l_map[label{"db", m.first, m.second}] = l_ctr++;
+	}
+	for (auto &n : numbers["b"]) {
+		l_map[label{"ob", n}] = l_ctr++;
+		l_map[label{"cb", n}] = l_ctr++;
+		for (auto &m : markers["b"]) {
+			l_map[label{"db", n, m.first, m.second}] = l_ctr++;
+		}
+	}
+#else
 	// encode labels
 	std::map<label, int> l_map;
 	int l_ctr = 0;
@@ -94,7 +150,79 @@ std::tuple<
 		l_map[label{"cb", n}] = l_ctr++;
 		l_map[label{"db", n}] = l_ctr++;
 	}
+#endif
 
+#ifdef AUGMENT
+	// grammar constructor
+	auto construct_grammar = [&numbers, &l_map, &markers](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
+		for (auto &n : numbers[dyck]) {
+			gm.terminals.insert(l_map[label{"o" + dyck, n}]);
+			gm.terminals.insert(l_map[label{"c" + dyck, n}]);
+		}
+		for (auto &n : numbers[other_dyck]) {
+			gm.terminals.insert(l_map[label{"o" + other_dyck, n}]);
+			gm.terminals.insert(l_map[label{"c" + other_dyck, n}]);
+		}
+		for (auto &m : markers[dyck]) {
+			gm.nonterminals.insert(l_map[label{"d" + dyck, m.first, m.second}]);
+		}
+		for (auto &m : markers[dyck]) {
+			for (auto &n : numbers[dyck]) {
+				gm.nonterminals.insert(l_map[label{"d" + dyck, n, m.first, m.second}]);
+			}
+		}
+		// d      -> empty
+		for (auto &m : markers[dyck]) {
+			gm.emptyProductions.push_back(l_map[label{"d" + dyck, m.first, m.second}]);
+		}
+		// d      -> d d
+		for (auto &m1 : markers[dyck]) {
+			for (auto &m2 : markers[dyck]) {
+				if (m1.second == "" || m2.first == "" || m1.second == m2.first) {
+					gm.binaryProductions.push_back(std::make_pair(
+								l_map[label{"d" + dyck, m1.first, m2.second}],
+								std::make_pair(
+									l_map[label{"d" + dyck, m1.first, m1.second}],
+									l_map[label{"d" + dyck, m2.first, m2.second}]
+									)
+								));
+				}
+			}
+		}
+		// d      -> o--[n] d--[n]
+		// d--[n] -> d      c--[n]
+		for (auto &m : markers[dyck]) {
+			for (auto &n : numbers[dyck]) {
+				gm.binaryProductions.push_back(std::make_pair(
+							l_map[label{"d" + dyck, m.first, m.second}],
+							std::make_pair(
+								l_map[label{"o" + dyck, n}],
+								l_map[label{"d" + dyck, n, m.first, m.second}]
+								)
+							));
+				gm.binaryProductions.push_back(std::make_pair(
+							l_map[label{"d" + dyck, n, m.first, m.second}],
+							std::make_pair(
+								l_map[label{"d" + dyck, m.first, m.second}],
+								l_map[label{"c" + dyck, n}])
+							));
+			}
+		}
+		// d      -> ...
+		for (auto &n : numbers[other_dyck]) {
+			gm.unaryProductions.push_back(std::make_pair(
+						l_map[label{"d" + dyck, "", n}],
+						l_map[label{"o" + other_dyck, n}]
+						));
+			gm.unaryProductions.push_back(std::make_pair(
+						l_map[label{"d" + dyck, n, ""}],
+						l_map[label{"c" + other_dyck, n}]
+						));
+		}
+		gm.startSymbol = l_map[label{"d" + dyck, "", ""}];
+		gm.init(l_map.size());
+	};
+#else
 	// grammar constructor
 	auto construct_grammar = [&numbers, &l_map](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
@@ -150,6 +278,7 @@ std::tuple<
 		gm.startSymbol = l_map[label{"d" + dyck}];
 		gm.init(l_map.size());
 	};
+#endif
 
 	// construct grammars
 	Grammar gmp, gmb;
@@ -175,6 +304,10 @@ std::tuple<
 					v_map[ijl.first.second]
 					));
 	}
+
+#ifdef VERBOSE
+	std::cerr << "v_size: " << v_map.size() << ", l_size: " << l_map.size() << std::endl;
+#endif
 
 	return std::make_tuple(std::move(v_map), std::move(l_map), std::move(edges), std::vector<Grammar> {gmp, gmb});
 }

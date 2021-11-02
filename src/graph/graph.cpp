@@ -5,6 +5,9 @@
 #include <unordered_set>
 #include <utility>
 #include <tuple>
+#ifdef VERBOSE
+#include <iostream>
+#endif
 #include "../grammar/grammar.h"
 
 Graph::Graph(const Grammar &g, int n) :
@@ -59,7 +62,16 @@ void Graph::runCFLReachability() {
 			w.push_front(e);
 		}
 	}
+#ifdef VERBOSE
+	long long iter = 0;
+#endif
 	while (!w.empty()) {
+#ifdef VERBOSE
+		iter++;
+		if (iter % 1000 == 0) {
+			std::cerr << "iter: " << iter << ", worklist size: " << w.size() << std::endl;
+		}
+#endif
 		long long e = w.front();
 		w.pop_front();
 
