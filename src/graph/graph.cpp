@@ -71,7 +71,9 @@ void Graph::runCFLReachability() {
 		std::vector<long long> tba;
 
 		for (int ind : grammar.unaryProductionsInv[y]) { // x -> y
+#ifdef TRACE
 			unaryRecord[i][j].insert(ind);
+#endif
 			int x = grammar.unaryProductions[ind].first;
 			long long e = make_fast_triple(i, x, j);
 			if (!hasEdge(e)) {
@@ -83,7 +85,9 @@ void Graph::runCFLReachability() {
 			int k = fast_pair_second(zk);
 			if (grammar.binaryProductionsInv[y].count(z) > 0) {
 				for (int ind : grammar.binaryProductionsInv[y].at(z)) {
+#ifdef TRACE
 					binaryRecord[i][k].insert(make_fast_pair(ind, j));
+#endif
 					int x = grammar.binaryProductions[ind].first;
 					long long e = make_fast_triple(i, x, k);
 					if (!hasEdge(e)) {
@@ -97,7 +101,9 @@ void Graph::runCFLReachability() {
 			int z = fast_pair_second(kz);
 			if (grammar.binaryProductionsInv[z].count(y) > 0) {
 				for (int ind : grammar.binaryProductionsInv[z].at(y)) {
+#ifdef TRACE
 					binaryRecord[k][j].insert(make_fast_pair(ind, i));
+#endif
 					int x = grammar.binaryProductions[ind].first;
 					long long e = make_fast_triple(k, x, j);
 					if (!hasEdge(e)) {
