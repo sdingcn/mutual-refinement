@@ -68,7 +68,7 @@ void Graph::runCFLReachability() {
 	while (!w.empty()) {
 #ifdef VERBOSE
 		iter++;
-		if (iter % 1000 == 0) {
+		if (iter % 10000 == 0) {
 			std::cerr << "iter: " << iter << ", worklist size: " << w.size() << std::endl;
 		}
 #endif
