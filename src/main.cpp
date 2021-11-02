@@ -39,7 +39,7 @@ void test() {
 	gm.binaryProductions.push_back(std::make_pair(0, std::make_pair(1, 3)));
 	gm.binaryProductions.push_back(std::make_pair(3, std::make_pair(0, 2)));
 	gm.startSymbol = 0;
-	gm.fillInv(11);
+	gm.init(11);
 	/*
 	 *  1->(4)-10->(5)-2->
 	 *  |                 \    -1->

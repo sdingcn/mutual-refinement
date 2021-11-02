@@ -2,6 +2,7 @@
 #define GRAMMAR_H
 
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <utility>
 
@@ -13,10 +14,8 @@ struct Grammar {
 	std::vector<std::pair<int, std::pair<int, int>>> binaryProductions;
 	int startSymbol;
 	std::vector<std::vector<int>> unaryProductionsInv; // RHS symbol -> {corresponding indices in unaryProductions}
-	std::vector<std::vector<int>> binaryProductionsFirstInv; // RHS symbol 1 -> {corresponding indices in binaryProductions}
-	std::vector<std::vector<int>> binaryProductionsSecondInv; // RHS symbol 2 -> {corresponding indices in binaryProductions}
-	void fillInv(int total);
-	void print() const;
+	std::vector<std::unordered_map<int, std::vector<int>>> binaryProductionsInv; // RHS symbol 1 -> RHS symbol 2 -> {corresponding indices in binaryProductions}
+	void init(int total); // total is the max number used to encode labels
 };
 
 #endif

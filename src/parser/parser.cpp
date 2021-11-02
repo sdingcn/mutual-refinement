@@ -40,6 +40,10 @@ std::tuple<
 
 	// file auto closed via destructor
 	std::ifstream in(fname);
+	if (in.fail()) {
+		std::cerr << "Error: Cannot open the file" << std::endl;
+		std::exit(EXIT_FAILURE);
+	}
 
 	// read raw edges
 	std::string line;
@@ -144,7 +148,7 @@ std::tuple<
 						));
 		}
 		gm.startSymbol = l_map[label{"d" + dyck}];
-		gm.fillInv(l_map.size());
+		gm.init(l_map.size());
 	};
 
 	// construct grammars

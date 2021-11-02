@@ -10,7 +10,7 @@
 class Graph {
 	const Grammar &grammar;
 	int numberOfVertices;
-	std::vector<std::unordered_set<long long>> fastEdgeTest; // first vertex -> {(label, second vertex)}
+	std::unordered_set<long long> fastEdgeTest; // {(first vertex, label, second vertex)}
 	std::vector<std::vector<long long>> adjacencyVector; // first vertex -> [(label, second vertex)]
 	std::vector<std::vector<long long>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
 	std::vector<long long> startSummaries;

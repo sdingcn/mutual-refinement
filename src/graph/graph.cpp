@@ -10,10 +10,8 @@
 Graph::Graph(const Grammar &g, int n) :
 	grammar(g),
 	numberOfVertices(n),
-	fastEdgeTest(n),
 	adjacencyVector(n),
 	counterAdjacencyVector(n),
-	// startSummaries(std::vector<long long>()),
 	unaryRecord(n),
 	binaryRecord(n) {}
 
@@ -21,11 +19,11 @@ void Graph::addEdge(long long e) { // i --x--> j
 	int i = fast_triple_first(e);
 	int x = fast_triple_second(e);
 	int j = fast_triple_third(e);
-	fastEdgeTest[i].insert(make_fast_pair(x, j));
+	fastEdgeTest.insert(e);
 	adjacencyVector[i].push_back(make_fast_pair(x, j));
 	counterAdjacencyVector[j].push_back(make_fast_pair(i, x));
 	if (x == grammar.startSymbol) {
-		startSummaries.push_back(make_fast_triple(i, x, j));
+		startSummaries.push_back(e);
 	}
 }
 
@@ -42,10 +40,7 @@ void Graph::fillEdges(const std::unordered_set<long long> &edges) {
 }
 
 bool Graph::hasEdge(long long e) const {
-	int i = fast_triple_first(e);
-	int x = fast_triple_second(e);
-	int j = fast_triple_third(e);
-	return fastEdgeTest[i].count(make_fast_pair(x, j)) == 1;
+	return fastEdgeTest.count(e) == 1;
 }
 
 void Graph::runCFLReachability() {
@@ -83,13 +78,13 @@ void Graph::runCFLReachability() {
 				tba.push_back(e);
 			}
 		}
-		for (int ind : grammar.binaryProductionsFirstInv[y]) { // x -> yz
-			auto &p = grammar.binaryProductions[ind];
-			int x = p.first, z = p.second.second;
-			for (long long sk : adjacencyVector[j]) { // --s--> k
-				if (fast_pair_first(sk) == z) { // --z--> k
-					int k = fast_pair_second(sk);
+		for (long long zk : adjacencyVector[j]) { // x -> yz
+			int z = fast_pair_first(zk);
+			int k = fast_pair_second(zk);
+			if (grammar.binaryProductionsInv[y].count(z) > 0) {
+				for (int ind : grammar.binaryProductionsInv[y].at(z)) {
 					binaryRecord[i][k].insert(make_fast_pair(ind, j));
+					int x = grammar.binaryProductions[ind].first;
 					long long e = make_fast_triple(i, x, k);
 					if (!hasEdge(e)) {
 						tba.push_back(e);
@@ -97,13 +92,13 @@ void Graph::runCFLReachability() {
 				}
 			}
 		}
-		for (int ind : grammar.binaryProductionsSecondInv[y]) { // x -> zy
-			auto &p = grammar.binaryProductions[ind];
-			int x = p.first, z = p.second.first;
-			for (long long ks : counterAdjacencyVector[i]) {
-				if (fast_pair_second(ks) == z) { // k --z-->
-					int k = fast_pair_first(ks);
+		for (long long kz : counterAdjacencyVector[i]) { // x -> zy
+			int k = fast_pair_first(kz);
+			int z = fast_pair_second(kz);
+			if (grammar.binaryProductionsInv[z].count(y) > 0) {
+				for (int ind : grammar.binaryProductionsInv[z].at(y)) {
 					binaryRecord[k][j].insert(make_fast_pair(ind, i));
+					int x = grammar.binaryProductions[ind].first;
 					long long e = make_fast_triple(k, x, j);
 					if (!hasEdge(e)) {
 						tba.push_back(e);
