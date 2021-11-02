@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <tuple>
+#include <algorithm>
 #include "../common.h"
 
 bool isEdgeLine(const std::string &line) {
@@ -71,42 +72,101 @@ std::tuple<
 	// find out numbers for each Dyck
 	std::map<std::string, std::unordered_set<std::string>> numbers;
 	for (auto &ijl : rawEdges) {
-		if (ijl.second.substr(0, 2) == "op" || ijl.second.substr(0, 2) == "cp") {
-			numbers["p"].insert(ijl.second.substr(4, ijl.second.size() - 4));
-		}
-		if (ijl.second.substr(0, 2) == "ob" || ijl.second.substr(0, 2) == "cb") {
-			numbers["b"].insert(ijl.second.substr(4, ijl.second.size() - 4));
+		std::string dtype = ijl.second.substr(1, 1);
+		std::string number = ijl.second.substr(4, ijl.second.size() - 4);
+		if (dtype == "p") {
+			numbers["p"].insert(number);
+		} else if (dtype == "b") {
+			numbers["b"].insert(number);
 		}
 	}
 
 #ifdef AUGMENT
+	// max number of numbers considered in augmentation
+	constexpr int N = 3;
+	std::string meta_number = "meta_202111021748";
+	// count the frequencies of each number
+	std::map<std::string, std::map<std::string, int>> counters;
+	for (auto &ijl : rawEdges) {
+		std::string dtype = ijl.second.substr(1, 1);
+		std::string number = ijl.second.substr(4, ijl.second.size() - 4);
+		if (number == meta_number) {
+			std::cerr << "Error: meta_number dup" << std::endl;
+			std::exit(EXIT_FAILURE);
+		}
+		if (dtype == "p") {
+			counters["p"][number]++;
+		} else if (dtype == "b") {
+			counters["b"][number]++;
+		}
+	}
+	// find out the NP - 1 most frequent numbers, and treat other numbers as the same
+	std::vector<std::pair<std::string, int>> pc;
+	for (auto &p : counters["p"]) {
+		pc.push_back(p);
+	}
+	std::sort(pc.begin(), pc.end(), [](const std::pair<std::string, int> &p1, const std::pair<std::string, int> &p2) -> bool {
+		return p1.second > p2.second;
+	});
+	int NP = std::min(N - 1, static_cast<int>(pc.size() - 1));
+	std::unordered_set<std::string> pset;
+	for (int i = 0; i < NP - 1; i++) {
+		pset.insert(pc[i].first);
+	}
+	// find out the NB - 1 most frequent brackets, and treat other brackets as the same
+	std::vector<std::pair<std::string, int>> bc;
+	for (auto &p : counters["b"]) {
+		bc.push_back(p);
+	}
+	std::sort(bc.begin(), bc.end(), [](const std::pair<std::string, int> &p1, const std::pair<std::string, int> &p2) -> bool {
+		return p1.second > p2.second;
+	});
+	int NB = std::min(N - 1, static_cast<int>(bc.size() - 1));
+	std::unordered_set<std::string> bset;
+	for (int i = 0; i < NB - 1; i++) {
+		bset.insert(bc[i].first);
+	}
+	// put "considered" numbers into a map
+	std::map<std::string, std::unordered_set<std::string>> considered;
+	considered["p"] = std::move(pset);
+	considered["b"] = std::move(bset);
 	// markers for nonterminals
 	std::map<std::string, std::vector<std::pair<std::string, std::string>>> markers;
 	// for p
-	for (auto &left : numbers["b"]) {
-		for (auto &right : numbers["b"]) {
+	for (auto &left : considered["b"]) {
+		for (auto &right : considered["b"]) {
 			markers["p"].push_back(std::make_pair(left, right));
 		}
 	}
-	for (auto &left : numbers["b"]) {
+	for (auto &left : considered["b"]) {
+		markers["p"].push_back(std::make_pair(left, meta_number));
 		markers["p"].push_back(std::make_pair(left, ""));
 	}
-	for (auto &right : numbers["b"]) {
+	for (auto &right : considered["b"]) {
+		markers["p"].push_back(std::make_pair(meta_number, right));
 		markers["p"].push_back(std::make_pair("", right));
 	}
+	markers["p"].push_back(std::make_pair(meta_number, meta_number));
+	markers["p"].push_back(std::make_pair(meta_number, ""));
+	markers["p"].push_back(std::make_pair("", meta_number));
 	markers["p"].push_back(std::make_pair("", ""));
 	// for b
-	for (auto &left : numbers["p"]) {
-		for (auto &right : numbers["p"]) {
+	for (auto &left : considered["p"]) {
+		for (auto &right : considered["p"]) {
 			markers["b"].push_back(std::make_pair(left, right));
 		}
 	}
-	for (auto &left : numbers["p"]) {
+	for (auto &left : considered["p"]) {
+		markers["b"].push_back(std::make_pair(left, meta_number));
 		markers["b"].push_back(std::make_pair(left, ""));
 	}
-	for (auto &right : numbers["p"]) {
+	for (auto &right : considered["p"]) {
+		markers["b"].push_back(std::make_pair(meta_number, right));
 		markers["b"].push_back(std::make_pair("", right));
 	}
+	markers["b"].push_back(std::make_pair(meta_number, meta_number));
+	markers["b"].push_back(std::make_pair(meta_number, ""));
+	markers["b"].push_back(std::make_pair("", meta_number));
 	markers["b"].push_back(std::make_pair("", ""));
 #endif
 
@@ -154,7 +214,8 @@ std::tuple<
 
 #ifdef AUGMENT
 	// grammar constructor
-	auto construct_grammar = [&numbers, &l_map, &markers](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
+	auto construct_grammar = [&numbers, &l_map, &meta_number, &considered, &markers]
+		(Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
 			gm.terminals.insert(l_map[label{"o" + dyck, n}]);
 			gm.terminals.insert(l_map[label{"c" + dyck, n}]);
@@ -210,14 +271,25 @@ std::tuple<
 		}
 		// d      -> ...
 		for (auto &n : numbers[other_dyck]) {
-			gm.unaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck, "", n}],
-						l_map[label{"o" + other_dyck, n}]
-						));
-			gm.unaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck, n, ""}],
-						l_map[label{"c" + other_dyck, n}]
-						));
+			if (considered[other_dyck].count(n) > 0) {
+				gm.unaryProductions.push_back(std::make_pair(
+							l_map[label{"d" + dyck, "", n}],
+							l_map[label{"o" + other_dyck, n}]
+							));
+				gm.unaryProductions.push_back(std::make_pair(
+							l_map[label{"d" + dyck, n, ""}],
+							l_map[label{"c" + other_dyck, n}]
+							));
+			} else {
+				gm.unaryProductions.push_back(std::make_pair(
+							l_map[label{"d" + dyck, "", meta_number}],
+							l_map[label{"o" + other_dyck, n}]
+							));
+				gm.unaryProductions.push_back(std::make_pair(
+							l_map[label{"d" + dyck, meta_number, ""}],
+							l_map[label{"c" + other_dyck, n}]
+							));
+			}
 		}
 		gm.startSymbol = l_map[label{"d" + dyck, "", ""}];
 		gm.init(l_map.size());
