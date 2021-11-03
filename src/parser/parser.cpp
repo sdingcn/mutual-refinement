@@ -85,6 +85,7 @@ std::tuple<
 	// max number of numbers considered in augmentation
 	constexpr int N = 3;
 	std::string meta_number = "meta_202111021748";
+	std::string close_number = "close_202111022225";
 	// count the frequencies of each number
 	std::map<std::string, std::map<std::string, int>> counters;
 	for (auto &ijl : rawEdges) {
@@ -94,12 +95,18 @@ std::tuple<
 			std::cerr << "Error: meta_number dup" << std::endl;
 			std::exit(EXIT_FAILURE);
 		}
+		if (number == close_number) {
+			std::cerr << "Error: close_number dup" << std::endl;
+			std::exit(EXIT_FAILURE);
+		}
 		if (dtype == "p") {
 			counters["p"][number]++;
 		} else if (dtype == "b") {
 			counters["b"][number]++;
 		}
 	}
+	// put "considered" numbers into a map
+	std::map<std::string, std::unordered_set<std::string>> considered;
 	// find out the NP - 1 most frequent numbers, and treat other numbers as the same
 	std::vector<std::pair<std::string, int>> pc;
 	for (auto &p : counters["p"]) {
@@ -109,9 +116,8 @@ std::tuple<
 		return p1.second > p2.second;
 	});
 	int NP = std::min(N - 1, static_cast<int>(pc.size() - 1));
-	std::unordered_set<std::string> pset;
 	for (int i = 0; i < NP - 1; i++) {
-		pset.insert(pc[i].first);
+		considered["p"].insert(pc[i].first);
 	}
 	// find out the NB - 1 most frequent brackets, and treat other brackets as the same
 	std::vector<std::pair<std::string, int>> bc;
@@ -122,14 +128,9 @@ std::tuple<
 		return p1.second > p2.second;
 	});
 	int NB = std::min(N - 1, static_cast<int>(bc.size() - 1));
-	std::unordered_set<std::string> bset;
 	for (int i = 0; i < NB - 1; i++) {
-		bset.insert(bc[i].first);
+		considered["b"].insert(bc[i].first);
 	}
-	// put "considered" numbers into a map
-	std::map<std::string, std::unordered_set<std::string>> considered;
-	considered["p"] = std::move(pset);
-	considered["b"] = std::move(bset);
 	// markers for nonterminals
 	std::map<std::string, std::vector<std::pair<std::string, std::string>>> markers;
 	// for p
@@ -140,16 +141,16 @@ std::tuple<
 	}
 	for (auto &left : considered["b"]) {
 		markers["p"].push_back(std::make_pair(left, meta_number));
-		markers["p"].push_back(std::make_pair(left, ""));
+		markers["p"].push_back(std::make_pair(left, close_number));
 	}
 	for (auto &right : considered["b"]) {
 		markers["p"].push_back(std::make_pair(meta_number, right));
-		markers["p"].push_back(std::make_pair("", right));
+		markers["p"].push_back(std::make_pair(close_number, right));
 	}
 	markers["p"].push_back(std::make_pair(meta_number, meta_number));
-	markers["p"].push_back(std::make_pair(meta_number, ""));
-	markers["p"].push_back(std::make_pair("", meta_number));
-	markers["p"].push_back(std::make_pair("", ""));
+	markers["p"].push_back(std::make_pair(meta_number, close_number));
+	markers["p"].push_back(std::make_pair(close_number, meta_number));
+	markers["p"].push_back(std::make_pair(close_number, close_number));
 	// for b
 	for (auto &left : considered["p"]) {
 		for (auto &right : considered["p"]) {
@@ -158,16 +159,16 @@ std::tuple<
 	}
 	for (auto &left : considered["p"]) {
 		markers["b"].push_back(std::make_pair(left, meta_number));
-		markers["b"].push_back(std::make_pair(left, ""));
+		markers["b"].push_back(std::make_pair(left, close_number));
 	}
 	for (auto &right : considered["p"]) {
 		markers["b"].push_back(std::make_pair(meta_number, right));
-		markers["b"].push_back(std::make_pair("", right));
+		markers["b"].push_back(std::make_pair(close_number, right));
 	}
 	markers["b"].push_back(std::make_pair(meta_number, meta_number));
-	markers["b"].push_back(std::make_pair(meta_number, ""));
-	markers["b"].push_back(std::make_pair("", meta_number));
-	markers["b"].push_back(std::make_pair("", ""));
+	markers["b"].push_back(std::make_pair(meta_number, close_number));
+	markers["b"].push_back(std::make_pair(close_number, meta_number));
+	markers["b"].push_back(std::make_pair(close_number, close_number));
 #endif
 
 #ifdef AUGMENT
@@ -239,7 +240,7 @@ std::tuple<
 		// d      -> d d
 		for (auto &m1 : markers[dyck]) {
 			for (auto &m2 : markers[dyck]) {
-				if (m1.second == "" || m2.first == "" || m1.second == m2.first) {
+				if (m1.second == close_number || m2.first == close_number || m1.second == m2.first) {
 					gm.binaryProductions.push_back(std::make_pair(
 								l_map[label{"d" + dyck, m1.first, m2.second}],
 								std::make_pair(
@@ -273,25 +274,25 @@ std::tuple<
 		for (auto &n : numbers[other_dyck]) {
 			if (considered[other_dyck].count(n) > 0) {
 				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, "", n}],
+							l_map[label{"d" + dyck, close_number, n}],
 							l_map[label{"o" + other_dyck, n}]
 							));
 				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, n, ""}],
+							l_map[label{"d" + dyck, n, close_number}],
 							l_map[label{"c" + other_dyck, n}]
 							));
 			} else {
 				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, "", meta_number}],
+							l_map[label{"d" + dyck, close_number, meta_number}],
 							l_map[label{"o" + other_dyck, n}]
 							));
 				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, meta_number, ""}],
+							l_map[label{"d" + dyck, meta_number, close_number}],
 							l_map[label{"c" + other_dyck, n}]
 							));
 			}
 		}
-		gm.startSymbol = l_map[label{"d" + dyck, "", ""}];
+		gm.startSymbol = l_map[label{"d" + dyck, close_number, close_number}];
 		gm.init(l_map.size());
 	};
 #else
