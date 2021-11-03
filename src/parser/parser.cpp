@@ -151,6 +151,7 @@ std::tuple<
 	markers["p"].push_back(std::make_pair(meta_number, close_number));
 	markers["p"].push_back(std::make_pair(close_number, meta_number));
 	markers["p"].push_back(std::make_pair(close_number, close_number));
+	markers["p"].push_back(std::make_pair("", ""));
 	// for b
 	for (auto &left : considered["p"]) {
 		for (auto &right : considered["p"]) {
@@ -169,12 +170,14 @@ std::tuple<
 	markers["b"].push_back(std::make_pair(meta_number, close_number));
 	markers["b"].push_back(std::make_pair(close_number, meta_number));
 	markers["b"].push_back(std::make_pair(close_number, close_number));
+	markers["b"].push_back(std::make_pair("", ""));
 #endif
 
 #ifdef AUGMENT
 	// encode labels
 	std::map<label, int> l_map;
 	int l_ctr = 0;
+	l_map[label{"dp"}] = l_ctr++;
 	for (auto &m : markers["p"]) {
 		l_map[label{"dp", m.first, m.second}] = l_ctr++;
 	}
@@ -185,6 +188,7 @@ std::tuple<
 			l_map[label{"dp", n, m.first, m.second}] = l_ctr++;
 		}
 	}
+	l_map[label{"db"}] = l_ctr++;
 	for (auto &m : markers["b"]) {
 		l_map[label{"db", m.first, m.second}] = l_ctr++;
 	}
@@ -225,6 +229,7 @@ std::tuple<
 			gm.terminals.insert(l_map[label{"o" + other_dyck, n}]);
 			gm.terminals.insert(l_map[label{"c" + other_dyck, n}]);
 		}
+		gm.nonterminals.insert(l_map[label{"d" + dyck}]);
 		for (auto &m : markers[dyck]) {
 			gm.nonterminals.insert(l_map[label{"d" + dyck, m.first, m.second}]);
 		}
@@ -234,12 +239,13 @@ std::tuple<
 			}
 		}
 		// d      -> empty
-		for (auto &m : markers[dyck]) {
-			gm.emptyProductions.push_back(l_map[label{"d" + dyck, m.first, m.second}]);
-		}
+		gm.emptyProductions.push_back(l_map[label{"d" + dyck, "", ""}]);
 		// d      -> d d
 		for (auto &m1 : markers[dyck]) {
 			for (auto &m2 : markers[dyck]) {
+				if (m1.first == "" || m2.first == "") {
+					continue;
+				}
 				if (m1.second == close_number || m2.first == close_number || m1.second == m2.first) {
 					gm.binaryProductions.push_back(std::make_pair(
 								l_map[label{"d" + dyck, m1.first, m2.second}],
@@ -251,6 +257,32 @@ std::tuple<
 				}
 			}
 		}
+		for (auto &m : markers[dyck]) {
+			if (m.first == "") {
+				continue;
+			}
+			gm.binaryProductions.push_back(std::make_pair(
+						l_map[label{"d" + dyck, m.first, m.second}],
+						std::make_pair(
+							l_map[label{"d" + dyck, m.first, m.second}],
+							l_map[label{"d" + dyck, "", ""}]
+							)
+						));
+			gm.binaryProductions.push_back(std::make_pair(
+						l_map[label{"d" + dyck, m.first, m.second}],
+						std::make_pair(
+							l_map[label{"d" + dyck, "", ""}],
+							l_map[label{"d" + dyck, m.first, m.second}]
+							)
+						));
+		}
+		gm.binaryProductions.push_back(std::make_pair(
+					l_map[label{"d" + dyck, "", ""}],
+					std::make_pair(
+						l_map[label{"d" + dyck, "", ""}],
+						l_map[label{"d" + dyck, "", ""}]
+						)
+					));
 		// d      -> o--[n] d--[n]
 		// d--[n] -> d      c--[n]
 		for (auto &m : markers[dyck]) {
@@ -292,7 +324,16 @@ std::tuple<
 							));
 			}
 		}
-		gm.startSymbol = l_map[label{"d" + dyck, close_number, close_number}];
+		// d -> d close close | d "" ""
+		gm.unaryProductions.push_back(std::make_pair(
+					l_map[label{"d" + dyck}],
+					l_map[label{"d" + dyck, close_number, close_number}]
+					));
+		gm.unaryProductions.push_back(std::make_pair(
+					l_map[label{"d" + dyck}],
+					l_map[label{"d" + dyck, "", ""}]
+					));
+		gm.startSymbol = l_map[label{"d" + dyck}];
 		gm.init(l_map.size());
 	};
 #else
