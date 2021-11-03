@@ -215,7 +215,7 @@ std::tuple<
 
 #ifdef AUGMENT
 	// grammar constructor
-	auto construct_grammar = [&numbers, &l_map, &meta_number, &considered, &markers]
+	auto construct_grammar = [&numbers, &l_map, &meta_number, &close_number, &considered, &markers]
 		(Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
 			gm.terminals.insert(l_map[label{"o" + dyck, n}]);
