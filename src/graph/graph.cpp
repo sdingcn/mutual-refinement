@@ -131,7 +131,7 @@ void Graph::runCFLReachability() {
 	}
 }
 
-std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure(bool all, int i = -1, int j = -1) const {
+std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure(bool all, int i, int j) const {
 	std::unordered_set<long long> closure;
 	std::unordered_set<long long> vis;
 	std::deque<long long> q;

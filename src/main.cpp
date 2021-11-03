@@ -134,30 +134,115 @@ int main(int argc, char *argv[]) {
 		const std::vector<long long> &edges     = std::get<2>(data);
 		const std::vector<Grammar> &grammars    = std::get<3>(data);
 
+// naive
+{
 		Graph gh1(grammars[0], nv);
 		gh1.fillEdges(edges);
 		gh1.runCFLReachability();
-		int ctr1 = 0;
-		for (int s = 0; s < nv; s++) {
-			for (int t = 0; t < nv; t++) {
-				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t))) {
-					ctr1++;
-				}
-			}
-		}
 		Graph gh2(grammars[1], nv);
 		gh2.fillEdges(edges);
 		gh2.runCFLReachability();
-		int ctr2 = 0;
+		int ctr = 0;
 		for (int s = 0; s < nv; s++) {
 			for (int t = 0; t < nv; t++) {
-				if (gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
-					ctr2++;
+				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
+				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+					ctr++;
 				}
 			}
 		}
-		check_resource("CFL1 and CFL2");
-		std::cout << "CFL1 = " << ctr1 << ", CFL2 = " << ctr2 << std::endl;
+		std::cout << "Naive: " << ctr << std::endl;
+}
+
+// apmr
+{
+		std::unordered_set<long long> es(edges.begin(), edges.end());
+#ifdef VERBOSE
+		int iter = 0;
+#endif
+		while (true) {
+#ifdef VERBOSE
+			std::cerr << "APMR Iteration: " << (++iter) << ", Edge Set Size: " << es.size() << std::endl;
+#endif
+			Graph gh1(grammars[0], nv);
+			gh1.fillEdges(es);
+			gh1.runCFLReachability();
+			auto es1 = gh1.getCFLReachabilityEdgeClosure(true);
+			Graph gh2(grammars[1], nv);
+			gh2.fillEdges(es1);
+			gh2.runCFLReachability();
+			auto es2 = gh2.getCFLReachabilityEdgeClosure(true);
+			if (es2.size() == es.size()) {
+				int ctr = 0;
+				for (int s = 0; s < nv; s++) {
+					for (int t = 0; t < nv; t++) {
+						if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
+						gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+							ctr++;
+						}
+					}
+				}
+				std::cout << "APMR:" << ctr << std::endl;
+				break;
+			} else {
+				es = std::move(es2);
+			}
+		}
+}
+
+// spmr
+{
+		// pre run
+		Graph gh1(grammars[0], nv);
+		gh1.fillEdges(edges);
+		gh1.runCFLReachability();
+		Graph gh2(grammars[1], nv);
+		gh2.fillEdges(edges);
+		gh2.runCFLReachability();
+		int ctr = 0;
+		for (int s = 0; s < nv; s++) {
+			for (int t = 0; t < nv; t++) {
+#ifdef VERBOSE
+				std::cerr << "s = " << s << ", t = " << t << std::endl;
+#endif
+				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
+				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+					std::unordered_set<long long> es;
+					{
+						auto c1 = gh1.getCFLReachabilityEdgeClosure(false, s, t);
+						auto c2 = gh2.getCFLReachabilityEdgeClosure(false, s, t);
+						for (long long e : c1) {
+							if (c2.count(e) == 1) {
+								es.insert(e);
+							}
+						}
+					}
+					while (true) {
+						Graph gha(grammars[0], nv);
+						gha.fillEdges(es);
+						gha.runCFLReachability();
+						if (!gha.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t))) {
+							break;
+						}
+						auto ca = gha.getCFLReachabilityEdgeClosure(false, s, t);
+						Graph ghb(grammars[1], nv);
+						ghb.runCFLReachability();
+						if (!ghb.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+							break;
+						}
+						auto cb = ghb.getCFLReachabilityEdgeClosure(false, s, t);
+						if (cb.size() == es.size()) {
+							ctr++;
+							break;
+						} else {
+							es = std::move(cb);
+						}
+					}
+				}
+			}
+		}
+		std::cout << "SPMR:" << ctr << std::endl;
+}
 	} else {
 		test();
 		check_resource("TEST");

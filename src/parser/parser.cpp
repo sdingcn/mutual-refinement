@@ -82,7 +82,7 @@ std::tuple<
 	}
 
 #ifdef AUGMENT
-	// max number of numbers considered in augmentation
+	// max number of parentheses that we consider
 	constexpr int N = 3;
 	std::string meta_number = "meta_202111021748";
 	std::string close_number = "close_202111022225";
@@ -107,7 +107,7 @@ std::tuple<
 	}
 	// put "considered" numbers into a map
 	std::map<std::string, std::unordered_set<std::string>> considered;
-	// find out the NP - 1 most frequent numbers, and treat other numbers as the same
+	// find out the NP most frequent numbers, and treat other numbers as the same
 	std::vector<std::pair<std::string, int>> pc;
 	for (auto &p : counters["p"]) {
 		pc.push_back(p);
@@ -115,11 +115,14 @@ std::tuple<
 	std::sort(pc.begin(), pc.end(), [](const std::pair<std::string, int> &p1, const std::pair<std::string, int> &p2) -> bool {
 		return p1.second > p2.second;
 	});
-	int NP = std::min(N - 1, static_cast<int>(pc.size() - 1));
-	for (int i = 0; i < NP - 1; i++) {
+	int NP = std::min(N - 1, static_cast<int>(pc.size()) - 1);
+#ifdef VERBOSE
+	std::cerr << "NP = " << NP << std::endl;
+#endif
+	for (int i = 0; i < NP; i++) {
 		considered["p"].insert(pc[i].first);
 	}
-	// find out the NB - 1 most frequent brackets, and treat other brackets as the same
+	// find out the NB most frequent brackets, and treat other brackets as the same
 	std::vector<std::pair<std::string, int>> bc;
 	for (auto &p : counters["b"]) {
 		bc.push_back(p);
@@ -127,8 +130,11 @@ std::tuple<
 	std::sort(bc.begin(), bc.end(), [](const std::pair<std::string, int> &p1, const std::pair<std::string, int> &p2) -> bool {
 		return p1.second > p2.second;
 	});
-	int NB = std::min(N - 1, static_cast<int>(bc.size() - 1));
-	for (int i = 0; i < NB - 1; i++) {
+	int NB = std::min(N - 1, static_cast<int>(bc.size()) - 1);
+#ifdef VERBOSE
+	std::cerr << "NB = " << NB << std::endl;
+#endif
+	for (int i = 0; i < NB; i++) {
 		considered["b"].insert(bc[i].first);
 	}
 	// markers for nonterminals
@@ -152,6 +158,9 @@ std::tuple<
 	markers["p"].push_back(std::make_pair(close_number, meta_number));
 	markers["p"].push_back(std::make_pair(close_number, close_number));
 	markers["p"].push_back(std::make_pair("", ""));
+#ifdef VERBOSE
+	std::cerr << "markers[p].size = " << markers["p"].size() << std::endl;
+#endif
 	// for b
 	for (auto &left : considered["p"]) {
 		for (auto &right : considered["p"]) {
@@ -171,6 +180,9 @@ std::tuple<
 	markers["b"].push_back(std::make_pair(close_number, meta_number));
 	markers["b"].push_back(std::make_pair(close_number, close_number));
 	markers["b"].push_back(std::make_pair("", ""));
+#ifdef VERBOSE
+	std::cerr << "markers[b].size = " << markers["b"].size() << std::endl;
+#endif
 #endif
 
 #ifdef AUGMENT
