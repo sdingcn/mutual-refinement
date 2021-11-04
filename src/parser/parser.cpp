@@ -234,24 +234,24 @@ std::tuple<
 	auto construct_grammar = [&numbers, &l_map, &meta_number, &close_number, &considered, &markers]
 		(Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
-			gm.terminals.insert(l_map[label{"o" + dyck, n}]);
-			gm.terminals.insert(l_map[label{"c" + dyck, n}]);
+			gm.addTerminal(l_map[label{"o" + dyck, n}]);
+			gm.addTerminal(l_map[label{"c" + dyck, n}]);
 		}
 		for (auto &n : numbers[other_dyck]) {
-			gm.terminals.insert(l_map[label{"o" + other_dyck, n}]);
-			gm.terminals.insert(l_map[label{"c" + other_dyck, n}]);
+			gm.addTerminal(l_map[label{"o" + other_dyck, n}]);
+			gm.addTerminal(l_map[label{"c" + other_dyck, n}]);
 		}
-		gm.nonterminals.insert(l_map[label{"d" + dyck}]);
+		gm.addNonterminal(l_map[label{"d" + dyck}]);
 		for (auto &m : markers[dyck]) {
-			gm.nonterminals.insert(l_map[label{"d" + dyck, m.first, m.second}]);
+			gm.addNonterminal(l_map[label{"d" + dyck, m.first, m.second}]);
 		}
 		for (auto &m : markers[dyck]) {
 			for (auto &n : numbers[dyck]) {
-				gm.nonterminals.insert(l_map[label{"d" + dyck, n, m.first, m.second}]);
+				gm.addNonterminal(l_map[label{"d" + dyck, n, m.first, m.second}]);
 			}
 		}
 		// d      -> empty
-		gm.emptyProductions.push_back(l_map[label{"d" + dyck, "", ""}]);
+		gm.addEmptyProduction(l_map[label{"d" + dyck, "", ""}]);
 		// d      -> d d
 		for (auto &m1 : markers[dyck]) {
 			for (auto &m2 : markers[dyck]) {
@@ -259,13 +259,11 @@ std::tuple<
 					continue;
 				}
 				if (m1.second == close_number || m2.first == close_number || m1.second == m2.first) {
-					gm.binaryProductions.push_back(std::make_pair(
-								l_map[label{"d" + dyck, m1.first, m2.second}],
-								std::make_pair(
-									l_map[label{"d" + dyck, m1.first, m1.second}],
-									l_map[label{"d" + dyck, m2.first, m2.second}]
-									)
-								));
+					gm.addBinaryProduction(
+							l_map[label{"d" + dyck, m1.first, m2.second}],
+							l_map[label{"d" + dyck, m1.first, m1.second}],
+							l_map[label{"d" + dyck, m2.first, m2.second}]
+							);
 				}
 			}
 		}
@@ -273,135 +271,121 @@ std::tuple<
 			if (m.first == "") {
 				continue;
 			}
-			gm.binaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck, m.first, m.second}],
-						std::make_pair(
-							l_map[label{"d" + dyck, m.first, m.second}],
-							l_map[label{"d" + dyck, "", ""}]
-							)
-						));
-			gm.binaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck, m.first, m.second}],
-						std::make_pair(
-							l_map[label{"d" + dyck, "", ""}],
-							l_map[label{"d" + dyck, m.first, m.second}]
-							)
-						));
-		}
-		gm.binaryProductions.push_back(std::make_pair(
+			gm.addBinaryProduction(
+					l_map[label{"d" + dyck, m.first, m.second}],
+					l_map[label{"d" + dyck, m.first, m.second}],
+					l_map[label{"d" + dyck, "", ""}]
+					);
+			gm.addBinaryProduction(
+					l_map[label{"d" + dyck, m.first, m.second}],
 					l_map[label{"d" + dyck, "", ""}],
-					std::make_pair(
-						l_map[label{"d" + dyck, "", ""}],
-						l_map[label{"d" + dyck, "", ""}]
-						)
-					));
+					l_map[label{"d" + dyck, m.first, m.second}]
+					);
+		}
+		gm.addBinaryProduction(
+				l_map[label{"d" + dyck, "", ""}],
+				l_map[label{"d" + dyck, "", ""}],
+				l_map[label{"d" + dyck, "", ""}]
+				);
 		// d      -> o--[n] d--[n]
 		// d--[n] -> d      c--[n]
 		for (auto &m : markers[dyck]) {
 			for (auto &n : numbers[dyck]) {
-				gm.binaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, m.first, m.second}],
-							std::make_pair(
-								l_map[label{"o" + dyck, n}],
-								l_map[label{"d" + dyck, n, m.first, m.second}]
-								)
-							));
-				gm.binaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, n, m.first, m.second}],
-							std::make_pair(
-								l_map[label{"d" + dyck, m.first, m.second}],
-								l_map[label{"c" + dyck, n}])
-							));
+				gm.addBinaryProduction(
+						l_map[label{"d" + dyck, m.first, m.second}],
+						l_map[label{"o" + dyck, n}],
+						l_map[label{"d" + dyck, n, m.first, m.second}]
+						);
+				gm.addBinaryProduction(
+						l_map[label{"d" + dyck, n, m.first, m.second}],
+						l_map[label{"d" + dyck, m.first, m.second}],
+						l_map[label{"c" + dyck, n}]
+						);
 			}
 		}
 		// d      -> ...
 		for (auto &n : numbers[other_dyck]) {
 			if (considered[other_dyck].count(n) > 0) {
-				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, close_number, n}],
-							l_map[label{"o" + other_dyck, n}]
-							));
-				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, n, close_number}],
-							l_map[label{"c" + other_dyck, n}]
-							));
+				gm.addUnaryProduction(
+						l_map[label{"d" + dyck, close_number, n}],
+						l_map[label{"o" + other_dyck, n}]
+						);
+				gm.addUnaryProduction(
+						l_map[label{"d" + dyck, n, close_number}],
+						l_map[label{"c" + other_dyck, n}]
+						);
 			} else {
-				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, close_number, meta_number}],
-							l_map[label{"o" + other_dyck, n}]
-							));
-				gm.unaryProductions.push_back(std::make_pair(
-							l_map[label{"d" + dyck, meta_number, close_number}],
-							l_map[label{"c" + other_dyck, n}]
-							));
+				gm.addUnaryProduction(
+						l_map[label{"d" + dyck, close_number, meta_number}],
+						l_map[label{"o" + other_dyck, n}]
+						);
+				gm.addUnaryProduction(
+						l_map[label{"d" + dyck, meta_number, close_number}],
+						l_map[label{"c" + other_dyck, n}]
+						);
 			}
 		}
 		// d -> d close close | d "" ""
-		gm.unaryProductions.push_back(std::make_pair(
-					l_map[label{"d" + dyck}],
-					l_map[label{"d" + dyck, close_number, close_number}]
-					));
-		gm.unaryProductions.push_back(std::make_pair(
-					l_map[label{"d" + dyck}],
-					l_map[label{"d" + dyck, "", ""}]
-					));
-		gm.startSymbol = l_map[label{"d" + dyck}];
+		gm.addUnaryProduction(
+				l_map[label{"d" + dyck}],
+				l_map[label{"d" + dyck, close_number, close_number}]
+				);
+		gm.addUnaryProduction(
+				l_map[label{"d" + dyck}],
+				l_map[label{"d" + dyck, "", ""}]
+				);
+		gm.addStartSymbol(l_map[label{"d" + dyck}]);
 		gm.init(l_map.size());
 	};
 #else
 	// grammar constructor
 	auto construct_grammar = [&numbers, &l_map](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
-			gm.terminals.insert(l_map[label{"o" + dyck, n}]);
-			gm.terminals.insert(l_map[label{"c" + dyck, n}]);
+			gm.addTerminal(l_map[label{"o" + dyck, n}]);
+			gm.addTerminal(l_map[label{"c" + dyck, n}]);
 		}
 		for (auto &n : numbers[other_dyck]) {
-			gm.terminals.insert(l_map[label{"o" + other_dyck, n}]);
-			gm.terminals.insert(l_map[label{"c" + other_dyck, n}]);
+			gm.addTerminal(l_map[label{"o" + other_dyck, n}]);
+			gm.addTerminal(l_map[label{"c" + other_dyck, n}]);
 		}
-		gm.nonterminals.insert(l_map[label{"d" + dyck}]);
+		gm.addNonterminal(l_map[label{"d" + dyck}]);
 		for (auto &n : numbers[dyck]) {
-			gm.nonterminals.insert(l_map[label{"d" + dyck, n}]);
+			gm.addNonterminal(l_map[label{"d" + dyck, n}]);
 		}
 		// d      -> empty
-		gm.emptyProductions.push_back(l_map[label{"d" + dyck}]);
+		gm.addEmptyProduction(l_map[label{"d" + dyck}]);
 		// d      -> d d
-		gm.binaryProductions.push_back(std::make_pair(
-					l_map[label{"d" + dyck}],
-					std::make_pair(
-						l_map[label{"d" + dyck}],
-						l_map[label{"d" + dyck}]
-						)
-					));
+		gm.addBinaryProduction(
+				l_map[label{"d" + dyck}],
+				l_map[label{"d" + dyck}],
+				l_map[label{"d" + dyck}]
+				);
 		// d      -> o--[n] d--[n]
 		// d--[n] -> d      c--[n]
 		for (auto &n : numbers[dyck]) {
-			gm.binaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck}],
-						std::make_pair(
-							l_map[label{"o" + dyck, n}],
-							l_map[label{"d" + dyck, n}]
-							)
-						));
-			gm.binaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck, n}],
-						std::make_pair(
-							l_map[label{"d" + dyck}],
-							l_map[label{"c" + dyck, n}])
-						));
+			gm.addBinaryProduction(
+					l_map[label{"d" + dyck}],
+					l_map[label{"o" + dyck, n}],
+					l_map[label{"d" + dyck, n}]
+					);
+			gm.addBinaryProduction(
+					l_map[label{"d" + dyck, n}],
+					l_map[label{"d" + dyck}],
+					l_map[label{"c" + dyck, n}]
+					);
 		}
 		// d      -> ...
 		for (auto &n : numbers[other_dyck]) {
-			gm.unaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck}],
-						l_map[label{"o" + other_dyck, n}]
-						));
-			gm.unaryProductions.push_back(std::make_pair(
-						l_map[label{"d" + dyck}],
-						l_map[label{"c" + other_dyck, n}]
-						));
+			gm.addUnaryProduction(
+					l_map[label{"d" + dyck}],
+					l_map[label{"o" + other_dyck, n}]
+					);
+			gm.addUnaryProduction(
+					l_map[label{"d" + dyck}],
+					l_map[label{"c" + other_dyck, n}]
+					);
 		}
-		gm.startSymbol = l_map[label{"d" + dyck}];
+		gm.addStartSymbol(l_map[label{"d" + dyck}]);
 		gm.init(l_map.size());
 	};
 #endif

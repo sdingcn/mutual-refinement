@@ -28,17 +28,17 @@ void test() {
 	 * 10 is a negligible terminal. We have 0 -> 10.
 	 */
 	Grammar gm;
-	gm.terminals.insert(1);
-	gm.terminals.insert(2);
-	gm.terminals.insert(10);
-	gm.nonterminals.insert(0);
-	gm.nonterminals.insert(3);
-	gm.emptyProductions.push_back(0);
-	gm.unaryProductions.push_back(std::make_pair(0, 10));
-	gm.binaryProductions.push_back(std::make_pair(0, std::make_pair(0, 0)));
-	gm.binaryProductions.push_back(std::make_pair(0, std::make_pair(1, 3)));
-	gm.binaryProductions.push_back(std::make_pair(3, std::make_pair(0, 2)));
-	gm.startSymbol = 0;
+	gm.addTerminal(1);
+	gm.addTerminal(2);
+	gm.addTerminal(10);
+	gm.addNonterminal(0);
+	gm.addNonterminal(3);
+	gm.addEmptyProduction(0);
+	gm.addUnaryProduction(0, 10);
+	gm.addBinaryProduction(0, 0, 0);
+	gm.addBinaryProduction(0, 1, 3);
+	gm.addBinaryProduction(3, 0, 2);
+	gm.addStartSymbol(0);
 	gm.init(11);
 	/*
 	 *  1->(4)-10->(5)-2->
@@ -226,6 +226,7 @@ int main(int argc, char *argv[]) {
 						}
 						auto ca = gha.getCFLReachabilityEdgeClosure(false, s, t);
 						Graph ghb(grammars[1], nv);
+						ghb.fillEdges(ca);
 						ghb.runCFLReachability();
 						if (!ghb.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
 							break;
