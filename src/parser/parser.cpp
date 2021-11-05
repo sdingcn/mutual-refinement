@@ -81,137 +81,6 @@ std::tuple<
 		}
 	}
 
-#ifdef AUGMENT
-	// max number of parentheses that we consider
-	constexpr int N = 3;
-	std::string meta_number = "meta_202111021748";
-	std::string close_number = "close_202111022225";
-	// count the frequencies of each number
-	std::map<std::string, std::map<std::string, int>> counters;
-	for (auto &ijl : rawEdges) {
-		std::string dtype = ijl.second.substr(1, 1);
-		std::string number = ijl.second.substr(4, ijl.second.size() - 4);
-		if (number == meta_number) {
-			std::cerr << "Error: meta_number dup" << std::endl;
-			std::exit(EXIT_FAILURE);
-		}
-		if (number == close_number) {
-			std::cerr << "Error: close_number dup" << std::endl;
-			std::exit(EXIT_FAILURE);
-		}
-		if (dtype == "p") {
-			counters["p"][number]++;
-		} else if (dtype == "b") {
-			counters["b"][number]++;
-		}
-	}
-	// put "considered" numbers into a map
-	std::map<std::string, std::unordered_set<std::string>> considered;
-	// find out the NP most frequent numbers, and treat other numbers as the same
-	std::vector<std::pair<std::string, int>> pc;
-	for (auto &p : counters["p"]) {
-		pc.push_back(p);
-	}
-	std::sort(pc.begin(), pc.end(), [](const std::pair<std::string, int> &p1, const std::pair<std::string, int> &p2) -> bool {
-		return p1.second > p2.second;
-	});
-	int NP = std::min(N - 1, static_cast<int>(pc.size()) - 1);
-#ifdef VERBOSE
-	std::cerr << "NP = " << NP << std::endl;
-#endif
-	for (int i = 0; i < NP; i++) {
-		considered["p"].insert(pc[i].first);
-	}
-	// find out the NB most frequent brackets, and treat other brackets as the same
-	std::vector<std::pair<std::string, int>> bc;
-	for (auto &p : counters["b"]) {
-		bc.push_back(p);
-	}
-	std::sort(bc.begin(), bc.end(), [](const std::pair<std::string, int> &p1, const std::pair<std::string, int> &p2) -> bool {
-		return p1.second > p2.second;
-	});
-	int NB = std::min(N - 1, static_cast<int>(bc.size()) - 1);
-#ifdef VERBOSE
-	std::cerr << "NB = " << NB << std::endl;
-#endif
-	for (int i = 0; i < NB; i++) {
-		considered["b"].insert(bc[i].first);
-	}
-	// markers for nonterminals
-	std::map<std::string, std::vector<std::pair<std::string, std::string>>> markers;
-	// for p
-	for (auto &left : considered["b"]) {
-		for (auto &right : considered["b"]) {
-			markers["p"].push_back(std::make_pair(left, right));
-		}
-	}
-	for (auto &left : considered["b"]) {
-		markers["p"].push_back(std::make_pair(left, meta_number));
-		markers["p"].push_back(std::make_pair(left, close_number));
-	}
-	for (auto &right : considered["b"]) {
-		markers["p"].push_back(std::make_pair(meta_number, right));
-		markers["p"].push_back(std::make_pair(close_number, right));
-	}
-	markers["p"].push_back(std::make_pair(meta_number, meta_number));
-	markers["p"].push_back(std::make_pair(meta_number, close_number));
-	markers["p"].push_back(std::make_pair(close_number, meta_number));
-	markers["p"].push_back(std::make_pair(close_number, close_number));
-	markers["p"].push_back(std::make_pair("", ""));
-#ifdef VERBOSE
-	std::cerr << "markers[p].size = " << markers["p"].size() << std::endl;
-#endif
-	// for b
-	for (auto &left : considered["p"]) {
-		for (auto &right : considered["p"]) {
-			markers["b"].push_back(std::make_pair(left, right));
-		}
-	}
-	for (auto &left : considered["p"]) {
-		markers["b"].push_back(std::make_pair(left, meta_number));
-		markers["b"].push_back(std::make_pair(left, close_number));
-	}
-	for (auto &right : considered["p"]) {
-		markers["b"].push_back(std::make_pair(meta_number, right));
-		markers["b"].push_back(std::make_pair(close_number, right));
-	}
-	markers["b"].push_back(std::make_pair(meta_number, meta_number));
-	markers["b"].push_back(std::make_pair(meta_number, close_number));
-	markers["b"].push_back(std::make_pair(close_number, meta_number));
-	markers["b"].push_back(std::make_pair(close_number, close_number));
-	markers["b"].push_back(std::make_pair("", ""));
-#ifdef VERBOSE
-	std::cerr << "markers[b].size = " << markers["b"].size() << std::endl;
-#endif
-#endif
-
-#ifdef AUGMENT
-	// encode labels
-	std::map<label, int> l_map;
-	int l_ctr = 0;
-	l_map[label{"dp"}] = l_ctr++;
-	for (auto &m : markers["p"]) {
-		l_map[label{"dp", m.first, m.second}] = l_ctr++;
-	}
-	for (auto &n : numbers["p"]) {
-		l_map[label{"op", n}] = l_ctr++;
-		l_map[label{"cp", n}] = l_ctr++;
-		for (auto &m : markers["p"]) {
-			l_map[label{"dp", n, m.first, m.second}] = l_ctr++;
-		}
-	}
-	l_map[label{"db"}] = l_ctr++;
-	for (auto &m : markers["b"]) {
-		l_map[label{"db", m.first, m.second}] = l_ctr++;
-	}
-	for (auto &n : numbers["b"]) {
-		l_map[label{"ob", n}] = l_ctr++;
-		l_map[label{"cb", n}] = l_ctr++;
-		for (auto &m : markers["b"]) {
-			l_map[label{"db", n, m.first, m.second}] = l_ctr++;
-		}
-	}
-#else
 	// encode labels
 	std::map<label, int> l_map;
 	int l_ctr = 0;
@@ -227,119 +96,11 @@ std::tuple<
 		l_map[label{"cb", n}] = l_ctr++;
 		l_map[label{"db", n}] = l_ctr++;
 	}
-#endif
+	l_map[label{"d"}] = l_ctr++;
+	l_map[label{"d1"}] = l_ctr++;
 
-#ifdef AUGMENT
-	// grammar constructor
-	auto construct_grammar = [&numbers, &l_map, &meta_number, &close_number, &considered, &markers]
-		(Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
-		for (auto &n : numbers[dyck]) {
-			gm.addTerminal(l_map[label{"o" + dyck, n}]);
-			gm.addTerminal(l_map[label{"c" + dyck, n}]);
-		}
-		for (auto &n : numbers[other_dyck]) {
-			gm.addTerminal(l_map[label{"o" + other_dyck, n}]);
-			gm.addTerminal(l_map[label{"c" + other_dyck, n}]);
-		}
-		gm.addNonterminal(l_map[label{"d" + dyck}]);
-		for (auto &m : markers[dyck]) {
-			gm.addNonterminal(l_map[label{"d" + dyck, m.first, m.second}]);
-		}
-		for (auto &m : markers[dyck]) {
-			for (auto &n : numbers[dyck]) {
-				gm.addNonterminal(l_map[label{"d" + dyck, n, m.first, m.second}]);
-			}
-		}
-		// d      -> empty
-		gm.addEmptyProduction(l_map[label{"d" + dyck, "", ""}]);
-		// d      -> d d
-		for (auto &m1 : markers[dyck]) {
-			for (auto &m2 : markers[dyck]) {
-				if (m1.first == "" || m2.first == "") {
-					continue;
-				}
-				if (m1.second == close_number || m2.first == close_number || m1.second == m2.first) {
-					gm.addBinaryProduction(
-							l_map[label{"d" + dyck, m1.first, m2.second}],
-							l_map[label{"d" + dyck, m1.first, m1.second}],
-							l_map[label{"d" + dyck, m2.first, m2.second}]
-							);
-				}
-			}
-		}
-		for (auto &m : markers[dyck]) {
-			if (m.first == "") {
-				continue;
-			}
-			gm.addBinaryProduction(
-					l_map[label{"d" + dyck, m.first, m.second}],
-					l_map[label{"d" + dyck, m.first, m.second}],
-					l_map[label{"d" + dyck, "", ""}]
-					);
-			gm.addBinaryProduction(
-					l_map[label{"d" + dyck, m.first, m.second}],
-					l_map[label{"d" + dyck, "", ""}],
-					l_map[label{"d" + dyck, m.first, m.second}]
-					);
-		}
-		gm.addBinaryProduction(
-				l_map[label{"d" + dyck, "", ""}],
-				l_map[label{"d" + dyck, "", ""}],
-				l_map[label{"d" + dyck, "", ""}]
-				);
-		// d      -> o--[n] d--[n]
-		// d--[n] -> d      c--[n]
-		for (auto &m : markers[dyck]) {
-			for (auto &n : numbers[dyck]) {
-				gm.addBinaryProduction(
-						l_map[label{"d" + dyck, m.first, m.second}],
-						l_map[label{"o" + dyck, n}],
-						l_map[label{"d" + dyck, n, m.first, m.second}]
-						);
-				gm.addBinaryProduction(
-						l_map[label{"d" + dyck, n, m.first, m.second}],
-						l_map[label{"d" + dyck, m.first, m.second}],
-						l_map[label{"c" + dyck, n}]
-						);
-			}
-		}
-		// d      -> ...
-		for (auto &n : numbers[other_dyck]) {
-			if (considered[other_dyck].count(n) > 0) {
-				gm.addUnaryProduction(
-						l_map[label{"d" + dyck, close_number, n}],
-						l_map[label{"o" + other_dyck, n}]
-						);
-				gm.addUnaryProduction(
-						l_map[label{"d" + dyck, n, close_number}],
-						l_map[label{"c" + other_dyck, n}]
-						);
-			} else {
-				gm.addUnaryProduction(
-						l_map[label{"d" + dyck, close_number, meta_number}],
-						l_map[label{"o" + other_dyck, n}]
-						);
-				gm.addUnaryProduction(
-						l_map[label{"d" + dyck, meta_number, close_number}],
-						l_map[label{"c" + other_dyck, n}]
-						);
-			}
-		}
-		// d -> d close close | d "" ""
-		gm.addUnaryProduction(
-				l_map[label{"d" + dyck}],
-				l_map[label{"d" + dyck, close_number, close_number}]
-				);
-		gm.addUnaryProduction(
-				l_map[label{"d" + dyck}],
-				l_map[label{"d" + dyck, "", ""}]
-				);
-		gm.addStartSymbol(l_map[label{"d" + dyck}]);
-		gm.init(l_map.size());
-	};
-#else
-	// grammar constructor
-	auto construct_grammar = [&numbers, &l_map](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
+	// grammar constructors
+	auto construct_single = [&numbers, &l_map](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
 			gm.addTerminal(l_map[label{"o" + dyck, n}]);
 			gm.addTerminal(l_map[label{"c" + dyck, n}]);
@@ -388,12 +149,60 @@ std::tuple<
 		gm.addStartSymbol(l_map[label{"d" + dyck}]);
 		gm.init(l_map.size());
 	};
-#endif
+	auto construct_combined = [&numbers, &l_map](Grammar &gm) -> void {
+		for (auto &n : numbers["p"]) {
+			gm.addTerminal(l_map[label{"op", n}]);
+			gm.addTerminal(l_map[label{"cp", n}]);
+		}
+		for (auto &n : numbers["b"]) {
+			gm.addTerminal(l_map[label{"ob", n}]);
+			gm.addTerminal(l_map[label{"cb", n}]);
+		}
+		gm.addNonterminal(l_map[label{"d"}]);
+		gm.addNonterminal(l_map[label{"d1"}]);
+		// d      -> empty
+		gm.addEmptyProduction(l_map[label{"d"}]);
+		// d      -> d d
+		gm.addBinaryProduction(
+				l_map[label{"d"}],
+				l_map[label{"d"}],
+				l_map[label{"d"}]
+				);
+		// d      -> o d1
+		// d1     -> d c
+		for (auto &n : numbers["p"]) {
+			gm.addBinaryProduction(
+					l_map[label{"d"}],
+					l_map[label{"op", n}],
+					l_map[label{"d1"}]
+					);
+			gm.addBinaryProduction(
+					l_map[label{"d1"}],
+					l_map[label{"d"}],
+					l_map[label{"cp", n}]
+					);
+		}
+		for (auto &n : numbers["b"]) {
+			gm.addBinaryProduction(
+					l_map[label{"d"}],
+					l_map[label{"ob", n}],
+					l_map[label{"d1"}]
+					);
+			gm.addBinaryProduction(
+					l_map[label{"d1"}],
+					l_map[label{"d"}],
+					l_map[label{"cb", n}]
+					);
+		}
+		gm.addStartSymbol(l_map[label{"d"}]);
+		gm.init(l_map.size());
+	};
 
 	// construct grammars
-	Grammar gmp, gmb;
-	construct_grammar(gmp, "p", "b");
-	construct_grammar(gmb, "b", "p");
+	Grammar gmp, gmb, gmc;
+	construct_single(gmp, "p", "b");
+	construct_single(gmb, "b", "p");
+	construct_combined(gmc);
 
 	// check boundaries
 	if (v_map.size() - 1 > static_cast<int>(MASK)) {
@@ -419,5 +228,5 @@ std::tuple<
 	std::cerr << "v_size: " << v_map.size() << ", l_size: " << l_map.size() << std::endl;
 #endif
 
-	return std::make_tuple(std::move(v_map), std::move(l_map), std::move(edges), std::vector<Grammar> {gmp, gmb});
+	return std::make_tuple(std::move(v_map), std::move(l_map), std::move(edges), std::vector<Grammar> {gmp, gmb, gmc});
 }

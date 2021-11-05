@@ -134,6 +134,7 @@ int main(int argc, char *argv[]) {
 		const std::vector<long long> &edges     = std::get<2>(data);
 		const std::vector<Grammar> &grammars    = std::get<3>(data);
 
+#if 1
 // naive
 {
 		Graph gh1(grammars[0], nv);
@@ -142,18 +143,24 @@ int main(int argc, char *argv[]) {
 		Graph gh2(grammars[1], nv);
 		gh2.fillEdges(edges);
 		gh2.runCFLReachability();
+		Graph gh3(grammars[2], nv);
+		gh3.fillEdges(edges);
+		gh3.runCFLReachability();
 		int ctr = 0;
 		for (int s = 0; s < nv; s++) {
 			for (int t = 0; t < nv; t++) {
 				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
-				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t)) &&
+				gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
 					ctr++;
 				}
 			}
 		}
 		std::cout << "Naive: " << ctr << std::endl;
 }
+#endif
 
+#if 1
 // apmr
 {
 		std::unordered_set<long long> es(edges.begin(), edges.end());
@@ -172,12 +179,17 @@ int main(int argc, char *argv[]) {
 			gh2.fillEdges(es1);
 			gh2.runCFLReachability();
 			auto es2 = gh2.getCFLReachabilityEdgeClosure(true);
-			if (es2.size() == es.size()) {
+			Graph gh3(grammars[2], nv);
+			gh3.fillEdges(es2);
+			gh3.runCFLReachability();
+			auto es3 = gh3.getCFLReachabilityEdgeClosure(true);
+			if (es3.size() == es.size()) {
 				int ctr = 0;
 				for (int s = 0; s < nv; s++) {
 					for (int t = 0; t < nv; t++) {
 						if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
-						gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+						gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t)) &&
+						gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
 							ctr++;
 						}
 					}
@@ -185,11 +197,13 @@ int main(int argc, char *argv[]) {
 				std::cout << "APMR:" << ctr << std::endl;
 				break;
 			} else {
-				es = std::move(es2);
+				es = std::move(es3);
 			}
 		}
 }
+#endif
 
+#if 0
 // spmr
 {
 		// pre run
@@ -199,6 +213,9 @@ int main(int argc, char *argv[]) {
 		Graph gh2(grammars[1], nv);
 		gh2.fillEdges(edges);
 		gh2.runCFLReachability();
+		Graph gh3(grammars[2], nv);
+		gh3.fillEdges(edges);
+		gh3.runCFLReachability();
 		int ctr = 0;
 		for (int s = 0; s < nv; s++) {
 			for (int t = 0; t < nv; t++) {
@@ -206,13 +223,15 @@ int main(int argc, char *argv[]) {
 				std::cerr << "s = " << s << ", t = " << t << std::endl;
 #endif
 				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
-				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
+				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t)) &&
+				gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
 					std::unordered_set<long long> es;
 					{
 						auto c1 = gh1.getCFLReachabilityEdgeClosure(false, s, t);
 						auto c2 = gh2.getCFLReachabilityEdgeClosure(false, s, t);
+						auto c3 = gh3.getCFLReachabilityEdgeClosure(false, s, t);
 						for (long long e : c1) {
-							if (c2.count(e) == 1) {
+							if (c2.count(e) == 1 && c3.count(e) == 1) {
 								es.insert(e);
 							}
 						}
@@ -232,11 +251,18 @@ int main(int argc, char *argv[]) {
 							break;
 						}
 						auto cb = ghb.getCFLReachabilityEdgeClosure(false, s, t);
-						if (cb.size() == es.size()) {
+						Graph ghc(grammars[2], nv);
+						ghc.fillEdges(cb);
+						ghc.runCFLReachability();
+						if (!ghc.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
+							break;
+						}
+						auto cc = ghc.getCFLReachabilityEdgeClosure(false, s, t);
+						if (cc.size() == es.size()) {
 							ctr++;
 							break;
 						} else {
-							es = std::move(cb);
+							es = std::move(cc);
 						}
 					}
 				}
@@ -244,6 +270,7 @@ int main(int argc, char *argv[]) {
 		}
 		std::cout << "SPMR:" << ctr << std::endl;
 }
+#endif
 	} else {
 		test();
 		check_resource("TEST");
