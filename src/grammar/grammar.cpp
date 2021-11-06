@@ -1,7 +1,6 @@
 #include "grammar.h"
 #include <vector>
 #include <unordered_map>
-#include <iostream>
 #include <utility>
 
 void Grammar::addTerminal(int t) {

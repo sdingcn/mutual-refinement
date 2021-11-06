@@ -7,7 +7,6 @@
 #include <iostream>
 #include <fstream>
 #include <tuple>
-#include <algorithm>
 #include "../common.h"
 
 bool isEdgeLine(const std::string &line) {
