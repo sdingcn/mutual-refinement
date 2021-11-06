@@ -6,13 +6,17 @@
 #include <tuple>
 #include "../grammar/grammar.h"
 
-Graph::Graph(const Grammar &g, int n) :
-	grammar(g),
+Graph::Graph(const Grammar &g, int n, const std::unordered_set<long long> &edges)
+	: grammar(g),
 	numberOfVertices(n),
 	adjacencyVector(n),
 	counterAdjacencyVector(n),
 	unaryRecord(n),
-	binaryRecord(n) {}
+	binaryRecord(n) {
+	for (long long e : edges) {
+		addEdge(e);
+	}
+}
 
 void Graph::addEdge(long long e) { // i --x--> j
 	int i = fast_triple_first(e);
@@ -23,18 +27,6 @@ void Graph::addEdge(long long e) { // i --x--> j
 	counterAdjacencyVector[j].push_back(make_fast_pair(i, x));
 	if (x == grammar.startSymbol) {
 		startSummaries.push_back(e);
-	}
-}
-
-void Graph::fillEdges(const std::vector<long long> &edges) {
-	for (long long e : edges) {
-		addEdge(e);
-	}
-}
-
-void Graph::fillEdges(const std::unordered_set<long long> &edges) {
-	for (long long e : edges) {
-		addEdge(e);
 	}
 }
 

@@ -32,7 +32,7 @@ std::pair<std::pair<std::string, std::string>, std::string> parsePALine(const st
 std::tuple<
 	std::map<std::string, int>,
 	std::map<std::vector<std::string>, int>,
-	std::vector<long long>,
+	std::unordered_set<long long>,
 	std::vector<Grammar>
 > parsePAGraph(const std::string &fname) {
 	// the label type
@@ -206,9 +206,9 @@ std::tuple<
 	}
 
 	// construct the normalized graph
-	std::vector<long long> edges;
+	std::unordered_set<long long> edges;
 	for (auto &ijl : rawEdges) {
-		edges.push_back(make_fast_triple(
+		edges.insert(make_fast_triple(
 					v_map[ijl.first.first],
 					l_map[label{ijl.second.substr(0, 2), ijl.second.substr(4, ijl.second.size() - 4)}],
 					v_map[ijl.first.second]

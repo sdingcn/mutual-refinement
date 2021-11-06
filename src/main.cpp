@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 		const std::tuple<
 			std::map<std::string, int>,
 			std::map<std::vector<std::string>, int>,
-			std::vector<long long>,
+			std::unordered_set<long long>,
 			std::vector<Grammar>
 		> data = parsePAGraph(argv[1]);
 
@@ -67,19 +67,16 @@ int main(int argc, char *argv[]) {
 			l_map_r[p.second] = p.first;
 		}
 #endif
-		const std::vector<long long> &edges                  = std::get<2>(data);
+		const std::unordered_set<long long> &edges                  = std::get<2>(data);
 		const std::vector<Grammar> &grammars                 = std::get<3>(data);
 		const int &nv                                        = v_map.size();
 
 #ifdef NAIVE
-		Graph gh1(grammars[0], nv);
-		gh1.fillEdges(edges);
+		Graph gh1(grammars[0], nv, edges);
 		gh1.runCFLReachability();
-		Graph gh2(grammars[1], nv);
-		gh2.fillEdges(edges);
+		Graph gh2(grammars[1], nv, edges);
 		gh2.runCFLReachability();
-		Graph gh3(grammars[2], nv);
-		gh3.fillEdges(edges);
+		Graph gh3(grammars[2], nv, edges);
 		gh3.runCFLReachability();
 		int ctr1 = 0, ctr2 = 0, ctr3 = 0, ctr = 0;
 		for (int s = 0; s < nv; s++) {
@@ -111,16 +108,13 @@ int main(int argc, char *argv[]) {
 #ifdef REFINE
 		std::unordered_set<long long> es(edges.begin(), edges.end());
 		while (true) {
-			Graph gh1(grammars[0], nv);
-			gh1.fillEdges(es);
+			Graph gh1(grammars[0], nv, es);
 			gh1.runCFLReachability();
 			auto es1 = gh1.getCFLReachabilityEdgeClosure(true);
-			Graph gh2(grammars[1], nv);
-			gh2.fillEdges(es1);
+			Graph gh2(grammars[1], nv, es1);
 			gh2.runCFLReachability();
 			auto es2 = gh2.getCFLReachabilityEdgeClosure(true);
-			Graph gh3(grammars[2], nv);
-			gh3.fillEdges(es2);
+			Graph gh3(grammars[2], nv, es2);
 			gh3.runCFLReachability();
 			auto es3 = gh3.getCFLReachabilityEdgeClosure(true);
 			if (es3.size() == es.size()) {
@@ -159,16 +153,13 @@ int main(int argc, char *argv[]) {
 #ifdef GRAPH
 		std::unordered_set<long long> es(edges.begin(), edges.end());
 		while (true) {
-			Graph gh1(grammars[0], nv);
-			gh1.fillEdges(es);
+			Graph gh1(grammars[0], nv, es);
 			gh1.runCFLReachability();
 			auto es1 = gh1.getCFLReachabilityEdgeClosure(true);
-			Graph gh2(grammars[1], nv);
-			gh2.fillEdges(es1);
+			Graph gh2(grammars[1], nv, es1);
 			gh2.runCFLReachability();
 			auto es2 = gh2.getCFLReachabilityEdgeClosure(true);
-			Graph gh3(grammars[2], nv);
-			gh3.fillEdges(es2);
+			Graph gh3(grammars[2], nv, es2);
 			gh3.runCFLReachability();
 			auto es3 = gh3.getCFLReachabilityEdgeClosure(true);
 			if (es3.size() == es.size()) {

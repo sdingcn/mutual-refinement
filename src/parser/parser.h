@@ -4,6 +4,7 @@
 #include <tuple>
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include <string>
 #include "../grammar/grammar.h"
 #include "../common.h"
@@ -12,7 +13,7 @@
 std::tuple<
 	std::map<std::string, int>,
 	std::map<std::vector<std::string>, int>,
-	std::vector<long long>,
+	std::unordered_set<long long>,
 	std::vector<Grammar>
 > parsePAGraph(const std::string &fname);
 

@@ -18,10 +18,8 @@ class Graph {
 	std::vector<std::unordered_map<int, std::unordered_set<int>>> unaryRecord; // i -> j -> {unary production number}
 	std::vector<std::unordered_map<int, std::unordered_set<long long>>> binaryRecord; // i -> j -> {(binary prodution number, middle vertex)}
 public:
-	Graph(const Grammar &g, int n);
+	Graph(const Grammar &g, int n, const std::unordered_set<long long> &edges);
 	void addEdge(long long e);
-	void fillEdges(const std::vector<long long> &edges);
-	void fillEdges(const std::unordered_set<long long> &edges);
 	bool hasEdge(long long e) const;
 	void runCFLReachability();
 	std::unordered_set<long long> getCFLReachabilityEdgeClosure(bool all, int i = -1, int j = -1) const;
