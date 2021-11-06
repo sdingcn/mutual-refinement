@@ -1,7 +1,7 @@
 # mutual-refinement-of-graph-reachability
 
 ## dependencies
-This implementation is intended to be executed on Linux.
+This implementation is intended to be used on Linux.
 You need `make` and `g++` (supporting at least C++11).
 
 ## compilation
@@ -10,3 +10,6 @@ They represent the naive combination, the mutual-refinement-based combination, a
 `make` compiles all of them.
 You can also compile them individually via `make naive`, `make refine`, and `make graph`.
 `make clean` removes all compiled files.
+
+## usage
+Running `./naive`, `./refine`, or `./graph` prints the usage.
