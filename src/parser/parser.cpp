@@ -100,7 +100,8 @@ std::tuple<
 	l_map[label{"d1"}] = l_ctr++;
 
 	// grammar constructors
-	auto construct_single = [&numbers, &l_map](Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
+	auto construct_single = [&numbers, &l_map]
+		(Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
 			gm.addTerminal(l_map[label{"o" + dyck, n}]);
 			gm.addTerminal(l_map[label{"c" + dyck, n}]);
@@ -149,7 +150,8 @@ std::tuple<
 		gm.addStartSymbol(l_map[label{"d" + dyck}]);
 		gm.init(l_map.size());
 	};
-	auto construct_combined = [&numbers, &l_map](Grammar &gm) -> void {
+	auto construct_combined = [&numbers, &l_map]
+		(Grammar &gm) -> void {
 		for (auto &n : numbers["p"]) {
 			gm.addTerminal(l_map[label{"op", n}]);
 			gm.addTerminal(l_map[label{"cp", n}]);
@@ -170,29 +172,19 @@ std::tuple<
 				);
 		// d      -> o d1
 		// d1     -> d c
-		for (auto &n : numbers["p"]) {
-			gm.addBinaryProduction(
-					l_map[label{"d"}],
-					l_map[label{"op", n}],
-					l_map[label{"d1"}]
-					);
-			gm.addBinaryProduction(
-					l_map[label{"d1"}],
-					l_map[label{"d"}],
-					l_map[label{"cp", n}]
-					);
-		}
-		for (auto &n : numbers["b"]) {
-			gm.addBinaryProduction(
-					l_map[label{"d"}],
-					l_map[label{"ob", n}],
-					l_map[label{"d1"}]
-					);
-			gm.addBinaryProduction(
-					l_map[label{"d1"}],
-					l_map[label{"d"}],
-					l_map[label{"cb", n}]
-					);
+		for (auto &k : std::vector<std::string>{"p", "b"}) {
+			for (auto &n : numbers[k]) {
+				gm.addBinaryProduction(
+						l_map[label{"d"}],
+						l_map[label{"op", n}],
+						l_map[label{"d1"}]
+						);
+				gm.addBinaryProduction(
+						l_map[label{"d1"}],
+						l_map[label{"d"}],
+						l_map[label{"cp", n}]
+						);
+			}
 		}
 		gm.addStartSymbol(l_map[label{"d"}]);
 		gm.init(l_map.size());
@@ -224,9 +216,10 @@ std::tuple<
 					));
 	}
 
-#ifdef VERBOSE
-	std::cerr << "v_size: " << v_map.size() << ", l_size: " << l_map.size() << std::endl;
-#endif
-
-	return std::make_tuple(std::move(v_map), std::move(l_map), std::move(edges), std::vector<Grammar> {gmp, gmb, gmc});
+	return std::make_tuple(
+			std::move(v_map),
+			std::move(l_map),
+			std::move(edges),
+			std::vector<Grammar> {gmc, gmp, gmb}
+			);
 }

@@ -129,14 +129,23 @@ int main(int argc, char *argv[]) {
 			std::vector<Grammar>
 		> data = parsePAGraph(argv[1]);
 
-		// obtain references to the original data
-		const int &nv                           = std::get<0>(data).size();
-		const std::vector<long long> &edges     = std::get<2>(data);
-		const std::vector<Grammar> &grammars    = std::get<3>(data);
+		const std::map<std::string, int> &v_map              = std::get<0>(data);
+#ifdef GRAPH
+		const std::map<std::vector<std::string>, int> &l_map = std::get<1>(data);
+		std::map<int, std::string> v_map_r;
+		for (auto &p : v_map) {
+			v_map_r[p.second] = p.first;
+		}
+		std::map<int, std::vector<std::string>> l_map_r;
+		for (auto &p : l_map) {
+			l_map_r[p.second] = p.first;
+		}
+#endif
+		const std::vector<long long> &edges                  = std::get<2>(data);
+		const std::vector<Grammar> &grammars                 = std::get<3>(data);
+		const int &nv                                        = v_map.size();
 
-#if 1
-// naive
-{
+#ifdef NAIVE
 		Graph gh1(grammars[0], nv);
 		gh1.fillEdges(edges);
 		gh1.runCFLReachability();
@@ -146,31 +155,36 @@ int main(int argc, char *argv[]) {
 		Graph gh3(grammars[2], nv);
 		gh3.fillEdges(edges);
 		gh3.runCFLReachability();
-		int ctr = 0;
+		int ctr1 = 0, ctr2 = 0, ctr3 = 0, ctr = 0;
 		for (int s = 0; s < nv; s++) {
 			for (int t = 0; t < nv; t++) {
-				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
-				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t)) &&
-				gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
+				bool r1 = gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t));
+				bool r2 = gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t));
+				bool r3 = gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t));
+				if (r1) {
+					ctr1++;
+				}
+				if (r2) {
+					ctr2++;
+				}
+				if (r3) {
+					ctr3++;
+				}
+				if (r1 && r2 && r3) {
 					ctr++;
 				}
 			}
 		}
-		std::cout << "Naive: " << ctr << std::endl;
-}
+		check_resource("naive combination");
+		std::cout << "L1: " << ctr1 << std::endl;
+		std::cout << "L2: " << ctr2 << std::endl;
+		std::cout << "L3: " << ctr3 << std::endl;
+		std::cout << "Comb: " << ctr << std::endl;
 #endif
 
-#if 1
-// apmr
-{
+#ifdef REFINE
 		std::unordered_set<long long> es(edges.begin(), edges.end());
-#ifdef VERBOSE
-		int iter = 0;
-#endif
 		while (true) {
-#ifdef VERBOSE
-			std::cerr << "APMR Iteration: " << (++iter) << ", Edge Set Size: " << es.size() << std::endl;
-#endif
 			Graph gh1(grammars[0], nv);
 			gh1.fillEdges(es);
 			gh1.runCFLReachability();
@@ -194,86 +208,52 @@ int main(int argc, char *argv[]) {
 						}
 					}
 				}
-				std::cout << "APMR:" << ctr << std::endl;
+				check_resource("refined combination");
+				std::cout << "Comb:" << ctr << std::endl;
 				break;
 			} else {
 				es = std::move(es3);
 			}
 		}
-}
 #endif
 
-#if 0
-// spmr
-{
-		// pre run
-		Graph gh1(grammars[0], nv);
-		gh1.fillEdges(edges);
-		gh1.runCFLReachability();
-		Graph gh2(grammars[1], nv);
-		gh2.fillEdges(edges);
-		gh2.runCFLReachability();
-		Graph gh3(grammars[2], nv);
-		gh3.fillEdges(edges);
-		gh3.runCFLReachability();
-		int ctr = 0;
-		for (int s = 0; s < nv; s++) {
-			for (int t = 0; t < nv; t++) {
-#ifdef VERBOSE
-				std::cerr << "s = " << s << ", t = " << t << std::endl;
-#endif
-				if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
-				gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t)) &&
-				gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
-					std::unordered_set<long long> es;
-					{
-						auto c1 = gh1.getCFLReachabilityEdgeClosure(false, s, t);
-						auto c2 = gh2.getCFLReachabilityEdgeClosure(false, s, t);
-						auto c3 = gh3.getCFLReachabilityEdgeClosure(false, s, t);
-						for (long long e : c1) {
-							if (c2.count(e) == 1 && c3.count(e) == 1) {
-								es.insert(e);
-							}
-						}
-					}
-					while (true) {
-						Graph gha(grammars[0], nv);
-						gha.fillEdges(es);
-						gha.runCFLReachability();
-						if (!gha.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t))) {
-							break;
-						}
-						auto ca = gha.getCFLReachabilityEdgeClosure(false, s, t);
-						Graph ghb(grammars[1], nv);
-						ghb.fillEdges(ca);
-						ghb.runCFLReachability();
-						if (!ghb.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t))) {
-							break;
-						}
-						auto cb = ghb.getCFLReachabilityEdgeClosure(false, s, t);
-						Graph ghc(grammars[2], nv);
-						ghc.fillEdges(cb);
-						ghc.runCFLReachability();
-						if (!ghc.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
-							break;
-						}
-						auto cc = ghc.getCFLReachabilityEdgeClosure(false, s, t);
-						if (cc.size() == es.size()) {
-							ctr++;
-							break;
-						} else {
-							es = std::move(cc);
-						}
-					}
+#ifdef GRAPH
+		std::unordered_set<long long> es(edges.begin(), edges.end());
+		while (true) {
+			Graph gh1(grammars[0], nv);
+			gh1.fillEdges(es);
+			gh1.runCFLReachability();
+			auto es1 = gh1.getCFLReachabilityEdgeClosure(true);
+			Graph gh2(grammars[1], nv);
+			gh2.fillEdges(es1);
+			gh2.runCFLReachability();
+			auto es2 = gh2.getCFLReachabilityEdgeClosure(true);
+			Graph gh3(grammars[2], nv);
+			gh3.fillEdges(es2);
+			gh3.runCFLReachability();
+			auto es3 = gh3.getCFLReachabilityEdgeClosure(true);
+			if (es3.size() == es.size()) {
+				std::ofstream out("simplified.dot");
+				// 100->200[label="cp--10"]
+				for (long long e : es) {
+					int i = fast_triple_first(e);
+					int x = fast_triple_second(e);
+					int j = fast_triple_third(e);
+					out << v_map_r[i] << "->"
+						<< v_map_r[j] << "[label=\""
+						<< l_map_r[x][0] << "--"
+						<< l_map_r[x][1] << "\"]\n";
 				}
+				check_resource("graph simplification");
+				break;
+			} else {
+				es = std::move(es3);
 			}
 		}
-		std::cout << "SPMR:" << ctr << std::endl;
-}
 #endif
 	} else {
 		test();
-		check_resource("TEST");
+		check_resource("test");
 		printUsage(argv[0]);
 	}
 }

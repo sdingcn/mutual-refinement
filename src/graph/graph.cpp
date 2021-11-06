@@ -5,9 +5,6 @@
 #include <unordered_set>
 #include <utility>
 #include <tuple>
-#ifdef VERBOSE
-#include <iostream>
-#endif
 #include "../grammar/grammar.h"
 
 Graph::Graph(const Grammar &g, int n) :
@@ -62,16 +59,7 @@ void Graph::runCFLReachability() {
 			w.push_front(e);
 		}
 	}
-#ifdef VERBOSE
-	long long iter = 0;
-#endif
 	while (!w.empty()) {
-#ifdef VERBOSE
-		iter++;
-		if (iter % 10000 == 0) {
-			std::cerr << "iter: " << iter << ", worklist size: " << w.size() << std::endl;
-		}
-#endif
 		long long e = w.front();
 		w.pop_front();
 
@@ -83,7 +71,7 @@ void Graph::runCFLReachability() {
 		std::vector<long long> tba;
 
 		for (int ind : grammar.unaryProductionsInv[y]) { // x -> y
-#ifdef TRACE
+#ifndef NAIVE
 			unaryRecord[i][j].insert(ind);
 #endif
 			int x = grammar.unaryProductions[ind].first;
@@ -97,7 +85,7 @@ void Graph::runCFLReachability() {
 			int k = fast_pair_second(zk);
 			if (grammar.binaryProductionsInv[y].count(z) > 0) {
 				for (int ind : grammar.binaryProductionsInv[y].at(z)) {
-#ifdef TRACE
+#ifndef NAIVE
 					binaryRecord[i][k].insert(make_fast_pair(ind, j));
 #endif
 					int x = grammar.binaryProductions[ind].first;
@@ -113,7 +101,7 @@ void Graph::runCFLReachability() {
 			int z = fast_pair_second(kz);
 			if (grammar.binaryProductionsInv[z].count(y) > 0) {
 				for (int ind : grammar.binaryProductionsInv[z].at(y)) {
-#ifdef TRACE
+#ifndef NAIVE
 					binaryRecord[k][j].insert(make_fast_pair(ind, i));
 #endif
 					int x = grammar.binaryProductions[ind].first;
