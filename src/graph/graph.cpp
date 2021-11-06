@@ -75,9 +75,7 @@ void Graph::runCFLReachability() {
 #endif
 			int x = grammar.unaryProductions[ind].first;
 			long long e = make_fast_triple(i, x, j);
-			if (!hasEdge(e)) {
-				tba.push_back(e);
-			}
+			tba.push_back(e);
 		}
 		for (long long zk : adjacencyVector[j]) { // x -> yz
 			int z = fast_pair_first(zk);
@@ -89,9 +87,7 @@ void Graph::runCFLReachability() {
 #endif
 					int x = grammar.binaryProductions[ind].first;
 					long long e = make_fast_triple(i, x, k);
-					if (!hasEdge(e)) {
-						tba.push_back(e);
-					}
+					tba.push_back(e);
 				}
 			}
 		}
@@ -105,15 +101,15 @@ void Graph::runCFLReachability() {
 #endif
 					int x = grammar.binaryProductions[ind].first;
 					long long e = make_fast_triple(k, x, j);
-					if (!hasEdge(e)) {
-						tba.push_back(e);
-					}
+					tba.push_back(e);
 				}
 			}
 		}
 		for (long long e : tba) {
-			addEdge(e);
-			w.push_front(e);
+			if (!hasEdge(e)) {
+				addEdge(e);
+				w.push_front(e);
+			}
 		}
 	}
 }
