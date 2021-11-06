@@ -106,21 +106,13 @@ void Graph::runCFLReachability() {
 	}
 }
 
-std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure(bool all, int i, int j) const {
+std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure() const {
 	std::unordered_set<long long> closure;
 	std::unordered_set<long long> vis;
 	std::deque<long long> q;
-	if (all == false) {
-		long long start = make_fast_triple(i, grammar.startSymbol, j);
-		if (hasEdge(start)) {
-			vis.insert(start);
-			q.push_back(start);
-		}
-	} else {
-		for (long long start : startSummaries) {
-			vis.insert(start);
-			q.push_back(start);
-		}
+	for (long long start : startSummaries) {
+		vis.insert(start);
+		q.push_back(start);
 	}
 	while (!q.empty()) { // BFS
 		long long e = q.front();

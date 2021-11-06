@@ -22,7 +22,7 @@ public:
 	void addEdge(long long e);
 	bool hasEdge(long long e) const;
 	void runCFLReachability();
-	std::unordered_set<long long> getCFLReachabilityEdgeClosure(bool all, int i = -1, int j = -1) const;
+	std::unordered_set<long long> getCFLReachabilityEdgeClosure() const;
 };
 
 #endif

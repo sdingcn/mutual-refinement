@@ -110,13 +110,13 @@ int main(int argc, char *argv[]) {
 		while (true) {
 			Graph gh1(grammars[0], nv, es);
 			gh1.runCFLReachability();
-			auto es1 = gh1.getCFLReachabilityEdgeClosure(true);
+			auto es1 = gh1.getCFLReachabilityEdgeClosure();
 			Graph gh2(grammars[1], nv, es1);
 			gh2.runCFLReachability();
-			auto es2 = gh2.getCFLReachabilityEdgeClosure(true);
+			auto es2 = gh2.getCFLReachabilityEdgeClosure();
 			Graph gh3(grammars[2], nv, es2);
 			gh3.runCFLReachability();
-			auto es3 = gh3.getCFLReachabilityEdgeClosure(true);
+			auto es3 = gh3.getCFLReachabilityEdgeClosure();
 			if (es3.size() == es.size()) {
 				int ctr1 = 0, ctr2 = 0, ctr3 = 0, ctr = 0;
 				for (int s = 0; s < nv; s++) {
@@ -155,13 +155,13 @@ int main(int argc, char *argv[]) {
 		while (true) {
 			Graph gh1(grammars[0], nv, es);
 			gh1.runCFLReachability();
-			auto es1 = gh1.getCFLReachabilityEdgeClosure(true);
+			auto es1 = gh1.getCFLReachabilityEdgeClosure();
 			Graph gh2(grammars[1], nv, es1);
 			gh2.runCFLReachability();
-			auto es2 = gh2.getCFLReachabilityEdgeClosure(true);
+			auto es2 = gh2.getCFLReachabilityEdgeClosure();
 			Graph gh3(grammars[2], nv, es2);
 			gh3.runCFLReachability();
-			auto es3 = gh3.getCFLReachabilityEdgeClosure(true);
+			auto es3 = gh3.getCFLReachabilityEdgeClosure();
 			if (es3.size() == es.size()) {
 				std::ofstream out("simplified.dot");
 				// 100->200[label="cp--10"]
