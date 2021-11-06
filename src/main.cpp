@@ -1,93 +1,17 @@
 #include <vector>
-#include <utility>
-#include <set>
+#include <unordered_set>
 #include <map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <chrono>
 #include <cassert>
-#include <cstdlib>
 #include <string>
 #include <utility>
 #include <tuple>
-#include <algorithm>
-#include <iterator>
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"
-
-void test() {
-	/*
-	 * D[0] -> D[0] D[0] | ([1] Dc[3] | epsilon
-	 * Dc[3] -> D[0] )[2]
-	 *
-	 * 0 -> 0 0 | 1 3 | epsilon
-	 * 3 -> 0 2
-	 *
-	 * 10 is a negligible terminal. We have 0 -> 10.
-	 */
-	Grammar gm;
-	gm.addTerminal(1);
-	gm.addTerminal(2);
-	gm.addTerminal(10);
-	gm.addNonterminal(0);
-	gm.addNonterminal(3);
-	gm.addEmptyProduction(0);
-	gm.addUnaryProduction(0, 10);
-	gm.addBinaryProduction(0, 0, 0);
-	gm.addBinaryProduction(0, 1, 3);
-	gm.addBinaryProduction(3, 0, 2);
-	gm.addStartSymbol(0);
-	gm.init(11);
-	/*
-	 *  1->(4)-10->(5)-2->
-	 *  |                 \    -1->
-	 *  |                  \  | /
-	 * (0) --1--> (1) --2--> (2) --2--> (3)
-	 *  |                     |
-	 *   ----------1--------->
-	 */
-	Graph gh(gm, 6);
-	gh.addEdge(make_fast_triple(0, 1, 4));
-	gh.addEdge(make_fast_triple(4, 10, 5));
-	gh.addEdge(make_fast_triple(5, 2, 2));
-	gh.addEdge(make_fast_triple(0, 1, 1));
-	gh.addEdge(make_fast_triple(1, 2, 2));
-	gh.addEdge(make_fast_triple(2, 1, 2));
-	gh.addEdge(make_fast_triple(2, 2, 3));
-	gh.addEdge(make_fast_triple(0, 1, 2));
-	gh.runCFLReachability();
-	for (int i = 0; i < 6; i++) {
-		for (int j = 0; j < 6; j++) {
-			if ((i == j) || (i == 0 && j == 2) || (i == 0 && j == 3) ||
-			    (i == 2 && j == 3) || (i == 4 && j == 5)) {
-				assert(gh.hasEdge(make_fast_triple(i, gm.startSymbol, j)));
-			} else {
-				assert(!gh.hasEdge(make_fast_triple(i, gm.startSymbol, j)));
-			}
-		}
-	}
-	{
-		auto rec1 = gh.getCFLReachabilityEdgeClosure(false, 0, 2);
-		assert(rec1.size() == 5);
-		assert(rec1.count(make_fast_triple(0, 1, 1)) == 1);
-		assert(rec1.count(make_fast_triple(1, 2, 2)) == 1);
-		assert(rec1.count(make_fast_triple(0, 1, 4)) == 1);
-		assert(rec1.count(make_fast_triple(4, 10, 5)) == 1);
-		assert(rec1.count(make_fast_triple(5, 2, 2)) == 1);
-	}
-	{
-		auto rec2 = gh.getCFLReachabilityEdgeClosure(false, 2, 3);
-		assert(rec2.size() == 2);
-		assert(rec2.count(make_fast_triple(2, 1, 2)) == 1);
-		assert(rec2.count(make_fast_triple(2, 2, 3)) == 1);
-	}
-	{
-		auto rec3 = gh.getCFLReachabilityEdgeClosure(false, 2, 2);
-		assert(rec3.size() == 0);
-	}
-}
 
 void dumpVirtualMemoryPeak() {
         std::ifstream in("/proc/self/status");
@@ -104,7 +28,6 @@ void dumpVirtualMemoryPeak() {
 }
 
 void printUsage(const char *name) {
-	std::cerr << "Passed all tests." << std::endl;
 	std::cerr << "Usage: " << name << " <graph-file-path>" << std::endl;
 }
 
@@ -119,8 +42,10 @@ void printUsage(const char *name) {
 } while (0)
 
 int main(int argc, char *argv[]) {
-	auto start = std::chrono::steady_clock::now();
 	if (argc == 2) {
+		// start timer
+		auto start = std::chrono::steady_clock::now();
+
 		// parse data
 		const std::tuple<
 			std::map<std::string, int>,
@@ -129,6 +54,7 @@ int main(int argc, char *argv[]) {
 			std::vector<Grammar>
 		> data = parsePAGraph(argv[1]);
 
+		// prepare data
 		const std::map<std::string, int> &v_map              = std::get<0>(data);
 #ifdef GRAPH
 		const std::map<std::vector<std::string>, int> &l_map = std::get<1>(data);
@@ -198,17 +124,30 @@ int main(int argc, char *argv[]) {
 			gh3.runCFLReachability();
 			auto es3 = gh3.getCFLReachabilityEdgeClosure(true);
 			if (es3.size() == es.size()) {
-				int ctr = 0;
+				int ctr1 = 0, ctr2 = 0, ctr3 = 0, ctr = 0;
 				for (int s = 0; s < nv; s++) {
 					for (int t = 0; t < nv; t++) {
-						if (gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t)) &&
-						gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t)) &&
-						gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t))) {
+						bool r1 = gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t));
+						bool r2 = gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t));
+						bool r3 = gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t));
+						if (r1) {
+							ctr1++;
+						}
+						if (r2) {
+							ctr2++;
+						}
+						if (r3) {
+							ctr3++;
+						}
+						if (r1 && r2 && r3) {
 							ctr++;
 						}
 					}
 				}
 				check_resource("refined combination");
+				std::cout << "L1: " << ctr1 << std::endl;
+				std::cout << "L2: " << ctr2 << std::endl;
+				std::cout << "L3: " << ctr3 << std::endl;
 				std::cout << "Comb:" << ctr << std::endl;
 				break;
 			} else {
@@ -252,8 +191,6 @@ int main(int argc, char *argv[]) {
 		}
 #endif
 	} else {
-		test();
-		check_resource("test");
 		printUsage(argv[0]);
 	}
 }
