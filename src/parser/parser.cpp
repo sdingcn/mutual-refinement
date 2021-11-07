@@ -175,13 +175,13 @@ std::tuple<
 			for (auto &n : numbers[k]) {
 				gm.addBinaryProduction(
 						l_map[label{"d"}],
-						l_map[label{"op", n}],
+						l_map[label{"o" + k, n}],
 						l_map[label{"d1"}]
 						);
 				gm.addBinaryProduction(
 						l_map[label{"d1"}],
 						l_map[label{"d"}],
-						l_map[label{"cp", n}]
+						l_map[label{"c" + k, n}]
 						);
 			}
 		}
