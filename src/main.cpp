@@ -163,7 +163,10 @@ int main(int argc, char *argv[]) {
 			gh3.runCFLReachability();
 			auto es3 = gh3.getCFLReachabilityEdgeClosure();
 			if (es3.size() == es.size()) {
-				std::ofstream out("simplified.dot");
+				std::string path = argv[1];
+				auto start = path.rfind("/");
+				auto end = path.rfind(".dot");
+				std::ofstream out("results/simplification/" + path.substr(start + 1, end - (start + 1)) + ".dot");
 				// 100->200[label="cp--10"]
 				for (long long e : es) {
 					int i = fast_triple_first(e);
