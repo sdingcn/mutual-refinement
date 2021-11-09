@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 			l_map_r[p.second] = p.first;
 		}
 #endif
-		const std::unordered_set<long long> &edges                  = std::get<2>(data);
+		const std::unordered_set<long long> &edges           = std::get<2>(data);
 		const std::vector<Grammar> &grammars                 = std::get<3>(data);
 		const int &nv                                        = v_map.size();
 

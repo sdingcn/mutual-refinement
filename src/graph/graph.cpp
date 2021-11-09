@@ -66,8 +66,7 @@ void Graph::runCFLReachability() {
 			unaryRecord[i][j].insert(ind);
 #endif
 			int x = grammar.unaryProductions[ind].first;
-			long long e = make_fast_triple(i, x, j);
-			tba.push_back(e);
+			tba.push_back(make_fast_triple(i, x, j));
 		}
 		for (long long zk : adjacencyVector[j]) { // x -> yz
 			int z = fast_pair_first(zk);
@@ -78,8 +77,7 @@ void Graph::runCFLReachability() {
 					binaryRecord[i][k].insert(make_fast_pair(ind, j));
 #endif
 					int x = grammar.binaryProductions[ind].first;
-					long long e = make_fast_triple(i, x, k);
-					tba.push_back(e);
+					tba.push_back(make_fast_triple(i, x, k));
 				}
 			}
 		}
@@ -92,15 +90,14 @@ void Graph::runCFLReachability() {
 					binaryRecord[k][j].insert(make_fast_pair(ind, i));
 #endif
 					int x = grammar.binaryProductions[ind].first;
-					long long e = make_fast_triple(k, x, j);
-					tba.push_back(e);
+					tba.push_back(make_fast_triple(k, x, j));
 				}
 			}
 		}
-		for (long long e : tba) {
-			if (!hasEdge(e)) {
-				addEdge(e);
-				w.push_front(e);
+		for (long long e1 : tba) {
+			if (!hasEdge(e1)) {
+				addEdge(e1);
+				w.push_front(e1);
 			}
 		}
 	}
@@ -129,10 +126,10 @@ std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure() const {
 		if (unaryRecord[i].count(j) == 1) {
 			for (int ind : unaryRecord[i].at(j)) {
 				if (grammar.unaryProductions[ind].first == x) {
-					long long nxt = make_fast_triple(i, grammar.unaryProductions[ind].second, j);
-					if (vis.count(nxt) == 0) {
-						vis.insert(nxt);
-						q.push_back(nxt);
+					long long e1 = make_fast_triple(i, grammar.unaryProductions[ind].second, j);
+					if (vis.count(e1) == 0) {
+						vis.insert(e1);
+						q.push_back(e1);
 					}
 				}
 			}
@@ -141,15 +138,15 @@ std::unordered_set<long long> Graph::getCFLReachabilityEdgeClosure() const {
 			for (long long ind_k : binaryRecord[i].at(j)) {
 				int ind = fast_pair_first(ind_k), k = fast_pair_second(ind_k);
 				if (grammar.binaryProductions[ind].first == x) {
-					long long nxt1 = make_fast_triple(i, grammar.binaryProductions[ind].second.first, k);
-					long long nxt2 = make_fast_triple(k, grammar.binaryProductions[ind].second.second, j);
-					if (vis.count(nxt1) == 0) {
-						vis.insert(nxt1);
-						q.push_back(nxt1);
+					long long e1 = make_fast_triple(i, grammar.binaryProductions[ind].second.first, k);
+					long long e2 = make_fast_triple(k, grammar.binaryProductions[ind].second.second, j);
+					if (vis.count(e1) == 0) {
+						vis.insert(e1);
+						q.push_back(e1);
 					}
-					if (vis.count(nxt2) == 0) {
-						vis.insert(nxt2);
-						q.push_back(nxt2);
+					if (vis.count(e2) == 0) {
+						vis.insert(e2);
+						q.push_back(e2);
 					}
 				}
 			}

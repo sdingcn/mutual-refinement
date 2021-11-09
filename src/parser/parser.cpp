@@ -71,6 +71,7 @@ std::tuple<
 	// find out numbers for each Dyck
 	std::map<std::string, std::unordered_set<std::string>> numbers;
 	for (auto &ijl : rawEdges) {
+		// 100->200[label="cp--10"]
 		std::string dtype = ijl.second.substr(1, 1);
 		std::string number = ijl.second.substr(4, ijl.second.size() - 4);
 		if (dtype == "p") {
@@ -99,6 +100,45 @@ std::tuple<
 	l_map[label{"d1"}] = l_ctr++;
 
 	// grammar constructors
+	auto construct_combined = [&numbers, &l_map]
+		(Grammar &gm) -> void {
+		for (auto &n : numbers["p"]) {
+			gm.addTerminal(l_map[label{"op", n}]);
+			gm.addTerminal(l_map[label{"cp", n}]);
+		}
+		for (auto &n : numbers["b"]) {
+			gm.addTerminal(l_map[label{"ob", n}]);
+			gm.addTerminal(l_map[label{"cb", n}]);
+		}
+		gm.addNonterminal(l_map[label{"d"}]);
+		gm.addNonterminal(l_map[label{"d1"}]);
+		// d      -> empty
+		gm.addEmptyProduction(l_map[label{"d"}]);
+		// d      -> d d
+		gm.addBinaryProduction(
+				l_map[label{"d"}],
+				l_map[label{"d"}],
+				l_map[label{"d"}]
+				);
+		// d      -> o d1
+		// d1     -> d c
+		for (auto &k : std::vector<std::string>{"p", "b"}) {
+			for (auto &n : numbers[k]) {
+				gm.addBinaryProduction(
+						l_map[label{"d"}],
+						l_map[label{"o" + k, n}],
+						l_map[label{"d1"}]
+						);
+				gm.addBinaryProduction(
+						l_map[label{"d1"}],
+						l_map[label{"d"}],
+						l_map[label{"c" + k, n}]
+						);
+			}
+		}
+		gm.addStartSymbol(l_map[label{"d"}]);
+		gm.init(l_map.size());
+	};
 	auto construct_single = [&numbers, &l_map]
 		(Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
 		for (auto &n : numbers[dyck]) {
@@ -149,51 +189,12 @@ std::tuple<
 		gm.addStartSymbol(l_map[label{"d" + dyck}]);
 		gm.init(l_map.size());
 	};
-	auto construct_combined = [&numbers, &l_map]
-		(Grammar &gm) -> void {
-		for (auto &n : numbers["p"]) {
-			gm.addTerminal(l_map[label{"op", n}]);
-			gm.addTerminal(l_map[label{"cp", n}]);
-		}
-		for (auto &n : numbers["b"]) {
-			gm.addTerminal(l_map[label{"ob", n}]);
-			gm.addTerminal(l_map[label{"cb", n}]);
-		}
-		gm.addNonterminal(l_map[label{"d"}]);
-		gm.addNonterminal(l_map[label{"d1"}]);
-		// d      -> empty
-		gm.addEmptyProduction(l_map[label{"d"}]);
-		// d      -> d d
-		gm.addBinaryProduction(
-				l_map[label{"d"}],
-				l_map[label{"d"}],
-				l_map[label{"d"}]
-				);
-		// d      -> o d1
-		// d1     -> d c
-		for (auto &k : std::vector<std::string>{"p", "b"}) {
-			for (auto &n : numbers[k]) {
-				gm.addBinaryProduction(
-						l_map[label{"d"}],
-						l_map[label{"o" + k, n}],
-						l_map[label{"d1"}]
-						);
-				gm.addBinaryProduction(
-						l_map[label{"d1"}],
-						l_map[label{"d"}],
-						l_map[label{"c" + k, n}]
-						);
-			}
-		}
-		gm.addStartSymbol(l_map[label{"d"}]);
-		gm.init(l_map.size());
-	};
 
 	// construct grammars
-	Grammar gmp, gmb, gmc;
+	Grammar gmc, gmp, gmb;
+	construct_combined(gmc);
 	construct_single(gmp, "p", "b");
 	construct_single(gmb, "b", "p");
-	construct_combined(gmc);
 
 	// check boundaries
 	if (v_map.size() - 1 > static_cast<int>(MASK)) {
