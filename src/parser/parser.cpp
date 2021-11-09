@@ -220,6 +220,6 @@ std::tuple<
 			std::move(v_map),
 			std::move(l_map),
 			std::move(edges),
-			std::vector<Grammar> {gmc, gmp, gmb}
+			std::vector<Grammar> {gmp, gmc, gmb}
 			);
 }
