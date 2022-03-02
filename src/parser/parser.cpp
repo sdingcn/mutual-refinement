@@ -9,6 +9,15 @@
 #include <tuple>
 #include "../common.h"
 
+Grammar parseGrammar(const std::string &fname) {
+}
+
+Grammar extractGrammarFromGraph(const std::string &fname) {
+}
+
+std::tuple<int, std::vector<long long>> parseGraph(const std::string &fname) {
+}
+
 bool isEdgeLine(const std::string &line) {
 	for (char c : line) {
 		if (c == '>') {

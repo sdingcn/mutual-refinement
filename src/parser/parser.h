@@ -9,12 +9,10 @@
 #include "../grammar/grammar.h"
 #include "../common.h"
 
-// v_map, l_map, edges, grammars
-std::tuple<
-	std::map<std::string, int>,
-	std::map<std::vector<std::string>, int>,
-	std::unordered_set<long long>,
-	std::vector<Grammar>
-> parsePAGraph(const std::string &fname);
+Grammar parseGrammar(const std::string &fname);
+
+Grammar extractGrammarFromGraph(const std::string &fname);
+
+std::tuple<int, std::vector<long long>> parseGraph(const std::string &fname);
 
 #endif

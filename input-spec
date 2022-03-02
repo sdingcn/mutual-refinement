@@ -1,0 +1,22 @@
+# Grammar File
+
+<nonterminal>	[A-Z][A-Za-z0-9]*
+<terminal>	[a-z][A-Za-z0-9]*
+<symbol>	(<nonterminal>|<terminal>)
+<space>		[ \t]+
+<newline>	\n
+
+>>> file begin
+<nonterminal><newline>
+(<nonterminal><space>=(|<space><symbol>|<space><symbol><space><symbol>)<newline>)*
+>>> file end
+
+# Dot File
+
+<node>		[A-Za-z0-9]+
+<label>		[a-z][A-Za-z0-9]*
+<newline>	\n
+
+>>> file begin
+(<node>-><node>[label="<label>"]<newline>)*
+>>> file end
