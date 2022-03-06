@@ -1,4 +1,4 @@
-# mutual-refinement-of-graph-reachability
+# mutual-refinement-of-CFL-reachability
 
 ## dependencies
 This implementation is intended to be used on Linux.
