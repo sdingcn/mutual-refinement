@@ -13,178 +13,71 @@
 #include "parser/parser.h"
 #include "graph/graph.h"
 
-void dumpVirtualMemoryPeak() {
-        std::ifstream in("/proc/self/status");
-        std::string line;
-        while(getline(in, line)) {
-                std::istringstream sin(line);
-                std::string tag;
-                sin >> tag;
-                if (tag == "VmPeak:") {
-                        std::cout << "    " << line << std::endl;
-                        return;
-                }
-        }
+void check_resource(void (*f)()) {
+	auto start = std::chrono::steady_clock::now();
+	f();
+	auto end = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
+	std::ifstream in("/proc/self/status");
+	std::string line;
+	std::string vmpeak;
+	while (getline(in, line)) {
+		std::istringstream sin(line);
+		std::string tag;
+		sin >> tag;
+		if (tag == "VmPeak:") {
+			sin >> vmpeak;
+			break;
+		}
+	}
+	std::cout << "****** RESOURCE CHECK ******" << std::endl;
+	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
+	std::cout << "Peak Space (kB): " << vmpeak << std::endl; 
 }
 
-void printUsage(const char *name) {
-	std::cerr << "Usage: " << name << " <graph-file-path>" << std::endl;
-}
-
-#define check_resource(str) do {\
-	auto end = std::chrono::steady_clock::now();\
-	std::chrono::duration<double> elapsed_seconds = end - start;\
-	std::cout << '{' << std::endl;\
-	std::cout << "    resource check: " << str << std::endl;\
-	std::cout << "    Time (Seconds): " << elapsed_seconds.count() << std::endl;\
-	dumpVirtualMemoryPeak();\
-	std::cout << '}' << std::endl;\
-} while (0)
-
-int main(int argc, char *argv[]) {
-	if (argc == 2) {
-		// start timer
-		auto start = std::chrono::steady_clock::now();
-
-		// parse data
-		const std::tuple<
-			std::map<std::string, int>,
-			std::map<std::vector<std::string>, int>,
-			std::unordered_set<long long>,
-			std::vector<Grammar>
-		> data = parsePAGraph(argv[1]);
-
-		// prepare data
-		const std::map<std::string, int> &v_map              = std::get<0>(data);
-#ifdef GRAPH
-		const std::map<std::vector<std::string>, int> &l_map = std::get<1>(data);
-		std::map<int, std::string> v_map_r;
-		for (auto &p : v_map) {
-			v_map_r[p.second] = p.first;
+void run() {
+	int ng = argc - 2; // number of grammars
+	std::unordered_map<std::string, int> sym_map;
+	std::vector<Grammar> grammars;
+	for (int i = 0; i < ng; i++) {
+		grammars.push_back(parseGrammar(argv[2 + i], sym_map));
+	}
+	std::unordered_map<std::string, int> node_map;
+	auto p = parseGraph(argv[2], sym_map, node_map);
+	int nv = p.first;
+	std::unordered_set<long long> edges = std::move(p.second);
+	while (true) {
+		int esize = edges.size();
+		std::vector<Graph> graphs(ng);
+		for (int i = 0; i < ng; i++) {
+			graphs[i].clear();
+			graphs[i].setNumberOfVertices(nv);
+			graphs[i].addEdges(edges);
+			auto summaries = graphs[i].runCFLReachability(grammars[i]);
+			edges = graphs[i].getEdgeClosure(grammars[i], summaries);
 		}
-		std::map<int, std::vector<std::string>> l_map_r;
-		for (auto &p : l_map) {
-			l_map_r[p.second] = p.first;
-		}
-#endif
-		const std::unordered_set<long long> &edges           = std::get<2>(data);
-		const std::vector<Grammar> &grammars                 = std::get<3>(data);
-		const int &nv                                        = v_map.size();
-
-#ifdef NAIVE
-		Graph gh1(grammars[0], nv, edges);
-		gh1.runCFLReachability();
-		Graph gh2(grammars[1], nv, edges);
-		gh2.runCFLReachability();
-		Graph gh3(grammars[2], nv, edges);
-		gh3.runCFLReachability();
-		int ctr1 = 0, ctr2 = 0, ctr3 = 0, ctr = 0;
-		for (int s = 0; s < nv; s++) {
-			for (int t = 0; t < nv; t++) {
-				bool r1 = gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t));
-				bool r2 = gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t));
-				bool r3 = gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t));
-				if (r1) {
-					ctr1++;
-				}
-				if (r2) {
-					ctr2++;
-				}
-				if (r3) {
-					ctr3++;
-				}
-				if (r1 && r2 && r3) {
-					ctr++;
-				}
-			}
-		}
-		check_resource("naive combination");
-		std::cout << "L1: " << ctr1 << std::endl;
-		std::cout << "L2: " << ctr2 << std::endl;
-		std::cout << "L3: " << ctr3 << std::endl;
-		std::cout << "Comb: " << ctr << std::endl;
-#endif
-
-#ifdef REFINE
-		std::unordered_set<long long> es(edges.begin(), edges.end());
-		while (true) {
-			Graph gh1(grammars[0], nv, es);
-			gh1.runCFLReachability();
-			auto es1 = gh1.getCFLReachabilityEdgeClosure();
-			Graph gh2(grammars[1], nv, es1);
-			gh2.runCFLReachability();
-			auto es2 = gh2.getCFLReachabilityEdgeClosure();
-			Graph gh3(grammars[2], nv, es2);
-			gh3.runCFLReachability();
-			auto es3 = gh3.getCFLReachabilityEdgeClosure();
-			if (es3.size() == es.size()) {
-				int ctr1 = 0, ctr2 = 0, ctr3 = 0, ctr = 0;
-				for (int s = 0; s < nv; s++) {
-					for (int t = 0; t < nv; t++) {
-						bool r1 = gh1.hasEdge(make_fast_triple(s, grammars[0].startSymbol, t));
-						bool r2 = gh2.hasEdge(make_fast_triple(s, grammars[1].startSymbol, t));
-						bool r3 = gh3.hasEdge(make_fast_triple(s, grammars[2].startSymbol, t));
-						if (r1) {
-							ctr1++;
-						}
-						if (r2) {
-							ctr2++;
-						}
-						if (r3) {
-							ctr3++;
-						}
-						if (r1 && r2 && r3) {
-							ctr++;
-						}
+		if (edges.size() == esize) {
+			int ctr = 0;
+			for (int s = 0; s < nv; s++) {
+				for (int t = 0; t < nv; t++) {
+					bool ok = true;
+					for (int i = 0; i < ng; i++) {
+						ok &&= graphs[i].hasEdge(make_fast_triple(s, grammars[i].startSymbol, t));
+					}
+					if (ok) {
+						ctr++;
 					}
 				}
-				check_resource("refined combination");
-				std::cout << "L1: " << ctr1 << std::endl;
-				std::cout << "L2: " << ctr2 << std::endl;
-				std::cout << "L3: " << ctr3 << std::endl;
-				std::cout << "Comb:" << ctr << std::endl;
-				break;
-			} else {
-				es = std::move(es3);
 			}
+			std::cout << "MR: " << ctr << std::endl;
 		}
-#endif
+	}
+}
 
-#ifdef GRAPH
-		std::unordered_set<long long> es(edges.begin(), edges.end());
-		while (true) {
-			Graph gh1(grammars[0], nv, es);
-			gh1.runCFLReachability();
-			auto es1 = gh1.getCFLReachabilityEdgeClosure();
-			Graph gh2(grammars[1], nv, es1);
-			gh2.runCFLReachability();
-			auto es2 = gh2.getCFLReachabilityEdgeClosure();
-			Graph gh3(grammars[2], nv, es2);
-			gh3.runCFLReachability();
-			auto es3 = gh3.getCFLReachabilityEdgeClosure();
-			if (es3.size() == es.size()) {
-				std::string path = argv[1];
-				auto nameStart = path.rfind("/");
-				auto nameEnd = path.rfind(".dot");
-				std::ofstream out("results/simplification/" + path.substr(nameStart + 1, nameEnd - (nameStart + 1)) + ".dot");
-				// 100->200[label="cp--10"]
-				for (long long e : es) {
-					int i = fast_triple_first(e);
-					int x = fast_triple_second(e);
-					int j = fast_triple_third(e);
-					out << v_map_r[i] << "->"
-						<< v_map_r[j] << "[label=\""
-						<< l_map_r[x][0] << "--"
-						<< l_map_r[x][1] << "\"]\n";
-				}
-				check_resource("graph simplification");
-				break;
-			} else {
-				es = std::move(es3);
-			}
-		}
-#endif
+int main(int argc, char *argv[]) {
+	if (argc >= 3) {
+		check_resource(run);
 	} else {
-		printUsage(argv[0]);
+		std::cerr << "Usage: " << argv[0] << " <graph-file-path> (<grammar-file-path>)+" << std::endl;
 	}
 }

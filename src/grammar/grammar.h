@@ -9,21 +9,23 @@
 struct Grammar {
 	std::unordered_set<int> terminals;
 	std::unordered_set<int> nonterminals;
+	int startSymbol;
 	std::vector<int> emptyProductions;
 	std::vector<std::pair<int, int>> unaryProductions;
 	std::vector<std::pair<int, std::pair<int, int>>> binaryProductions;
-	int startSymbol;
-	// RHS symbol -> {corresponding indices in unaryProductions}
-	std::vector<std::vector<int>> unaryProductionsInv;
-	// RHS symbol 1 -> RHS symbol 2 -> {corresponding indices in binaryProductions}
-	std::vector<std::unordered_map<int, std::vector<int>>> binaryProductionsInv;
+	// fast index access
+	std::unordered_map<int, std::vector<int>> emptyLR;
+	std::unordered_map<int, std::vector<int>> unaryLR;
+	std::unordered_map<int, std::vector<int>> unaryRL;
+	std::unordered_map<int, std::vector<int>> binaryLR;
+	std::unordered_map<long long, std::vector<int>> binaryRL;
 	void addTerminal(int t);
 	void addNonterminal(int nt);
+	void addStartSymbol(int s);
 	void addEmptyProduction(int l);
 	void addUnaryProduction(int l, int r);
 	void addBinaryProduction(int l, int r1, int r2);
-	void addStartSymbol(int s);
-	void init(int total); // total is the max number used to encode labels
+	void initFastIndices();
 };
 
 #endif

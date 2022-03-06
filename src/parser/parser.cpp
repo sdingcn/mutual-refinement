@@ -6,229 +6,207 @@
 #include <unordered_set>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <tuple>
 #include "../common.h"
+#include "../die.h"
 
-Grammar parseGrammar(const std::string &fname) {
-}
-
-Grammar extractGrammarFromGraph(const std::string &fname) {
-}
-
-std::tuple<int, std::vector<long long>> parseGraph(const std::string &fname) {
-}
-
-bool isEdgeLine(const std::string &line) {
-	for (char c : line) {
-		if (c == '>') {
+bool isUpperLetter(char c) {
+	static const char *upper_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	for (int i = 0; i < 26; i++) {
+		if (c == upper_letters[i]) {
 			return true;
 		}
 	}
 	return false;
 }
 
-std::pair<std::pair<std::string, std::string>, std::string> parsePALine(const std::string &line) {
-	// 100->200[label="cp--10"]
-	std::string::size_type p1 = line.find("->");
-	std::string::size_type p2 = line.find('[');
-	std::string::size_type p3 = line.find(']');
-	return std::make_pair(
-			std::make_pair(line.substr(0, p1 - 0), line.substr(p1 + 2, p2 - (p1 + 2))),
-			line.substr(p2 + 8, p3 - 1 - (p2 + 8))
-			);
+bool isLowerLetter(char c) {
+	static const char *lower_letters = "abcdefghijklmnopqrstuvwxyz";
+	for (int i = 0; i < 26; i++) {
+		if (c == lower_letters[i]) {
+			return true;
+		}
+	}
+	return false;
 }
 
-std::tuple<
-	std::map<std::string, int>,
-	std::map<std::vector<std::string>, int>,
-	std::unordered_set<long long>,
-	std::vector<Grammar>
-> parsePAGraph(const std::string &fname) {
-	// the label type
-	using label = std::vector<std::string>;
+bool isDigit(char c) {
+	static const char *digits = "0123456789";
+	for (int i = 0; i < 10; i++) {
+		if (c == digits[i]) {
+			return true;
+		}
+	}
+	return false;
+}
 
+bool isDash(char c) {
+	return c == '-' || c == '_';
+}
+
+bool isNonterminal(const std::string &s) {
+	int sz = s.size();
+	if (sz == 0) {
+		return false;
+	}
+	if (!isUpperLetter(s[0])) {
+		return false;
+	}
+	for (int i = 1; i < sz; i++) {
+		if (!(isUpperLetter(s[i]) || isLowerLetter(s[i]) || isDigit(s[i]) || isDash(s[i]))) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool isTerminal(const std::string &s) {
+	int sz = s.size();
+	if (sz == 0) {
+		return false;
+	}
+	if (!isLowerLetter(s[0])) {
+		return false;
+	}
+	for (int i = 1; i < sz; i++) {
+		if (!(isUpperLetter(s[i]) || isLowerLetter(s[i]) || isDigit(s[i]) || isDash(s[i]))) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool isNode(const std::string &s) {
+	int sz = s.size();
+	if (sz == 0) {
+		return false;
+	}
+	for (int i = 1; i < sz; i++) {
+		if (!(isUpperLetter(s[i]) || isLowerLetter(s[i]) || isDigit(s[i]) || isDash(s[i]))) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool isLabel(const std::string &s) {
+	return isTerminal(s);
+}
+
+bool checkGrammar(const std::vector<std::string> &lines) {
+	return true;
+}
+
+Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, int> &sym_map) {
 	// file auto closed via destructor
 	std::ifstream in(fname);
 	if (in.fail()) {
-		std::cerr << "Error: Cannot open the file" << std::endl;
-		std::exit(EXIT_FAILURE);
+		die(38764588);
 	}
-
-	// read raw edges
+	// read all lines and check
+	std::vector<std::string> lines;
 	std::string line;
-	std::vector<std::pair<std::pair<std::string, std::string>, std::string>> rawEdges;
 	while (getline(in, line)) {
-		if (isEdgeLine(line)) {
-			rawEdges.push_back(parsePALine(line));
-		}
+		lines.push_back(line);
 	}
-
-	// encode vertices
-	std::map<std::string, int> v_map;
-	int v_ctr = 0;
-	for (auto &ijl : rawEdges) {
-		auto i = ijl.first.first;
-		auto j = ijl.first.second;
-		if (v_map.count(i) == 0) {
-			v_map[i] = v_ctr++;
-		}
-		if (v_map.count(j) == 0) {
-			v_map[j] = v_ctr++;
-		}
+	if (!checkGrammar(lines)) {
+		die(12327939);
 	}
-
-	// find out numbers for each Dyck
-	std::map<std::string, std::unordered_set<std::string>> numbers;
-	for (auto &ijl : rawEdges) {
-		// 100->200[label="cp--10"]
-		std::string dtype = ijl.second.substr(1, 1);
-		std::string number = ijl.second.substr(4, ijl.second.size() - 4);
-		if (dtype == "p") {
-			numbers["p"].insert(number);
-		} else if (dtype == "b") {
-			numbers["b"].insert(number);
+	// converter
+	int num = 0;
+	auto convert = [&num, &sym_map](const std::string &sym) -> int {
+		if (sym_map.count(sym) == 1) {
+			return sym_map[sym];
+		} else {
+			return sym_map[sym] = num++;
 		}
-	}
-
-	// encode labels
-	std::map<label, int> l_map;
-	int l_ctr = 0;
-	l_map[label{"dp"}] = l_ctr++;
-	for (auto &n : numbers["p"]) {
-		l_map[label{"op", n}] = l_ctr++;
-		l_map[label{"cp", n}] = l_ctr++;
-		l_map[label{"dp", n}] = l_ctr++;
-	}
-	l_map[label{"db"}] = l_ctr++;
-	for (auto &n : numbers["b"]) {
-		l_map[label{"ob", n}] = l_ctr++;
-		l_map[label{"cb", n}] = l_ctr++;
-		l_map[label{"db", n}] = l_ctr++;
-	}
-	l_map[label{"d"}] = l_ctr++;
-	l_map[label{"d1"}] = l_ctr++;
-
-	// grammar constructors
-	auto construct_combined = [&numbers, &l_map]
-		(Grammar &gm) -> void {
-		for (auto &n : numbers["p"]) {
-			gm.addTerminal(l_map[label{"op", n}]);
-			gm.addTerminal(l_map[label{"cp", n}]);
-		}
-		for (auto &n : numbers["b"]) {
-			gm.addTerminal(l_map[label{"ob", n}]);
-			gm.addTerminal(l_map[label{"cb", n}]);
-		}
-		gm.addNonterminal(l_map[label{"d"}]);
-		gm.addNonterminal(l_map[label{"d1"}]);
-		// d      -> empty
-		gm.addEmptyProduction(l_map[label{"d"}]);
-		// d      -> d d
-		gm.addBinaryProduction(
-				l_map[label{"d"}],
-				l_map[label{"d"}],
-				l_map[label{"d"}]
-				);
-		// d      -> o d1
-		// d1     -> d c
-		for (auto &k : std::vector<std::string>{"p", "b"}) {
-			for (auto &n : numbers[k]) {
-				gm.addBinaryProduction(
-						l_map[label{"d"}],
-						l_map[label{"o" + k, n}],
-						l_map[label{"d1"}]
-						);
-				gm.addBinaryProduction(
-						l_map[label{"d1"}],
-						l_map[label{"d"}],
-						l_map[label{"c" + k, n}]
-						);
+	};
+	// constructing grammar
+	Grammar grammar;
+	int start = convert(lines[0]);
+	grammar.addNonterminal(start);
+	grammar.addStartSymbol(start);
+	int n = lines.size();
+	for (int i = 1; i < n; i++) {
+		std::istringstream sin(lines[i]);
+		std::vector<std::string> words;
+		std::string word;
+		while (sin >> word) {
+			words.push_back(word);
+			if (isTerminal(word)) {
+				grammar.addTerminal(convert(word));
+			} else {
+				grammar.addNonterminal(convert(word));
 			}
 		}
-		gm.addStartSymbol(l_map[label{"d"}]);
-		gm.init(l_map.size());
-	};
-	auto construct_single = [&numbers, &l_map]
-		(Grammar &gm, const std::string &dyck, const std::string &other_dyck) -> void {
-		for (auto &n : numbers[dyck]) {
-			gm.addTerminal(l_map[label{"o" + dyck, n}]);
-			gm.addTerminal(l_map[label{"c" + dyck, n}]);
+		if (words.size() == 1) {
+			grammar.addEmptyProduction(convert(words[0]));
+		} else if (words.size() == 2) {
+			grammar.addUnaryProduction(convert(words[0]), convert(words[1]));
+		} else if (words.size() == 3) {
+			grammar.addBinaryProduction(convert(words[0]), convert(words[1]), convert(words[2]));
 		}
-		for (auto &n : numbers[other_dyck]) {
-			gm.addTerminal(l_map[label{"o" + other_dyck, n}]);
-			gm.addTerminal(l_map[label{"c" + other_dyck, n}]);
-		}
-		gm.addNonterminal(l_map[label{"d" + dyck}]);
-		for (auto &n : numbers[dyck]) {
-			gm.addNonterminal(l_map[label{"d" + dyck, n}]);
-		}
-		// d      -> empty
-		gm.addEmptyProduction(l_map[label{"d" + dyck}]);
-		// d      -> d d
-		gm.addBinaryProduction(
-				l_map[label{"d" + dyck}],
-				l_map[label{"d" + dyck}],
-				l_map[label{"d" + dyck}]
-				);
-		// d      -> o--[n] d--[n]
-		// d--[n] -> d      c--[n]
-		for (auto &n : numbers[dyck]) {
-			gm.addBinaryProduction(
-					l_map[label{"d" + dyck}],
-					l_map[label{"o" + dyck, n}],
-					l_map[label{"d" + dyck, n}]
-					);
-			gm.addBinaryProduction(
-					l_map[label{"d" + dyck, n}],
-					l_map[label{"d" + dyck}],
-					l_map[label{"c" + dyck, n}]
-					);
-		}
-		// d      -> ...
-		for (auto &n : numbers[other_dyck]) {
-			gm.addUnaryProduction(
-					l_map[label{"d" + dyck}],
-					l_map[label{"o" + other_dyck, n}]
-					);
-			gm.addUnaryProduction(
-					l_map[label{"d" + dyck}],
-					l_map[label{"c" + other_dyck, n}]
-					);
-		}
-		gm.addStartSymbol(l_map[label{"d" + dyck}]);
-		gm.init(l_map.size());
-	};
-
-	// construct grammars
-	Grammar gmc, gmp, gmb;
-	construct_combined(gmc);
-	construct_single(gmp, "p", "b");
-	construct_single(gmb, "b", "p");
-
-	// check boundaries
-	if (v_map.size() - 1 > static_cast<int>(MASK)) {
-		std::cerr << "Error: The graph contains too many nodes." << std::endl;
-		std::exit(EXIT_FAILURE);
 	}
-	if (l_map.size() - 1 > static_cast<int>(MASK)) {
-		std::cerr << "Error: The grammar contains too many symbols." << std::endl;
-		std::exit(EXIT_FAILURE);
-	}
+	grammar.initFastIndices();
+	return grammar;
+}
 
-	// construct the normalized graph
-	std::unordered_set<long long> edges;
-	for (auto &ijl : rawEdges) {
-		edges.insert(make_fast_triple(
-					v_map[ijl.first.first],
-					l_map[label{ijl.second.substr(0, 2), ijl.second.substr(4, ijl.second.size() - 4)}],
-					v_map[ijl.first.second]
-					));
-	}
+bool checkGraph(const std::vector<std::string> &lines) {
+	return true;
+}
 
-	return std::make_tuple(
-			std::move(v_map),
-			std::move(l_map),
-			std::move(edges),
-			std::vector<Grammar> {gmp, gmc, gmb}
+std::pair<std::pair<std::string, std::string>, std::string> parseGraphLine(const std::string &line) {
+	// node1->node2[label="label1"]
+	std::string::size_type p1 = line.find("->");
+	std::string::size_type p2 = line.find('[');
+	std::string::size_type p3 = line.find('=');
+	std::string::size_type p4 = line.find(']');
+	return std::make_pair(
+			std::make_pair(line.substr(0, p1 - 0), line.substr(p1 + 2, p2 - (p1 + 2))),
+			line.substr(p3 + 2, p4 - 1 - (p3 + 2))
 			);
+}
+
+std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fname,
+		const std::unordered_map<std::string, int> &sym_map,
+		std::unordered_map<std::string, int> &node_map) {
+	// file auto closed via destructor
+	std::ifstream in(fname);
+	if (in.fail()) {
+		die(28723488);
+	}
+	// read all lines and check
+	std::vector<std::string> lines;
+	std::string line;
+	while (getline(in, line)) {
+		lines.push_back(line);
+	}
+	if (!checkGraph(lines)) {
+		die(91327939);
+	}
+	// converter
+	int num = 0;
+	auto convert = [&num, &node_map](const std::string &node) -> int {
+		if (node_map.count(node) == 1) {
+			return node_map[node];
+		} else {
+			return node_map[node] = num++;
+		}
+	};
+	// count the number of vertices
+	int n = lines.size();
+	for (int i = 0; i < n; i++) {
+		auto l = parseGraphLine(lines[i]);
+		convert(l.first.first);
+		convert(l.first.second);
+	}
+	int nv = node_map.size();
+	// constructing graph
+	std::unordered_set<long long> edges;
+	for (int i = 0; i < n; i++) {
+		auto l = parseGraphLine(lines[i]);
+		edges.insert(make_fast_triple(convert(l.first.first), sym_map[l.second], convert(l.first.second)));
+	}
+	return std::make_pair(nv, std::move(edges));
 }

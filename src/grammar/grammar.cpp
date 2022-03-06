@@ -11,6 +11,10 @@ void Grammar::addNonterminal(int nt) {
 	nonterminals.insert(nt);
 }
 
+void Grammar::addStartSymbol(int s) {
+	startSymbol = s;
+}
+
 void Grammar::addEmptyProduction(int l) {
 	emptyProductions.push_back(l);
 }
@@ -23,19 +27,19 @@ void Grammar::addBinaryProduction(int l, int r1, int r2) {
 	binaryProductions.push_back(std::make_pair(l, std::make_pair(r1, r2)));
 }
 
-void Grammar::addStartSymbol(int s) {
-	startSymbol = s;
-}
-
-void Grammar::init(int total) {
-	unaryProductionsInv = std::vector<std::vector<int>>(total);
-	binaryProductionsInv = std::vector<std::unordered_map<int, std::vector<int>>>(total);
-	int nu = unaryProductions.size();
-	int nb = binaryProductions.size();
-	for (int i = 0; i < nu; i++) {
-		unaryProductionsInv[unaryProductions[i].second].push_back(i);
+void Grammar::initFastIndices() {
+	int ne = emptyProductions.size();
+	for (int i = 0; i < ne; i++) {
+		emptyLR[emptyProductions[i]].push_back(i);
 	}
+	int nu = unaryProductions.size();
+	for (int i = 0; i < nu; i++) {
+		unaryLR[unaryProductions[i].first].push_back(i);
+		unaryRL[unaryProductions[i].second].push_back(i);
+	}
+	int nb = binaryProductions.size();
 	for (int i = 0; i < nb; i++) {
-		binaryProductionsInv[binaryProductions[i].second.first][binaryProductions[i].second.second].push_back(i);
+		binaryLR[binaryProductions[i].first].push_back(i);
+		binaryRL[make_fast_pair(binaryProductions[i].second.first, binaryProductions[i].second.second)].push_back(i);
 	}
 }
