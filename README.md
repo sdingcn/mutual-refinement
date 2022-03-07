@@ -32,7 +32,7 @@ You need `make` and `g++` (supporting at least C++11).
 >>> file end
 ```
 
-### Dot File
+### Graph File (*.dot)
 ```
 <node>		[-_A-Za-z0-9]+
 <label>		<terminal>
