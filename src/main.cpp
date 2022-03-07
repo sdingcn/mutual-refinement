@@ -40,7 +40,7 @@ void run(int argc, char *argv[]) {
 	std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
 	int ng = grammars.size();
 	std::unordered_map<std::string, int> node_map;
-	auto p = parseGraph(argv[2], sym_map, node_map);
+	auto p = parseGraph(argv[1], sym_map, node_map);
 	int nv = p.first;
 	std::unordered_set<long long> edges = std::move(p.second);
 	while (true) {
@@ -67,6 +67,7 @@ void run(int argc, char *argv[]) {
 				}
 			}
 			std::cout << "MR: " << ctr << std::endl;
+			break;
 		}
 	}
 }

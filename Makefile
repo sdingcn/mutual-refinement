@@ -7,6 +7,9 @@ cppflags = -O3 -Wall -Wextra -pedantic
 main : $(files)
 	g++ -o main $(cppflags) $(cppfiles)
 
+profile : $(files)
+	g++ -pg -o main $(cppflags) $(cppfiles)
+
 .PHONY : clean
 clean :
 	-rm main
