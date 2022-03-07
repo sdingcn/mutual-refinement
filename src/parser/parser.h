@@ -16,4 +16,6 @@ std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fnam
 		const std::unordered_map<std::string, int> &sym_map,
 		std::unordered_map<std::string, int> &node_map);
 
+std::vector<Grammar> extractDyck(const std::string &fname);
+
 #endif
