@@ -11,9 +11,7 @@ You need `make` and `g++` (supporting at least C++11).
 `make clean`
 
 ## usage
-`./main <graph-file-path> (<grammar-file-path>)+`
-
-(Running `./main` prints the usage.)
+Running `./main` prints the usage.
 
 ## input specification
 

@@ -36,18 +36,15 @@ void check_resource(void (*f)(int, char**), int argc, char *argv[]) {
 }
 
 void run(int argc, char *argv[]) {
-	int ng = argc - 2;
 	std::unordered_map<std::string, int> sym_map;
-	std::vector<Grammar> grammars;
-	for (int i = 0; i < ng; i++) {
-		grammars.push_back(parseGrammar(argv[2 + i], sym_map));
-	}
+	std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
+	int ng = grammars.size();
 	std::unordered_map<std::string, int> node_map;
 	auto p = parseGraph(argv[2], sym_map, node_map);
 	int nv = p.first;
 	std::unordered_set<long long> edges = std::move(p.second);
 	while (true) {
-		std::unordered_set<long long>::size_type esize = edges.size();
+		std::unordered_set<long long>::size_type prev_size = edges.size();
 		std::vector<Graph> graphs(ng);
 		for (int i = 0; i < ng; i++) {
 			graphs[i].clear();
@@ -56,7 +53,7 @@ void run(int argc, char *argv[]) {
 			auto summaries = graphs[i].runCFLReachability(grammars[i]);
 			edges = graphs[i].getEdgeClosure(grammars[i], summaries);
 		}
-		if (edges.size() == esize) {
+		if (edges.size() == prev_size) {
 			int ctr = 0;
 			for (int s = 0; s < nv; s++) {
 				for (int t = 0; t < nv; t++) {
@@ -75,9 +72,9 @@ void run(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc >= 3) {
+	if (argc == 2) {
 		check_resource(run, argc, argv);
 	} else {
-		std::cerr << "Usage: " << argv[0] << " <graph-file-path> (<grammar-file-path>)+" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " <graph-file-path>" << std::endl;
 	}
 }
