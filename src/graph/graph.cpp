@@ -58,14 +58,14 @@ std::vector<long long> Graph::runCFLReachability(const Grammar &grammar) {
 
 		std::vector<long long> tba; // to be added
 
-		for (int ind : grammar.unaryRL[y]) { // x -> y
+		for (int ind : grammar.unaryRL.at(y)) { // x -> y
 			int x = grammar.unaryProductions[ind].first;
 			tba.push_back(make_fast_triple(i, x, j));
 		}
 		for (long long zk : adjacencyVector[j]) { // x -> yz
 			int z = fast_pair_first(zk);
 			int k = fast_pair_second(zk);
-			for (int ind : grammar.binaryRL[make_fast_pair(y, z)]) {
+			for (int ind : grammar.binaryRL.at(make_fast_pair(y, z))) {
 				int x = grammar.binaryProductions[ind].first;
 				tba.push_back(make_fast_triple(i, x, k));
 			}
@@ -73,7 +73,7 @@ std::vector<long long> Graph::runCFLReachability(const Grammar &grammar) {
 		for (long long kz : counterAdjacencyVector[i]) { // x -> zy
 			int k = fast_pair_first(kz);
 			int z = fast_pair_second(kz);
-			for (int ind : grammar.binaryRL[make_fast_pair(z, y)]) {
+			for (int ind : grammar.binaryRL.at(make_fast_pair(z, y))) {
 				int x = grammar.binaryProductions[ind].first;
 				tba.push_back(make_fast_triple(k, x, j));
 			}
@@ -111,7 +111,7 @@ std::unordered_set<long long> Graph::getEdgeClosure(const Grammar &grammar, cons
 			closure.insert(e);
 		}
 
-		for (int ind : grammar.unaryLR[x]) { // x -> y
+		for (int ind : grammar.unaryLR.at(x)) { // x -> y
 			long long e1 = make_fast_triple(i, grammar.unaryProductions[ind].second, j);
 			if (hasEdge(e1) && vis.count(e1) == 0) {
 				vis.insert(e1);
@@ -122,7 +122,7 @@ std::unordered_set<long long> Graph::getEdgeClosure(const Grammar &grammar, cons
 			// i --x--> j  =  i --y--> k  +  k --z--> j
 			int y = fast_pair_first(yk);
 			int k = fast_pair_second(yk);
-			for (int ind : grammar.binaryLR[x]) {
+			for (int ind : grammar.binaryLR.at(x)) {
 				auto &p = grammar.binaryProductions[ind];
 				if (p.second.first == y) {
 					long long e1 = make_fast_triple(i, y, k);
@@ -144,7 +144,7 @@ std::unordered_set<long long> Graph::getEdgeClosure(const Grammar &grammar, cons
 	return closure;
 }
 
-void clear() {
+void Graph::clear() {
 	numberOfVertices = 0;
 	fastEdgeTest.clear();
 	adjacencyVector.clear();

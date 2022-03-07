@@ -13,9 +13,9 @@
 #include "parser/parser.h"
 #include "graph/graph.h"
 
-void check_resource(void (*f)()) {
+void check_resource(void (*f)(int, char**), int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
-	f();
+	f(argc, argv);
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
 	std::ifstream in("/proc/self/status");
@@ -35,8 +35,8 @@ void check_resource(void (*f)()) {
 	std::cout << "Peak Space (kB): " << vmpeak << std::endl; 
 }
 
-void run() {
-	int ng = argc - 2; // number of grammars
+void run(int argc, char *argv[]) {
+	int ng = argc - 2;
 	std::unordered_map<std::string, int> sym_map;
 	std::vector<Grammar> grammars;
 	for (int i = 0; i < ng; i++) {
@@ -47,7 +47,7 @@ void run() {
 	int nv = p.first;
 	std::unordered_set<long long> edges = std::move(p.second);
 	while (true) {
-		int esize = edges.size();
+		std::unordered_set<long long>::size_type esize = edges.size();
 		std::vector<Graph> graphs(ng);
 		for (int i = 0; i < ng; i++) {
 			graphs[i].clear();
@@ -62,7 +62,7 @@ void run() {
 				for (int t = 0; t < nv; t++) {
 					bool ok = true;
 					for (int i = 0; i < ng; i++) {
-						ok &&= graphs[i].hasEdge(make_fast_triple(s, grammars[i].startSymbol, t));
+						ok = ok && graphs[i].hasEdge(make_fast_triple(s, grammars[i].startSymbol, t));
 					}
 					if (ok) {
 						ctr++;
@@ -76,7 +76,7 @@ void run() {
 
 int main(int argc, char *argv[]) {
 	if (argc >= 3) {
-		check_resource(run);
+		check_resource(run, argc, argv);
 	} else {
 		std::cerr << "Usage: " << argv[0] << " <graph-file-path> (<grammar-file-path>)+" << std::endl;
 	}

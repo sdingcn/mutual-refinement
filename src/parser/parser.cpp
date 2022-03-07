@@ -206,7 +206,7 @@ std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fnam
 	std::unordered_set<long long> edges;
 	for (int i = 0; i < n; i++) {
 		auto l = parseGraphLine(lines[i]);
-		edges.insert(make_fast_triple(convert(l.first.first), sym_map[l.second], convert(l.first.second)));
+		edges.insert(make_fast_triple(convert(l.first.first), sym_map.at(l.second), convert(l.first.second)));
 	}
 	return std::make_pair(nv, std::move(edges));
 }
