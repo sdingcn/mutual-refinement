@@ -1,5 +1,3 @@
-Orig Total fd: 9 call: 556 node: 593 edge: 1339
- edges: 546
 1914->3903[label="cp--0"]
 1914->3023[label="cp--1"]
 1914->3363[label="cp--2"]
@@ -1246,4 +1244,3 @@ Orig Total fd: 9 call: 556 node: 593 edge: 1339
 2209->1935[label="op--117"]
 2209->1939[label="op--117"]
 1186->3102[label="cb--4"]
-final field 8 call 357
