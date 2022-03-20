@@ -31,7 +31,10 @@ bool Graph::hasEdge(long long e) const {
 	return fastEdgeTest.count(e) == 1;
 }
 
-std::vector<long long> Graph::runCFLReachability(const Grammar &grammar) {
+std::vector<long long> Graph::runCFLReachability(
+	const Grammar &grammar,
+	const bool trace,
+	std::unordered_map<long long, std::unordered_set<long long>> &record) {
 	std::vector<long long> startSummaries;
 	std::deque<long long> w;
 	for (long long e : fastEdgeTest) { // add all original edges to the worklist
@@ -61,7 +64,11 @@ std::vector<long long> Graph::runCFLReachability(const Grammar &grammar) {
 		if (grammar.unaryRL.count(y) == 1) {
 			for (int ind : grammar.unaryRL.at(y)) { // x -> y
 				int x = grammar.unaryProductions[ind].first;
-				tba.push_back(make_fast_triple(i, x, j));
+				long long e1 = make_fast_triple(i, x, j);
+				tba.push_back(e1);
+				if (trace) {
+					record[e1].insert(e);
+				}
 			}
 		}
 		for (long long zk : adjacencyVector[j]) { // x -> yz
@@ -70,7 +77,12 @@ std::vector<long long> Graph::runCFLReachability(const Grammar &grammar) {
 			if (grammar.binaryRL.count(make_fast_pair(y, z)) == 1) {
 				for (int ind : grammar.binaryRL.at(make_fast_pair(y, z))) {
 					int x = grammar.binaryProductions[ind].first;
-					tba.push_back(make_fast_triple(i, x, k));
+					long long e1 = make_fast_triple(i, x, k);
+					tba.push_back(e1);
+					if (trace) {
+						record[e1].insert(e);
+						record[e1].insert(make_fast_triple(j, z, k));
+					}
 				}
 			}
 		}
@@ -80,7 +92,12 @@ std::vector<long long> Graph::runCFLReachability(const Grammar &grammar) {
 			if (grammar.binaryRL.count(make_fast_pair(z, y)) == 1) {
 				for (int ind : grammar.binaryRL.at(make_fast_pair(z, y))) {
 					int x = grammar.binaryProductions[ind].first;
-					tba.push_back(make_fast_triple(k, x, j));
+					long long e1 = make_fast_triple(k, x, j);
+					tba.push_back(e1);
+					if (trace) {
+						record[e1].insert(make_fast_triple(k, z, i));
+						record[e1].insert(e);
+					}
 				}
 			}
 		}
@@ -97,7 +114,10 @@ std::vector<long long> Graph::runCFLReachability(const Grammar &grammar) {
 	return startSummaries;
 }
 
-std::unordered_set<long long> Graph::getEdgeClosure(const Grammar &grammar, const std::vector<long long> &startSummaries) const {
+std::unordered_set<long long> Graph::getEdgeClosure(
+	const Grammar &grammar,
+	const std::vector<long long> &startSummaries,
+	const std::unordered_map<long long, std::unordered_set<long long>> &record) const {
 	std::unordered_set<long long> closure;
 	std::unordered_set<long long> vis;
 	std::deque<long long> w;
@@ -108,44 +128,16 @@ std::unordered_set<long long> Graph::getEdgeClosure(const Grammar &grammar, cons
 	while (!w.empty()) {
 		long long e = w.front();
 		w.pop_front();
-
 		// i --x--> j
-		int i = fast_triple_first(e);
 		int x = fast_triple_second(e);
-		int j = fast_triple_third(e);
 		if (grammar.terminals.count(x) == 1) {
 			closure.insert(e);
-		}
-
-		if (grammar.unaryLR.count(x) == 1) {
-			for (int ind : grammar.unaryLR.at(x)) { // x -> y
-				long long e1 = make_fast_triple(i, grammar.unaryProductions[ind].second, j);
-				if (hasEdge(e1) && vis.count(e1) == 0) {
-					vis.insert(e1);
-					w.push_back(e1);
-				}
-			}
-		}
-		for (long long yk : adjacencyVector[i]) { // x -> yz
-			// i --x--> j  =  i --y--> k  +  k --z--> j
-			int y = fast_pair_first(yk);
-			int k = fast_pair_second(yk);
-			if (grammar.binaryLR.count(x) == 1) {
-				for (int ind : grammar.binaryLR.at(x)) {
-					auto &p = grammar.binaryProductions[ind];
-					if (p.second.first == y) {
-						long long e1 = make_fast_triple(i, y, k);
-						long long e2 = make_fast_triple(k, p.second.second, j);
-						if (hasEdge(e2)) {
-							if (vis.count(e1) == 0) {
-								vis.insert(e1);
-								w.push_back(e1);
-							}
-							if (vis.count(e2) == 0) {
-								vis.insert(e2);
-								w.push_back(e2);
-							}
-						}
+		} else {
+			if (record.count(e) == 1) {
+				for (long long e1 : record.at(e)) {
+					if (vis.count(e1) == 0) {
+						vis.insert(e1);
+						w.push_back(e1);
 					}
 				}
 			}
