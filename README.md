@@ -7,6 +7,8 @@ You need `make` and `g++` (supporting at least C++11).
 ## compilation
 `make`
 
+`make profile`
+
 ## clean
 `make clean`
 
