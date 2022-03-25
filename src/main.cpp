@@ -29,8 +29,7 @@ int main(int argc, char *argv[]) {
 			std::unordered_set<long long>::size_type prev_size = edges.size();
 			std::vector<Graph> graphs(ng);
 			for (int i = 0; i < ng; i++) {
-				graphs[i].clear();
-				graphs[i].setNumberOfVertices(nv);
+				graphs[i].init(nv);
 				graphs[i].addEdges(edges);
 				std::unordered_map<long long, std::unordered_set<long long>> record;
 				auto summaries = graphs[i].runCFLReachability(grammars[i], true, record);

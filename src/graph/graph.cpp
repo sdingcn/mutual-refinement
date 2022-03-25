@@ -6,9 +6,12 @@
 #include <tuple>
 #include "../grammar/grammar.h"
 
-void Graph::setNumberOfVertices(int n) {
+void Graph::init(int n) {
 	numberOfVertices = n;
+	fastEdgeTest.init(n);
+	adjacencyVector.clear();
 	adjacencyVector.resize(n);
+	counterAdjacencyVector.clear();
 	counterAdjacencyVector.resize(n);
 }
 
@@ -16,7 +19,7 @@ void Graph::addEdge(long long e) { // i --x--> j
 	int i = fast_triple_first(e);
 	int x = fast_triple_second(e);
 	int j = fast_triple_third(e);
-	fastEdgeTest.insert(e);
+	fastEdgeTest.add(i, x, j);
 	adjacencyVector[i].push_back(make_fast_pair(x, j));
 	counterAdjacencyVector[j].push_back(make_fast_pair(i, x));
 }
@@ -28,7 +31,7 @@ void Graph::addEdges(const std::unordered_set<long long> &edges) {
 }
 
 bool Graph::hasEdge(long long e) const {
-	return fastEdgeTest.count(e) == 1;
+	return fastEdgeTest.has(e);
 }
 
 std::vector<long long> Graph::runCFLReachability(
@@ -37,8 +40,12 @@ std::vector<long long> Graph::runCFLReachability(
 	std::unordered_map<long long, std::unordered_set<long long>> &record) {
 	std::vector<long long> startSummaries;
 	std::deque<long long> w;
-	for (long long e : fastEdgeTest) { // add all original edges to the worklist
-		w.push_front(e);
+	for (int i = 0; i < numberOfVertices; i++) { // add all original edges to the worklist
+		for (long long xj : fastEdgeTest.s[i]) {
+			int x = fast_pair_first(xj);
+			int j = fast_pair_second(xj);
+			w.push_front(make_fast_triple(i, x, j));
+		}
 	}
 	for (int x : grammar.emptyProductions) {
 		for (int i = 0; i < numberOfVertices; i++) {
@@ -119,10 +126,11 @@ std::unordered_set<long long> Graph::getEdgeClosure(
 	const std::vector<long long> &startSummaries,
 	const std::unordered_map<long long, std::unordered_set<long long>> &record) const {
 	std::unordered_set<long long> closure;
-	std::unordered_set<long long> vis;
+	EdgeSet vis;
+	vis.init(numberOfVertices);
 	std::deque<long long> w;
 	for (long long e : startSummaries) {
-		vis.insert(e);
+		vis.add(e);
 		w.push_back(e);
 	}
 	while (!w.empty()) {
@@ -135,8 +143,8 @@ std::unordered_set<long long> Graph::getEdgeClosure(
 		} else {
 			if (record.count(e) == 1) {
 				for (long long e1 : record.at(e)) {
-					if (vis.count(e1) == 0) {
-						vis.insert(e1);
+					if (!vis.has(e1)) {
+						vis.add(e1);
 						w.push_back(e1);
 					}
 				}
@@ -144,11 +152,4 @@ std::unordered_set<long long> Graph::getEdgeClosure(
 		}
 	}
 	return closure;
-}
-
-void Graph::clear() {
-	numberOfVertices = 0;
-	fastEdgeTest.clear();
-	adjacencyVector.clear();
-	counterAdjacencyVector.clear();
 }
