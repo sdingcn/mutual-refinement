@@ -4,12 +4,14 @@ cppfiles = src/die.cpp src/grammar/grammar.cpp src/graph/graph.cpp src/parser/pa
 
 cppflags = -O3 -Wall -Wextra -pedantic
 
-main : $(files)
-	g++ -o main $(cppflags) $(cppfiles)
+all : naive refine
 
-profile : $(files)
-	g++ -pg -o main $(cppflags) $(cppfiles)
+naive : $(files)
+	g++ -DNAIVE -o naive $(cppflags) $(cppfiles)
+
+refine : $(files)
+	g++ -DREFINE -o refine $(cppflags) $(cppfiles)
 
 .PHONY : clean
 clean :
-	-rm main
+	-rm naive refine

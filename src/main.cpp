@@ -18,6 +18,36 @@ int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
 	// main body
 	if (argc == 2) {
+#ifdef NAIVE
+		std::unordered_map<std::string, int> sym_map;
+		std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
+		int ng = grammars.size();
+		std::unordered_map<std::string, int> node_map;
+		auto p = parseGraph(argv[1], sym_map, node_map);
+		int nv = p.first;
+		std::unordered_set<long long> edges = std::move(p.second);
+		std::vector<Graph> graphs(ng);
+		for (int i = 0; i < ng; i++) {
+			graphs[i].init(nv);
+			graphs[i].addEdges(edges);
+			std::unordered_map<long long, std::unordered_set<long long>> record;
+			graphs[i].runCFLReachability(grammars[i], false, record);
+		}
+		int ctr = 0;
+		for (int s = 0; s < nv; s++) {
+			for (int t = 0; t < nv; t++) {
+				bool ok = true;
+				for (int i = 0; i < ng; i++) {
+					ok = ok && graphs[i].hasEdge(make_fast_triple(s, grammars[i].startSymbol, t));
+				}
+				if (ok) {
+					ctr++;
+				}
+			}
+		}
+		std::cout << "naive: " << ctr << std::endl;
+#endif
+#ifdef REFINE
 		std::unordered_map<std::string, int> sym_map;
 		std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
 		int ng = grammars.size();
@@ -48,10 +78,11 @@ int main(int argc, char *argv[]) {
 						}
 					}
 				}
-				std::cout << "MR: " << ctr << std::endl;
+				std::cout << "refine: " << ctr << std::endl;
 				break;
 			}
 		}
+#endif
 	} else {
 		std::cout << "Usage: " << argv[0] << " <graph-file-path>" << std::endl;
 	}

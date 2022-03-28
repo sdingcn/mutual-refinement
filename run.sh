@@ -3,5 +3,9 @@
 ulimit -t 1800 -v 10485760
 
 for graph in sample-graphs/*.dot; do
-	./main "$graph" > "results/main-$(basename "$graph" .dot).res" 2>&1
+	./naive "$graph" > "results/naive-$(basename "$graph" .dot).res" 2>&1
+done
+
+for graph in sample-graphs/*.dot; do
+	./refine "$graph" > "results/refine-$(basename "$graph" .dot).res" 2>&1
 done
