@@ -5,8 +5,17 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#ifdef ROBIN
+#include <tsl/robin_map.h>
+#include <tsl/robin_set.h>
+template <typename K, typename V> using hash_map = tsl::robin_map<K, V>;
+template <typename T> using hash_set = tsl::robin_set<T>;
+#else
 #include <unordered_map>
 #include <unordered_set>
+template <typename K, typename V> using hash_map = std::unordered_map<K, V>;
+template <typename T> using hash_set = std::unordered_set<T>;
+#endif
 #include <map>
 #include <utility>
 
@@ -98,7 +107,7 @@ bool checkGrammar(const std::vector<std::string> &lines) {
 	return true;
 }
 
-Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, int> &sym_map) {
+Grammar parseGrammar(const std::string &fname, hash_map<std::string, int> &sym_map) {
 	// file auto closed via destructor
 	std::ifstream in(fname);
 	if (in.fail()) {
@@ -169,9 +178,9 @@ bool checkGraph(const std::vector<std::string> &lines) {
 	return true;
 }
 
-std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fname,
-		const std::unordered_map<std::string, int> &sym_map,
-		std::unordered_map<std::string, int> &node_map) {
+std::pair<int, hash_set<long long>> parseGraph(const std::string &fname,
+		const hash_map<std::string, int> &sym_map,
+		hash_map<std::string, int> &node_map) {
 	// file auto closed via destructor
 	std::ifstream in(fname);
 	if (in.fail()) {
@@ -197,7 +206,7 @@ std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fnam
 	};
 	// constructing graph
 	int n = lines.size();
-	std::unordered_set<long long> edges;
+	hash_set<long long> edges;
 	for (int i = 0; i < n; i++) {
 		auto l = parseGraphLine(lines[i]);
 		edges.insert(make_fast_triple(convert(l.first.first), sym_map.at(l.second), convert(l.first.second)));
@@ -207,7 +216,7 @@ std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fnam
 }
 
 std::vector<Grammar> extractDyck(const std::string &fname,
-		std::unordered_map<std::string, int> &sym_map) {
+		hash_map<std::string, int> &sym_map) {
 	// the label type
 	using label_type = std::vector<std::string>;
 
@@ -225,7 +234,7 @@ std::vector<Grammar> extractDyck(const std::string &fname,
 	}
 
 	// find out numbers for each Dyck
-	std::unordered_map<std::string, std::unordered_set<std::string>> numbers;
+	hash_map<std::string, hash_set<std::string>> numbers;
 	for (auto &label : labels) {
 		// cp--10
 		std::string dtype = label.substr(1, 1);

@@ -2,8 +2,17 @@
 #include "graph.h"
 #include <vector>
 #include <deque>
+#ifdef ROBIN
+#include <tsl/robin_map.h>
+#include <tsl/robin_set.h>
+template <typename K, typename V> using hash_map = tsl::robin_map<K, V>;
+template <typename T> using hash_set = tsl::robin_set<T>;
+#else
 #include <unordered_map>
 #include <unordered_set>
+template <typename K, typename V> using hash_map = std::unordered_map<K, V>;
+template <typename T> using hash_set = std::unordered_set<T>;
+#endif
 
 void Graph::init(int n) {
 	numberOfVertices = n;
@@ -23,7 +32,7 @@ void Graph::addEdge(long long e) { // i --x--> j
 	counterAdjacencyVector[j].push_back(make_fast_pair(i, x));
 }
 
-void Graph::addEdges(const std::unordered_set<long long> &edges) {
+void Graph::addEdges(const hash_set<long long> &edges) {
 	for (long long e : edges) {
 		addEdge(e);
 	}
@@ -36,7 +45,7 @@ bool Graph::hasEdge(long long e) const {
 std::vector<long long> Graph::runCFLReachability(
 	const Grammar &grammar,
 	const bool trace,
-	std::unordered_map<long long, std::unordered_set<long long>> &record) {
+	hash_map<long long, hash_set<long long>> &record) {
 	std::vector<long long> startSummaries;
 	std::deque<long long> w;
 	for (int i = 0; i < numberOfVertices; i++) { // add all original edges to the worklist
@@ -120,11 +129,11 @@ std::vector<long long> Graph::runCFLReachability(
 	return startSummaries;
 }
 
-std::unordered_set<long long> Graph::getEdgeClosure(
+hash_set<long long> Graph::getEdgeClosure(
 	const Grammar &grammar,
 	const std::vector<long long> &startSummaries,
-	const std::unordered_map<long long, std::unordered_set<long long>> &record) const {
-	std::unordered_set<long long> closure;
+	const hash_map<long long, hash_set<long long>> &record) const {
+	hash_set<long long> closure;
 	EdgeSet vis;
 	vis.init(numberOfVertices);
 	std::deque<long long> w;
