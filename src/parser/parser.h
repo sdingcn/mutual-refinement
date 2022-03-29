@@ -1,11 +1,11 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <tuple>
 #include <vector>
-#include <map>
 #include <unordered_set>
+#include <unordered_map>
 #include <string>
+#include <utility>
 #include "../grammar/grammar.h"
 #include "../common.h"
 #include "../graph/graph.h"

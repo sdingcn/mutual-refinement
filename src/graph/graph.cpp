@@ -2,8 +2,6 @@
 #include <vector>
 #include <deque>
 #include <unordered_set>
-#include <utility>
-#include <tuple>
 #include "../grammar/grammar.h"
 
 void Graph::init(int n) {

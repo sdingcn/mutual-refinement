@@ -1,7 +1,5 @@
 #include "grammar.h"
 #include "../common.h"
-#include <vector>
-#include <unordered_map>
 #include <utility>
 
 void Grammar::addTerminal(int t) {

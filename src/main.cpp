@@ -1,14 +1,11 @@
 #include <vector>
-#include <unordered_set>
-#include <map>
+#include <unordered_map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <chrono>
-#include <cassert>
 #include <string>
 #include <utility>
-#include <tuple>
 #include "grammar/grammar.h"
 #include "parser/parser.h"
 #include "graph/graph.h"

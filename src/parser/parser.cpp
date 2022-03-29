@@ -2,12 +2,11 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <map>
 #include <unordered_set>
-#include <iostream>
+#include <unordered_map>
+#include <map>
 #include <fstream>
 #include <sstream>
-#include <tuple>
 #include "../common.h"
 #include "../die.h"
 
