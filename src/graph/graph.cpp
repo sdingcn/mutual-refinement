@@ -1,8 +1,9 @@
+#include "../grammar/grammar.h"
 #include "graph.h"
 #include <vector>
 #include <deque>
+#include <unordered_map>
 #include <unordered_set>
-#include "../grammar/grammar.h"
 
 void Graph::init(int n) {
 	numberOfVertices = n;

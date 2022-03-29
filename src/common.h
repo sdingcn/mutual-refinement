@@ -4,7 +4,7 @@
 constexpr long long WIDTH = 20LL;
 constexpr long long MASK = (1LL << WIDTH) - 1LL;
 
-inline long long make_fast_pair(int a, int b) { // assuming a >= 0 && b >= 0
+inline long long make_fast_pair(int a, int b) {
 	return (static_cast<long long>(a) << WIDTH) | static_cast<long long>(b);
 }
 

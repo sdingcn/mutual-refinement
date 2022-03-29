@@ -1,14 +1,14 @@
-#include "parser.h"
-#include <string>
-#include <utility>
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
-#include <map>
-#include <fstream>
-#include <sstream>
 #include "../common.h"
 #include "../die.h"
+#include "parser.h"
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <map>
+#include <utility>
 
 bool isUpperLetter(char c) {
 	static const char *upper_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -152,11 +152,6 @@ Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, i
 	return grammar;
 }
 
-bool checkGraph(const std::vector<std::string> &lines) {
-	// check graph file's grammar and number boundaries
-	return true;
-}
-
 std::pair<std::pair<std::string, std::string>, std::string> parseGraphLine(const std::string &line) {
 	// node1->node2[label="label1"]
 	std::string::size_type p1 = line.find("->");
@@ -167,6 +162,11 @@ std::pair<std::pair<std::string, std::string>, std::string> parseGraphLine(const
 			std::make_pair(line.substr(0, p1 - 0), line.substr(p1 + 2, p2 - (p1 + 2))),
 			line.substr(p3 + 2, p4 - 1 - (p3 + 2))
 			);
+}
+
+bool checkGraph(const std::vector<std::string> &lines) {
+	// check graph file's grammar and number boundaries
+	return true;
 }
 
 std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fname,
@@ -195,20 +195,14 @@ std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fnam
 			return node_map[node] = num++;
 		}
 	};
-	// count the number of vertices
-	int n = lines.size();
-	for (int i = 0; i < n; i++) {
-		auto l = parseGraphLine(lines[i]);
-		convert(l.first.first);
-		convert(l.first.second);
-	}
-	int nv = node_map.size();
 	// constructing graph
+	int n = lines.size();
 	std::unordered_set<long long> edges;
 	for (int i = 0; i < n; i++) {
 		auto l = parseGraphLine(lines[i]);
 		edges.insert(make_fast_triple(convert(l.first.first), sym_map.at(l.second), convert(l.first.second)));
 	}
+	int nv = node_map.size();
 	return std::make_pair(nv, std::move(edges));
 }
 

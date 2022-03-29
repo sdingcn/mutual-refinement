@@ -1,11 +1,11 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
 #include "../common.h"
 #include "../grammar/grammar.h"
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 struct EdgeSet {
 	std::vector<std::unordered_set<long long>> s;

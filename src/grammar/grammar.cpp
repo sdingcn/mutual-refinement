@@ -1,5 +1,5 @@
-#include "grammar.h"
 #include "../common.h"
+#include "grammar.h"
 #include <utility>
 
 void Grammar::addTerminal(int t) {

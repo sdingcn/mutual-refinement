@@ -1,14 +1,14 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
-#include <string>
-#include <utility>
-#include "../grammar/grammar.h"
 #include "../common.h"
+#include "../grammar/grammar.h"
 #include "../graph/graph.h"
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 
 Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, int> &sym_map);
 
