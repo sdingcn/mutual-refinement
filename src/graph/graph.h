@@ -4,20 +4,11 @@
 #include "../common.h"
 #include "../grammar/grammar.h"
 #include <vector>
-#ifdef ROBIN
-#include <tsl/robin_map.h>
-#include <tsl/robin_set.h>
-template <typename K, typename V> using hash_map = tsl::robin_map<K, V>;
-template <typename T> using hash_set = tsl::robin_set<T>;
-#else
 #include <unordered_map>
 #include <unordered_set>
-template <typename K, typename V> using hash_map = std::unordered_map<K, V>;
-template <typename T> using hash_set = std::unordered_set<T>;
-#endif
 
 struct EdgeSet {
-	std::vector<hash_set<long long>> s;
+	std::vector<std::unordered_set<long long>> s;
 	void init(int n) {
 		s.clear();
 		s.resize(n);
@@ -49,16 +40,16 @@ struct Graph {
 	std::vector<std::vector<long long>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
 	void init(int n);
 	void addEdge(long long e);
-	void addEdges(const hash_set<long long> &edges);
+	void addEdges(const std::unordered_set<long long> &edges);
 	bool hasEdge(long long e) const;
 	std::vector<long long> runCFLReachability(
 		const Grammar &grammar,
 		const bool trace,
-		hash_map<long long, hash_set<long long>> &record);
-	hash_set<long long> getEdgeClosure(
+		std::unordered_map<long long, std::unordered_set<long long>> &record);
+	std::unordered_set<long long> getEdgeClosure(
 		const Grammar &grammar,
 		const std::vector<long long> &startSummaries,
-		const hash_map<long long, hash_set<long long>> &record) const;
+		const std::unordered_map<long long, std::unordered_set<long long>> &record) const;
 };
 
 #endif

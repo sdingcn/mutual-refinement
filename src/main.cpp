@@ -6,17 +6,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#ifdef ROBIN
-#include <tsl/robin_map.h>
-#include <tsl/robin_set.h>
-template <typename K, typename V> using hash_map = tsl::robin_map<K, V>;
-template <typename T> using hash_set = tsl::robin_set<T>;
-#else
 #include <unordered_map>
 #include <unordered_set>
-template <typename K, typename V> using hash_map = std::unordered_map<K, V>;
-template <typename T> using hash_set = std::unordered_set<T>;
-#endif
 #include <utility>
 #include <chrono>
 
@@ -26,18 +17,18 @@ int main(int argc, char *argv[]) {
 	// main body
 	if (argc == 2) {
 #ifdef NAIVE
-		hash_map<std::string, int> sym_map;
+		std::unordered_map<std::string, int> sym_map;
 		std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
 		int ng = grammars.size();
-		hash_map<std::string, int> node_map;
+		std::unordered_map<std::string, int> node_map;
 		auto tmp = parseGraph(argv[1], sym_map, node_map);
 		int nv = tmp.first;
-		hash_set<long long> edges = std::move(tmp.second);
+		std::unordered_set<long long> edges = std::move(tmp.second);
 		std::vector<Graph> graphs(ng);
 		for (int i = 0; i < ng; i++) {
 			graphs[i].init(nv);
 			graphs[i].addEdges(edges);
-			hash_map<long long, hash_set<long long>> record;
+			std::unordered_map<long long, std::unordered_set<long long>> record;
 			graphs[i].runCFLReachability(grammars[i], false, record);
 		}
 		int ctr = 0;
@@ -58,21 +49,21 @@ int main(int argc, char *argv[]) {
 		std::cout << "naive: " << ctr << std::endl;
 #endif
 #ifdef REFINE
-		hash_map<std::string, int> sym_map;
+		std::unordered_map<std::string, int> sym_map;
 		std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
 		int ng = grammars.size();
-		hash_map<std::string, int> node_map;
+		std::unordered_map<std::string, int> node_map;
 		auto tmp = parseGraph(argv[1], sym_map, node_map);
 		int nv = tmp.first;
-		hash_set<long long> edges = std::move(tmp.second);
-		hash_set<long long>::size_type prev_size;
+		std::unordered_set<long long> edges = std::move(tmp.second);
+		std::unordered_set<long long>::size_type prev_size;
 		std::vector<Graph> graphs(ng);
 		do {
 			prev_size = edges.size();
 			for (int i = 0; i < ng; i++) {
 				graphs[i].init(nv);
 				graphs[i].addEdges(edges);
-				hash_map<long long, hash_set<long long>> record;
+				std::unordered_map<long long, std::unordered_set<long long>> record;
 				auto summaries = graphs[i].runCFLReachability(grammars[i], true, record);
 				edges = graphs[i].getEdgeClosure(grammars[i], summaries, record);
 			}

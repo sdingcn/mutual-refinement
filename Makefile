@@ -12,14 +12,6 @@ naive : $(files)
 refine : $(files)
 	g++ -DREFINE -o refine $(cppflags) $(cppfiles)
 
-robin : robin-naive robin-refine
-
-robin-naive : $(files)
-	g++ -DROBIN -DNAIVE -o robin-naive $(cppflags) $(cppfiles)
-
-robin-refine : $(files)
-	g++ -DROBIN -DREFINE -o robin-refine $(cppflags) $(cppfiles)
-
 .PHONY : clean
 clean :
-	-rm naive refine robin-naive robin-refine
+	-rm naive refine
