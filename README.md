@@ -11,7 +11,7 @@ You need `make` and `g++` (supporting at least C++11).
 `make clean`
 
 ## usage
-Running `./main` prints the usage.
+Running `./naive` or `./refine` prints the usage.
 
 ## input specification
 
