@@ -1,6 +1,7 @@
 #ifndef GRAMMAR_H
 #define GRAMMAR_H
 
+#include "../hasher/hasher.h"
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -18,7 +19,7 @@ struct Grammar {
 	std::unordered_map<int, std::vector<int>> unaryLR;
 	std::unordered_map<int, std::vector<int>> unaryRL;
 	std::unordered_map<int, std::vector<int>> binaryLR;
-	std::unordered_map<long long, std::vector<int>> binaryRL;
+	std::unordered_map<std::pair<int, int>, std::vector<int>, IntPairHasher> binaryRL;
 	void addTerminal(int t);
 	void addNonterminal(int nt);
 	void addStartSymbol(int s);

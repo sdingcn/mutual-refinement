@@ -1,7 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "../common.h"
+#include "../hasher/hasher.h"
 #include "../grammar/grammar.h"
 #include "../graph/graph.h"
 #include <string>
@@ -12,7 +12,7 @@
 
 Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, int> &sym_map);
 
-std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fname,
+std::pair<int, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>> parseGraph(const std::string &fname,
 		const std::unordered_map<std::string, int> &sym_map,
 		std::unordered_map<std::string, int> &node_map);
 

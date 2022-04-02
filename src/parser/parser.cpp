@@ -1,5 +1,5 @@
-#include "../common.h"
-#include "../die.h"
+#include "../hasher/hasher.h"
+#include "../error/error.h"
 #include "parser.h"
 #include <fstream>
 #include <sstream>
@@ -102,7 +102,7 @@ Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, i
 	// file auto closed via destructor
 	std::ifstream in(fname);
 	if (in.fail()) {
-		die(38764588);
+		error(38764588);
 	}
 	// read all lines and check
 	std::vector<std::string> lines;
@@ -111,7 +111,7 @@ Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, i
 		lines.push_back(line);
 	}
 	if (!checkGrammar(lines)) {
-		die(12327939);
+		error(12327939);
 	}
 	// converter
 	int num = 0;
@@ -169,13 +169,13 @@ bool checkGraph(const std::vector<std::string> &lines) {
 	return true;
 }
 
-std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fname,
+std::pair<int, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>> parseGraph(const std::string &fname,
 		const std::unordered_map<std::string, int> &sym_map,
 		std::unordered_map<std::string, int> &node_map) {
 	// file auto closed via destructor
 	std::ifstream in(fname);
 	if (in.fail()) {
-		die(28723488);
+		error(28723488);
 	}
 	// read all lines and check
 	std::vector<std::string> lines;
@@ -184,7 +184,7 @@ std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fnam
 		lines.push_back(line);
 	}
 	if (!checkGraph(lines)) {
-		die(91327939);
+		error(91327939);
 	}
 	// converter
 	int num = 0;
@@ -197,10 +197,10 @@ std::pair<int, std::unordered_set<long long>> parseGraph(const std::string &fnam
 	};
 	// constructing graph
 	int n = lines.size();
-	std::unordered_set<long long> edges;
+	std::unordered_set<std::tuple<int, int, int>, IntTripleHasher> edges;
 	for (int i = 0; i < n; i++) {
 		auto l = parseGraphLine(lines[i]);
-		edges.insert(make_fast_triple(convert(l.first.first), sym_map.at(l.second), convert(l.first.second)));
+		edges.insert(std::make_tuple(convert(l.first.first), sym_map.at(l.second), convert(l.first.second)));
 	}
 	int nv = node_map.size();
 	return std::make_pair(nv, std::move(edges));
@@ -214,7 +214,7 @@ std::vector<Grammar> extractDyck(const std::string &fname,
 	// file auto closed via destructor
 	std::ifstream in(fname);
 	if (in.fail()) {
-		die(23450237);
+		error(23450237);
 	}
 
 	// read raw labels

@@ -1,4 +1,3 @@
-#include "../common.h"
 #include "grammar.h"
 #include <utility>
 
@@ -39,6 +38,6 @@ void Grammar::initFastIndices() {
 	int nb = binaryProductions.size();
 	for (int i = 0; i < nb; i++) {
 		binaryLR[binaryProductions[i].first].push_back(i);
-		binaryRL[make_fast_pair(binaryProductions[i].second.first, binaryProductions[i].second.second)].push_back(i);
+		binaryRL[std::make_pair(binaryProductions[i].second.first, binaryProductions[i].second.second)].push_back(i);
 	}
 }

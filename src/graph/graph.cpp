@@ -5,50 +5,46 @@
 #include <unordered_map>
 #include <unordered_set>
 
+using Edge = std::tuple<int, int, int>;
+using EdgeHasher = IntTripleHasher;
+
 void Graph::init(int n) {
 	numberOfVertices = n;
-	fastEdgeTest.init(n);
+	fastEdgeTest.clear();
 	adjacencyVector.clear();
 	adjacencyVector.resize(n);
 	counterAdjacencyVector.clear();
 	counterAdjacencyVector.resize(n);
 }
 
-void Graph::addEdge(long long e) { // i --x--> j
-	int i = fast_triple_first(e);
-	int x = fast_triple_second(e);
-	int j = fast_triple_third(e);
-	fastEdgeTest.add(i, x, j);
-	adjacencyVector[i].push_back(make_fast_pair(x, j));
-	counterAdjacencyVector[j].push_back(make_fast_pair(i, x));
+void Graph::addEdge(const Edge &e) { // i --x--> j
+	fastEdgeTest.insert(e);
+	adjacencyVector[std::get<0>(e)].push_back(std::make_pair(std::get<1>(e), std::get<2>(e)));
+	counterAdjacencyVector[std::get<2>(e)].push_back(std::make_pair(std::get<0>(e), std::get<1>(e)));
 }
 
-void Graph::addEdges(const std::unordered_set<long long> &edges) {
-	for (long long e : edges) {
+void Graph::addEdges(const std::unordered_set<Edge, EdgeHasher> &edges) {
+	for (const Edge &e : edges) {
 		addEdge(e);
 	}
 }
 
-bool Graph::hasEdge(long long e) const {
-	return fastEdgeTest.has(e);
+bool Graph::hasEdge(const Edge &e) const {
+	return fastEdgeTest.count(e) == 1;
 }
 
-std::vector<long long> Graph::runCFLReachability(
+std::vector<Edge> Graph::runCFLReachability(
 	const Grammar &grammar,
 	const bool trace,
-	std::unordered_map<long long, std::unordered_set<long long>> &record) {
-	std::vector<long long> startSummaries;
-	std::deque<long long> w;
-	for (int i = 0; i < numberOfVertices; i++) { // add all original edges to the worklist
-		for (long long xj : fastEdgeTest.s[i]) {
-			int x = fast_pair_first(xj);
-			int j = fast_pair_second(xj);
-			w.push_front(make_fast_triple(i, x, j));
-		}
+	std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) {
+	std::vector<Edge> startSummaries;
+	std::deque<Edge> w;
+	for (const Edge &e : fastEdgeTest) {
+		w.push_front(e);
 	}
 	for (int x : grammar.emptyProductions) {
 		for (int i = 0; i < numberOfVertices; i++) {
-			long long e = make_fast_triple(i, x, i);
+			Edge e = std::make_tuple(i, x, i);
 			addEdge(e);
 			w.push_front(e);
 			if (x == grammar.startSymbol) {
@@ -57,61 +53,61 @@ std::vector<long long> Graph::runCFLReachability(
 		}
 	}
 	while (!w.empty()) {
-		long long e = w.front();
+		Edge e = w.front();
 		w.pop_front();
 
 		// i --y--> j
-		int i = fast_triple_first(e);
-		int y = fast_triple_second(e);
-		int j = fast_triple_third(e);
+		int i = std::get<0>(e);
+		int y = std::get<1>(e);
+		int j = std::get<2>(e);
 
-		std::vector<long long> tba; // to be added
+		std::vector<Edge> tba; // to be added
 
 		if (grammar.unaryRL.count(y) == 1) {
 			for (int ind : grammar.unaryRL.at(y)) { // x -> y
 				int x = grammar.unaryProductions[ind].first;
-				long long e1 = make_fast_triple(i, x, j);
+				Edge e1 = std::make_tuple(i, x, j);
 				tba.push_back(e1);
 				if (trace) {
 					record[e1].insert(e);
 				}
 			}
 		}
-		for (long long zk : adjacencyVector[j]) { // x -> yz
-			int z = fast_pair_first(zk);
-			int k = fast_pair_second(zk);
-			if (grammar.binaryRL.count(make_fast_pair(y, z)) == 1) {
-				for (int ind : grammar.binaryRL.at(make_fast_pair(y, z))) {
+		for (auto &zk : adjacencyVector[j]) { // x -> yz
+			int z = zk.first;
+			int k = zk.second;
+			if (grammar.binaryRL.count(std::make_pair(y, z)) == 1) {
+				for (int ind : grammar.binaryRL.at(std::make_pair(y, z))) {
 					int x = grammar.binaryProductions[ind].first;
-					long long e1 = make_fast_triple(i, x, k);
+					Edge e1 = std::make_tuple(i, x, k);
 					tba.push_back(e1);
 					if (trace) {
 						record[e1].insert(e);
-						record[e1].insert(make_fast_triple(j, z, k));
+						record[e1].insert(std::make_tuple(j, z, k));
 					}
 				}
 			}
 		}
-		for (long long kz : counterAdjacencyVector[i]) { // x -> zy
-			int k = fast_pair_first(kz);
-			int z = fast_pair_second(kz);
-			if (grammar.binaryRL.count(make_fast_pair(z, y)) == 1) {
-				for (int ind : grammar.binaryRL.at(make_fast_pair(z, y))) {
+		for (auto &kz : counterAdjacencyVector[i]) { // x -> zy
+			int k = kz.first;
+			int z = kz.second;
+			if (grammar.binaryRL.count(std::make_pair(z, y)) == 1) {
+				for (int ind : grammar.binaryRL.at(std::make_pair(z, y))) {
 					int x = grammar.binaryProductions[ind].first;
-					long long e1 = make_fast_triple(k, x, j);
+					Edge e1 = std::make_tuple(k, x, j);
 					tba.push_back(e1);
 					if (trace) {
-						record[e1].insert(make_fast_triple(k, z, i));
+						record[e1].insert(std::make_tuple(k, z, i));
 						record[e1].insert(e);
 					}
 				}
 			}
 		}
-		for (long long e1 : tba) {
+		for (Edge &e1 : tba) {
 			if (!hasEdge(e1)) {
 				addEdge(e1);
 				w.push_front(e1);
-				if (fast_triple_second(e1) == grammar.startSymbol) {
+				if (std::get<1>(e1) == grammar.startSymbol) {
 					startSummaries.push_back(e1);
 				}
 			}
@@ -120,30 +116,29 @@ std::vector<long long> Graph::runCFLReachability(
 	return startSummaries;
 }
 
-std::unordered_set<long long> Graph::getEdgeClosure(
+std::unordered_set<Edge, EdgeHasher> Graph::getEdgeClosure(
 	const Grammar &grammar,
-	const std::vector<long long> &startSummaries,
-	const std::unordered_map<long long, std::unordered_set<long long>> &record) const {
-	std::unordered_set<long long> closure;
-	EdgeSet vis;
-	vis.init(numberOfVertices);
-	std::deque<long long> w;
-	for (long long e : startSummaries) {
-		vis.add(e);
+	const std::vector<Edge> &startSummaries,
+	const std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) const {
+	std::unordered_set<Edge, EdgeHasher> closure;
+	std::unordered_set<Edge, EdgeHasher> vis;
+	std::deque<Edge> w;
+	for (const Edge &e : startSummaries) {
+		vis.insert(e);
 		w.push_back(e);
 	}
 	while (!w.empty()) {
-		long long e = w.front();
+		Edge e = w.front();
 		w.pop_front();
 		// i --x--> j
-		int x = fast_triple_second(e);
+		int x = std::get<1>(e);
 		if (grammar.terminals.count(x) == 1) {
 			closure.insert(e);
 		} else {
 			if (record.count(e) == 1) {
-				for (long long e1 : record.at(e)) {
-					if (!vis.has(e1)) {
-						vis.add(e1);
+				for (const Edge &e1 : record.at(e)) {
+					if (vis.count(e1) == 0) {
+						vis.insert(e1);
 						w.push_back(e1);
 					}
 				}

@@ -1,8 +1,8 @@
-#include "die.h"
+#include "error.h"
 #include <cstdlib>
 #include <iostream>
 
-void die(int code) {
+void error(int code) {
 	std::cerr << "Error: " << code << std::endl;
 	std::exit(EXIT_FAILURE);
 }
