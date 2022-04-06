@@ -1,6 +1,6 @@
+#include "parser.h"
 #include "../hasher/hasher.h"
 #include "../error/error.h"
-#include "parser.h"
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -76,12 +76,16 @@ bool isTerminal(const std::string &s) {
 	return true;
 }
 
+bool isSymbol(const std::string &s) {
+	return isNonterminal(s) || isTerminal(s);
+}
+
 bool isNode(const std::string &s) {
 	int sz = s.size();
 	if (sz == 0) {
 		return false;
 	}
-	for (int i = 1; i < sz; i++) {
+	for (int i = 0; i < sz; i++) {
 		if (!(isUpperLetter(s[i]) || isLowerLetter(s[i]) || isDigit(s[i]) || isDash(s[i]))) {
 			return false;
 		}
@@ -94,7 +98,39 @@ bool isLabel(const std::string &s) {
 }
 
 bool checkGrammar(const std::vector<std::string> &lines) {
-	// check grammar file's grammar and number boundaries
+	int sz = lines.size();
+	if (sz == 0) {
+		return false;
+	}
+	if (!isNonterminal(lines[0])) {
+		return false;
+	}
+	for (int i = 1; i < sz; i++) {
+		std::istringstream sin(lines[i]);
+		std::vector<std::string> elements;
+		std::string elem;
+		while (sin >> elem) {
+			elements.push_back(elem);
+		}
+		if (elements.size() == 1) {
+			if (!isNonterminal(elements[0])) {
+				return false;
+			}
+		} else if (elements.size() == 2) {
+			if ((!isNonterminal(elements[0])) ||
+			    (!isSymbol(elements[1]))) {
+				return false;
+			}
+		} else if (elements.size() == 3) {
+			if ((!isNonterminal(elements[0])) ||
+			    (!isSymbol(elements[1])) ||
+			    (!isSymbol(elements[2]))) {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -153,19 +189,50 @@ Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, i
 }
 
 std::pair<std::pair<std::string, std::string>, std::string> parseGraphLine(const std::string &line) {
-	// node1->node2[label="label1"]
+	// node1->node2[label="label"]
 	std::string::size_type p1 = line.find("->");
 	std::string::size_type p2 = line.find('[');
 	std::string::size_type p3 = line.find('=');
 	std::string::size_type p4 = line.find(']');
-	return std::make_pair(
-			std::make_pair(line.substr(0, p1 - 0), line.substr(p1 + 2, p2 - (p1 + 2))),
-			line.substr(p3 + 2, p4 - 1 - (p3 + 2))
-			);
+	return std::make_pair(std::make_pair(line.substr(0, p1 - 0), line.substr(p1 + 2, p2 - (p1 + 2))),
+			      line.substr(p3 + 2, p4 - 1 - (p3 + 2)));
 }
 
 bool checkGraph(const std::vector<std::string> &lines) {
 	// check graph file's grammar and number boundaries
+	int sz = lines.size();
+	for (int i = 0; i < sz; i++) {
+		// node1->node2[label="label"]
+		std::string::size_type arrow_pos = lines[i].find("->");
+		if (arrow_pos == std::string::npos) {
+			return false;
+		}
+		std::string::size_type label_open_pos = lines[i].find("[label=\"");
+		if (label_open_pos == std::string::npos) {
+			return false;
+		}
+		std::string::size_type label_close_pos = lines[i].find("\"]");
+		if (label_close_pos == std::string::npos) {
+			return false;
+		}
+		if (!(arrow_pos + 2 < label_open_pos &&
+		      label_open_pos + 8 < label_close_pos &&
+		      label_close_pos + 2 == lines[i].size())) {
+			return false;
+		}
+		std::string node1 = lines[i].substr(0, arrow_pos - 0);
+		std::string node2 = lines[i].substr(arrow_pos + 2, label_open_pos - (arrow_pos + 2));
+		std::string label = lines[i].substr(label_open_pos + 8, label_close_pos - (label_open_pos + 8));
+		if (!isNode(node1)) {
+			return false;
+		}
+		if (!isNode(node2)) {
+			return false;
+		}
+		if (!isLabel(label)) {
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -217,10 +284,19 @@ std::vector<Grammar> extractDyck(const std::string &fname,
 		error(23450237);
 	}
 
-	// read raw labels
+	// read raw lines
+	std::vector<std::string> lines;
 	std::string line;
-	std::vector<std::string> labels;
 	while (getline(in, line)) {
+		lines.push_back(line);
+	}
+	if (!checkGraph(lines)) {
+		error(92334739);
+	}
+
+	// get all labels
+	std::vector<std::string> labels;
+	for (auto line : lines) {
 		labels.push_back(parseGraphLine(line).second);
 	}
 
@@ -307,8 +383,7 @@ std::vector<Grammar> extractDyck(const std::string &fname,
 		gm.addBinaryProduction(
 				label_map[label_type{"d"}],
 				label_map[label_type{"d"}],
-				label_map[label_type{"d"}]
-				);
+				label_map[label_type{"d"}]);
 		// d      -> o d1
 		// d1     -> d c
 		for (auto &dyck : std::vector<std::string>{"p", "b"}) {
@@ -316,13 +391,11 @@ std::vector<Grammar> extractDyck(const std::string &fname,
 				gm.addBinaryProduction(
 						label_map[label_type{"d"}],
 						label_map[label_type{"o" + dyck, n}],
-						label_map[label_type{"d1"}]
-						);
+						label_map[label_type{"d1"}]);
 				gm.addBinaryProduction(
 						label_map[label_type{"d1"}],
 						label_map[label_type{"d"}],
-						label_map[label_type{"c" + dyck, n}]
-						);
+						label_map[label_type{"c" + dyck, n}]);
 			}
 		}
 		gm.addStartSymbol(label_map[label_type{"d"}]);
@@ -348,32 +421,27 @@ std::vector<Grammar> extractDyck(const std::string &fname,
 		gm.addBinaryProduction(
 				label_map[label_type{"d" + dyck}],
 				label_map[label_type{"d" + dyck}],
-				label_map[label_type{"d" + dyck}]
-				);
+				label_map[label_type{"d" + dyck}]);
 		// d      -> o--[n] d--[n]
 		// d--[n] -> d      c--[n]
 		for (auto &n : numbers[dyck]) {
 			gm.addBinaryProduction(
 					label_map[label_type{"d" + dyck}],
 					label_map[label_type{"o" + dyck, n}],
-					label_map[label_type{"d" + dyck, n}]
-					);
+					label_map[label_type{"d" + dyck, n}]);
 			gm.addBinaryProduction(
 					label_map[label_type{"d" + dyck, n}],
 					label_map[label_type{"d" + dyck}],
-					label_map[label_type{"c" + dyck, n}]
-					);
+					label_map[label_type{"c" + dyck, n}]);
 		}
 		// d      -> ...
 		for (auto &n : numbers[other_dyck]) {
 			gm.addUnaryProduction(
 					label_map[label_type{"d" + dyck}],
-					label_map[label_type{"o" + other_dyck, n}]
-					);
+					label_map[label_type{"o" + other_dyck, n}]);
 			gm.addUnaryProduction(
 					label_map[label_type{"d" + dyck}],
-					label_map[label_type{"c" + other_dyck, n}]
-					);
+					label_map[label_type{"c" + other_dyck, n}]);
 		}
 		gm.addStartSymbol(label_map[label_type{"d" + dyck}]);
 		gm.initFastIndices();

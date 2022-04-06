@@ -1,5 +1,5 @@
-#include "../grammar/grammar.h"
 #include "graph.h"
+#include "../grammar/grammar.h"
 #include <vector>
 #include <deque>
 #include <unordered_map>

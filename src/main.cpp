@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
 	auto start = std::chrono::steady_clock::now();
 	// main body
 	if (argc == 2) {
-#ifdef NAIVE
 		std::unordered_map<std::string, int> sym_map;
 		std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
 		int ng = grammars.size();
@@ -30,39 +29,8 @@ int main(int argc, char *argv[]) {
 		int nv = tmp.first;
 		std::unordered_set<Edge, EdgeHasher> edges = std::move(tmp.second);
 		std::vector<Graph> graphs(ng);
-		for (int i = 0; i < ng; i++) {
-			graphs[i].init(nv);
-			graphs[i].addEdges(edges);
-			std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-			graphs[i].runCFLReachability(grammars[i], false, record);
-		}
-		int ctr = 0;
-		for (int s = 0; s < nv; s++) {
-			for (int t = 0; t < nv; t++) {
-				bool ok = true;
-				for (int i = 0; i < ng; i++) {
-					if (!(graphs[i].hasEdge(std::make_tuple(s, grammars[i].startSymbol, t)))) {
-						ok = false;
-						break;
-					}
-				}
-				if (ok) {
-					ctr++;
-				}
-			}
-		}
-		std::cout << "naive: " << ctr << std::endl;
-#endif
 #ifdef REFINE
-		std::unordered_map<std::string, int> sym_map;
-		std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
-		int ng = grammars.size();
-		std::unordered_map<std::string, int> node_map;
-		auto tmp = parseGraph(argv[1], sym_map, node_map);
-		int nv = tmp.first;
-		std::unordered_set<Edge, EdgeHasher> edges = std::move(tmp.second);
 		std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
-		std::vector<Graph> graphs(ng);
 		do {
 			prev_size = edges.size();
 			for (int i = 0; i < ng; i++) {
@@ -73,6 +41,14 @@ int main(int argc, char *argv[]) {
 				edges = graphs[i].getEdgeClosure(grammars[i], summaries, record);
 			}
 		} while (edges.size() != prev_size);
+#else
+		for (int i = 0; i < ng; i++) {
+			graphs[i].init(nv);
+			graphs[i].addEdges(edges);
+			std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
+			graphs[i].runCFLReachability(grammars[i], false, record);
+		}
+#endif
 		int ctr = 0;
 		for (int s = 0; s < nv; s++) {
 			for (int t = 0; t < nv; t++) {
@@ -88,8 +64,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
-		std::cout << "refine: " << ctr << std::endl;
-#endif
+		std::cout << ctr << std::endl;
 	} else {
 		std::cout << "Usage: " << argv[0] << " <graph-file-path>" << std::endl;
 	}
@@ -108,7 +83,7 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-	std::cout << "****** RESOURCE CHECK ******" << std::endl;
+	std::cout << "****** RESOURCE CONSUMPTION ******" << std::endl;
 	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
 	std::cout << "Peak Space (kB): " << vmpeak << std::endl; 
 }

@@ -7,7 +7,7 @@ cppflags = -O3 -Wall -Wextra -pedantic
 all : naive refine
 
 naive : $(files)
-	g++ -DNAIVE -o naive $(cppflags) $(cppfiles)
+	g++ -o naive $(cppflags) $(cppfiles)
 
 refine : $(files)
 	g++ -DREFINE -o refine $(cppflags) $(cppfiles)
