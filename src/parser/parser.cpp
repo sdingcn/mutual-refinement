@@ -134,7 +134,7 @@ bool checkGrammar(const std::vector<std::string> &lines) {
 	return true;
 }
 
-Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, int> &sym_map) {
+std::vector<std::string> readLines(const std::string &fname) {
 	// file auto closed via destructor
 	std::ifstream in(fname);
 	if (in.fail()) {
@@ -146,6 +146,12 @@ Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, i
 	while (getline(in, line)) {
 		lines.push_back(line);
 	}
+	return lines;
+}
+
+Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, int> &sym_map) {
+	// read lines and check
+	std::vector<std::string> lines = readLines(fname);
 	if (!checkGrammar(lines)) {
 		error(12327939);
 	}
@@ -239,17 +245,8 @@ bool checkGraph(const std::vector<std::string> &lines) {
 std::pair<int, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>> parseGraph(const std::string &fname,
 		const std::unordered_map<std::string, int> &sym_map,
 		std::unordered_map<std::string, int> &node_map) {
-	// file auto closed via destructor
-	std::ifstream in(fname);
-	if (in.fail()) {
-		error(28723488);
-	}
-	// read all lines and check
-	std::vector<std::string> lines;
-	std::string line;
-	while (getline(in, line)) {
-		lines.push_back(line);
-	}
+	// read lines and check
+	std::vector<std::string> lines = readLines(fname);
 	if (!checkGraph(lines)) {
 		error(91327939);
 	}
@@ -275,21 +272,8 @@ std::pair<int, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>> p
 
 std::vector<Grammar> extractDyck(const std::string &fname,
 		std::unordered_map<std::string, int> &sym_map) {
-	// the label type
-	using label_type = std::vector<std::string>;
-
-	// file auto closed via destructor
-	std::ifstream in(fname);
-	if (in.fail()) {
-		error(23450237);
-	}
-
-	// read raw lines
-	std::vector<std::string> lines;
-	std::string line;
-	while (getline(in, line)) {
-		lines.push_back(line);
-	}
+	// read lines and check
+	std::vector<std::string> lines = readLines(fname);
 	if (!checkGraph(lines)) {
 		error(92334739);
 	}
@@ -308,6 +292,9 @@ std::vector<Grammar> extractDyck(const std::string &fname,
 		std::string number = label.substr(4, label.size() - 4);
 		numbers[dtype].insert(number);
 	}
+
+	// the label type
+	using label_type = std::vector<std::string>;
 
 	// encode labels
 	std::map<label_type, int> label_map;
