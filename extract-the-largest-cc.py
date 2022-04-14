@@ -79,6 +79,6 @@ if __name__ == '__main__':
     for first, second, label in raw_edges:
         if node_to_number[first] in lcc:
             lcc_raw_edges.append((first, second, label))
-    with open(sys.argv[1] + '.cc', 'w') as f:
+    with open(sys.argv[1] + '.cc.dot', 'w') as f:
         for e in lcc_raw_edges:
             f.write(raw_edge_to_line(e) + '\n')
