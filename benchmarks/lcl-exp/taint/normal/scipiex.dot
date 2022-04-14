@@ -1,5 +1,3 @@
-Orig Total fd: 189 call: 1048 node: 2312 edge: 5724
- edges: 2415
 21889->21907[label="op--0"]
 21889->21896[label="op--1"]
 34518->7583[label="op--2"]
@@ -5820,4 +5818,3 @@ Orig Total fd: 189 call: 1048 node: 2312 edge: 5724
 29909->29914[label="op--726"]
 29952->29875[label="op--726"]
 16964->16963[label="op--736"]
-final field 173 call 844

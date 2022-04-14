@@ -1,5 +1,3 @@
-Orig Total fd: 366 call: 4571 node: 4451 edge: 13193
- edges: 5841
 13817->13822[label="cb--0"]
 33011->35748[label="cp--0"]
 33011->43385[label="cp--1"]
@@ -13768,4 +13766,3 @@ Orig Total fd: 366 call: 4571 node: 4451 edge: 13193
 25734->25735[label="op--2720"]
 25734->25673[label="op--2720"]
 25735->25734[label="op--2720"]
-final field 330 call 2894

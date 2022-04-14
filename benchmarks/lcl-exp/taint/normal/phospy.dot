@@ -1,5 +1,3 @@
-Orig Total fd: 121 call: 3508 node: 4616 edge: 13722
- edges: 6883
 48313->15327[label="op--0"]
 955->923[label="cp--1"]
 28559->28539[label="cp--2"]
@@ -15660,4 +15658,3 @@ Orig Total fd: 121 call: 3508 node: 4616 edge: 13722
 12703->12676[label="cb--14"]
 12703->12729[label="cb--14"]
 12676->12654[label="cb--14"]
-final field 118 call 2795

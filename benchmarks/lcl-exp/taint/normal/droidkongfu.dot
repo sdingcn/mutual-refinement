@@ -1,5 +1,3 @@
-Orig Total fd: 43 call: 482 node: 766 edge: 1578
- edges: 769
 8683->8698[label="cb--0"]
 8683->943[label="op--0"]
 8683->8693[label="cb--1"]
@@ -1983,4 +1981,3 @@ Orig Total fd: 43 call: 482 node: 766 edge: 1578
 8157->8152[label="cb--21"]
 8159->8157[label="cb--21"]
 8159->8053[label="cb--21"]
-final field 39 call 367

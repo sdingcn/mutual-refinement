@@ -1,5 +1,3 @@
-Orig Total fd: 10 call: 222 node: 291 edge: 634
- edges: 286
 2333->2424[label="ob--0"]
 2333->661[label="op--0"]
 1448->661[label="op--1"]
@@ -710,4 +708,3 @@ Orig Total fd: 10 call: 222 node: 291 edge: 634
 1477->1412[label="ob--0"]
 1477->1448[label="ob--0"]
 1477->1479[label="ob--0"]
-final field 9 call 166

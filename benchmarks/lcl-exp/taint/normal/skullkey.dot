@@ -1,5 +1,3 @@
-Orig Total fd: 1514 call: 15944 node: 19672 edge: 57048
- edges: 27934
 174224->3543[label="op--0"]
 174224->174223[label="ob--0"]
 174224->3532[label="op--1"]
@@ -69599,4 +69597,3 @@ Orig Total fd: 1514 call: 15944 node: 19672 edge: 57048
 163611->163611[label="op--3759"]
 189139->199531[label="cb--874"]
 56548->199519[label="cb--874"]
-final field 1340 call 12316
