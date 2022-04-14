@@ -1,5 +1,6 @@
 import sys
 import os.path
+from collections import deque
 
 def get_raw_edges(lines):
     raw_edges = []
@@ -36,19 +37,22 @@ def build_graph(edges, n):
 def get_largest_cc(G):
     n = len(G)
     vis = [False for i in range(n)]
-    def dfs(v):
+    def bfs(v):
         nonlocal vis
+        Q = deque([v])
         s = set()
-        if not vis[v]:
-            vis[v] = True
+        while len(Q) > 0:
+            v = Q.popleft()
             s.add(v)
             for w in G[v]:
-                s = s | dfs(w)
+                if not vis[w]:
+                    vis[w] = True
+                    Q.append(w)
         return s
     ccs = []
     for i in range(n):
         if not vis[i]:
-            ccs.append(dfs(i))
+            ccs.append(bfs(i))
     ccs.sort(key = lambda s : len(s), reverse = True)
     if len(ccs) > 0:
         return ccs[0]
