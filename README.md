@@ -1,4 +1,4 @@
-# mutual-refinement-of-CFL-reachability
+# mutual-refinement
 
 ## dependencies
 This implementation is intended to be used on Linux.
