@@ -8,25 +8,22 @@
 using Edge = std::tuple<int, int, int>;
 using EdgeHasher = IntTripleHasher;
 
-void Graph::init(int n) {
+void Graph::reinit(int n, const std::unordered_set<Edge, EdgeHasher> &edges) {
 	numberOfVertices = n;
 	fastEdgeTest.clear();
 	adjacencyVector.clear();
 	adjacencyVector.resize(n);
 	counterAdjacencyVector.clear();
 	counterAdjacencyVector.resize(n);
+	for (const Edge &e : edges) {
+		addEdge(e);
+	}
 }
 
 void Graph::addEdge(const Edge &e) { // i --x--> j
 	fastEdgeTest.insert(e);
 	adjacencyVector[std::get<0>(e)].push_back(std::make_pair(std::get<1>(e), std::get<2>(e)));
 	counterAdjacencyVector[std::get<2>(e)].push_back(std::make_pair(std::get<0>(e), std::get<1>(e)));
-}
-
-void Graph::addEdges(const std::unordered_set<Edge, EdgeHasher> &edges) {
-	for (const Edge &e : edges) {
-		addEdge(e);
-	}
 }
 
 bool Graph::hasEdge(const Edge &e) const {

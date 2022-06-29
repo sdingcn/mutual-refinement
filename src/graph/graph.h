@@ -8,18 +8,14 @@
 #include <unordered_set>
 
 struct Graph {
-	// type aliases
 	using Edge = std::tuple<int, int, int>;
 	using EdgeHasher = IntTripleHasher;
-	// fields
 	int numberOfVertices = 0;
 	std::unordered_set<Edge, EdgeHasher> fastEdgeTest;
 	std::vector<std::vector<std::pair<int, int>>> adjacencyVector; // first vertex -> [(label, second vertex)]
 	std::vector<std::vector<std::pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
-	// methods
-	void init(int n);
+	void reinit(int n, const std::unordered_set<Edge, EdgeHasher> &edges);
 	void addEdge(const Edge &e);
-	void addEdges(const std::unordered_set<Edge, EdgeHasher> &edges);
 	bool hasEdge(const Edge &e) const;
 	std::vector<Edge> runCFLReachability(
 		const Grammar &grammar,

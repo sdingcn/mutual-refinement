@@ -13,47 +13,38 @@
 #include <tuple>
 #include <chrono>
 
-int main(int argc, char *argv[]) {
+void run(int argc, char *argv[]) {
 	// type aliases
 	using Edge = std::tuple<int, int, int>;
 	using EdgeHasher = IntTripleHasher;
-	// start time
-	auto start = std::chrono::steady_clock::now();
-	// main body
 	if (argc == 2) {
-		std::unordered_map<std::string, int> sym_map;
-		std::vector<Grammar> grammars = extractDyck(argv[1], sym_map);
-		int ng = grammars.size();
-		std::unordered_map<std::string, int> node_map;
-		auto tmp = parseGraph(argv[1], sym_map, node_map);
-		int nv = tmp.first;
-		std::unordered_set<Edge, EdgeHasher> edges = std::move(tmp.second);
-		std::vector<Graph> graphs(ng);
+		GraphFile gf = parseGraphFile(sys.argv[1]);
+		std::vector<Graph> graphs(gf.grammars.size());
 #ifdef REFINE
+		std::unordered_set<Edge, EdgeHasher> edges = gf.edges;
 		std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
 		do {
 			prev_size = edges.size();
-			for (int i = 0; i < ng; i++) {
-				graphs[i].init(nv);
-				graphs[i].addEdges(edges);
+			for (int i = 0; i < gf.grammars.size(); i++) {
+				graphs[i].reinit(gf.nodeMap.size(), edges);
 				std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-				auto summaries = graphs[i].runCFLReachability(grammars[i], true, record);
-				edges = graphs[i].getEdgeClosure(grammars[i], summaries, record);
+				auto summaries = graphs[i].runCFLReachability(gf.grammars[i], true, record);
+				edges = graphs[i].getEdgeClosure(gf.grammars[i], summaries, record);
 			}
 		} while (edges.size() != prev_size);
 #else
-		for (int i = 0; i < ng; i++) {
-			graphs[i].init(nv);
+		for (int i = 0; i < gf.grammars.size(); i++) {
+			graphs[i].reinit(gf.nodeMap.size(), gf.edges);
 			graphs[i].addEdges(edges);
 			std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
 			graphs[i].runCFLReachability(grammars[i], false, record);
 		}
 #endif
 		int ctr = 0;
-		for (int s = 0; s < nv; s++) {
-			for (int t = 0; t < nv; t++) {
+		for (int s = 0; s < gf.nodeMap.size(); s++) {
+			for (int t = 0; t < gf.nodeMap.size(); t++) {
 				bool ok = true;
-				for (int i = 0; i < ng; i++) {
+				for (int i = 0; i < gf.grammars.size(); i++) {
 					if (!(graphs[i].hasEdge(std::make_tuple(s, grammars[i].startSymbol, t)))) {
 						ok = false;
 						break;
@@ -66,11 +57,17 @@ int main(int argc, char *argv[]) {
 		}
 		std::cout << ctr << std::endl;
 	} else {
-		std::cout << "Usage: " << argv[0] << " <graph-file-path>" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " <graph-file-path>" << std::endl;
 	}
-	// resource check
+}
+
+int main(int argc, char *argv[]) {
+	// time
+	auto start = std::chrono::steady_clock::now();
+	run(argc, argv);
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
+	// space
 	std::ifstream in("/proc/self/status");
 	std::string line;
 	std::string vmpeak;
@@ -83,7 +80,9 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-	std::cout << "****** RESOURCE CONSUMPTION ******" << std::endl;
-	std::cout << "Total Time (Seconds): " << elapsed_seconds.count() << std::endl;
-	std::cout << "Peak Space (kB): " << vmpeak << std::endl; 
+	// print resource consumption
+	std::cout
+		<< "*** Resource Consumption ***" << std::endl
+		<< "Total Time (Seconds): " << elapsed_seconds.count() << std::endl
+		<< "Peak Space (kB): " << vmpeak << std::endl; 
 }

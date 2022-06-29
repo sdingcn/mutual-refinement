@@ -10,13 +10,15 @@
 #include <unordered_set>
 #include <utility>
 
-Grammar parseGrammar(const std::string &fname, std::unordered_map<std::string, int> &sym_map);
+struct GraphFile {
+	std::unordered_map<std::string, int> nodeMap;
+	std::unordered_map<int, std::string> nodeMapR;
+	std::unordered_map<std::string, int> symMap;
+	std::unordered_map<int, std::string> symMapR;
+	std::vector<Grammar> grammars;
+	std::unordered_set<std::tuple<int, int, int>, IntTripleHasher> edges;
+};
 
-std::pair<int, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>> parseGraph(const std::string &fname,
-		const std::unordered_map<std::string, int> &sym_map,
-		std::unordered_map<std::string, int> &node_map);
-
-std::vector<Grammar> extractDyck(const std::string &fname,
-		std::unordered_map<std::string, int> &sym_map);
+GraphFile parseGraphFile(const std::string &fName);
 
 #endif
