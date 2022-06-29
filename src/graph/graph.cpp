@@ -1,12 +1,10 @@
 #include "graph.h"
+#include "../hasher/hasher.h"
 #include "../grammar/grammar.h"
 #include <vector>
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>
-
-using Edge = std::tuple<int, int, int>;
-using EdgeHasher = IntTripleHasher;
 
 void Graph::reinit(int n, const std::unordered_set<Edge, EdgeHasher> &edges) {
 	fastEdgeTest.clear();

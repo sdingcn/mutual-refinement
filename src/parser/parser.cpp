@@ -1,17 +1,13 @@
 #include "parser.h"
 #include "../hasher/hasher.h"
-#include "../error/error.h"
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <map>
-#include <utility>
 #include <tuple>
 
-std::unordered_map<std::string, int> number(const vector<string> &names) {
+std::unordered_map<std::string, int> number(const std::vector<std::string> &names) {
 	std::unordered_map<std::string, int> mp;
 	int n = 0;
 	for (auto &name : names) {
@@ -22,7 +18,8 @@ std::unordered_map<std::string, int> number(const vector<string> &names) {
 	return mp;
 }
 
-template <typename T, typename U> reverseMap(const std::unordered_map<T, U> &mp) {
+template <typename T, typename U>
+std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
 	std::unordered_map<U, T> mpR;
 	for (auto &kv : mp) {
 		mpR[kv.second] = kv.first;
@@ -70,16 +67,16 @@ GraphFile parseGraphFile(const std::string &fName) {
 	for (auto &line: lines) {
 		auto symbol = std::get<1>(line);
 		std::string dyck = symbol.substr(1, 1);
-		std::string par_number = symbol.substr(4, label.size() - 4);
-		dyckNumbers[dyck].insert(par_number);
+		std::string parNumber = symbol.substr(4, symbol.size() - 4);
+		dyckNumbers[dyck].insert(parNumber);
 	}
 	std::vector<std::string> symbols;
 	for (auto dyck : std::vector<std::string>{"p", "b"}) {
 		symbols.push_back("d" + dyck);
-		for (auto par_number : dyckNumbers[dyck]) {
-			symbols.push_back("d" + dyck + "--" + par_number);
-			symbols.push_back("o" + dyck + "--" + par_number);
-			symbols.push_back("c" + dyck + "--" + par_number);
+		for (auto parNumber : dyckNumbers[dyck]) {
+			symbols.push_back("d" + dyck + "--" + parNumber);
+			symbols.push_back("o" + dyck + "--" + parNumber);
+			symbols.push_back("c" + dyck + "--" + parNumber);
 		}
 	}
 	std::unordered_map<std::string, int> symMap = number(symbols);
@@ -131,7 +128,7 @@ GraphFile parseGraphFile(const std::string &fName) {
 	};
 	std::vector<Grammar> grammars{construct("p", "b"), construct("b", "p")};
 	// construct edges
-	std::unordered_set<std::tuple<int, int, int>, IntTripleHasher> edges;
+	std::unordered_set<Edge, EdgeHasher> edges;
 	for (auto &line : lines) {
 		edges.insert(std::make_tuple(
 			nodeMap[std::get<0>(line)],
@@ -140,7 +137,7 @@ GraphFile parseGraphFile(const std::string &fName) {
 		));
 	}
 	// return
-	Graphfile gf;
+	GraphFile gf;
 	gf.nodeMap = nodeMap;
 	gf.nodeMapR = nodeMapR;
 	gf.symMap = symMap;

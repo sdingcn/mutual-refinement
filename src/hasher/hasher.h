@@ -13,4 +13,7 @@ struct IntTripleHasher {
 	std::size_t operator () (const std::tuple<int, int, int> &t) const;
 };
 
+using Edge = std::tuple<int, int, int>;
+using EdgeHasher = IntTripleHasher;
+
 #endif

@@ -9,16 +9,12 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
 #include <chrono>
 
 void run(int argc, char *argv[]) {
-	// type aliases
-	using Edge = std::tuple<int, int, int>;
-	using EdgeHasher = IntTripleHasher;
 	if (argc == 2) {
-		GraphFile gf = parseGraphFile(sys.argv[1]);
+		GraphFile gf = parseGraphFile(argv[1]);
 		int ng = gf.grammars.size();
 		int nv = gf.nodeMap.size();
 		std::vector<Graph> graphs(ng);
@@ -37,9 +33,8 @@ void run(int argc, char *argv[]) {
 #else
 		for (int i = 0; i < ng; i++) {
 			graphs[i].reinit(nv, gf.edges);
-			graphs[i].addEdges(edges);
 			std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-			graphs[i].runCFLReachability(grammars[i], false, record);
+			graphs[i].runCFLReachability(gf.grammars[i], false, record);
 		}
 #endif
 		int ctr = 0;
@@ -47,7 +42,7 @@ void run(int argc, char *argv[]) {
 			for (int t = 0; t < nv; t++) {
 				bool ok = true;
 				for (int i = 0; i < ng; i++) {
-					if (!(graphs[i].hasEdge(std::make_tuple(s, grammars[i].startSymbol, t)))) {
+					if (!(graphs[i].hasEdge(std::make_tuple(s, gf.grammars[i].startSymbol, t)))) {
 						ok = false;
 						break;
 					}
@@ -57,7 +52,7 @@ void run(int argc, char *argv[]) {
 				}
 			}
 		}
-		std::cout << ctr << std::endl;
+		std::cout << "Number of Reachable Pairs: " << ctr << std::endl;
 	} else {
 		std::cerr << "Usage: " << argv[0] << " <graph-file-path>" << std::endl;
 	}

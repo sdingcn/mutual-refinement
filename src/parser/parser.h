@@ -8,7 +8,6 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 
 struct GraphFile {
 	std::unordered_map<std::string, int> nodeMap;
@@ -16,7 +15,7 @@ struct GraphFile {
 	std::unordered_map<std::string, int> symMap;
 	std::unordered_map<int, std::string> symMapR;
 	std::vector<Grammar> grammars;
-	std::unordered_set<std::tuple<int, int, int>, IntTripleHasher> edges;
+	std::unordered_set<Edge, EdgeHasher> edges;
 };
 
 GraphFile parseGraphFile(const std::string &fName);

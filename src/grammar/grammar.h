@@ -8,6 +8,7 @@
 #include <utility>
 
 struct Grammar {
+	// grammar contents
 	std::unordered_set<int> terminals;
 	std::unordered_set<int> nonterminals;
 	int startSymbol;

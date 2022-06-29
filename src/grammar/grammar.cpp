@@ -1,4 +1,5 @@
 #include "grammar.h"
+#include "../hasher/hasher.h"
 #include <utility>
 
 void Grammar::addTerminal(int t) {

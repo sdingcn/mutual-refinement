@@ -8,11 +8,9 @@
 #include <unordered_set>
 
 struct Graph {
-	using Edge = std::tuple<int, int, int>;
-	using EdgeHasher = IntTripleHasher;
 	std::unordered_set<Edge, EdgeHasher> fastEdgeTest;
-	std::vector<std::vector<std::pair<int, int>>> adjacencyVector; // first vertex -> [(label, second vertex)]
-	std::vector<std::vector<std::pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
+	std::vector<std::vector<std::pair<int, int>>> adjacencyVector; // v1 -> [(sym, v2)]
+	std::vector<std::vector<std::pair<int, int>>> counterAdjacencyVector; // v2 -> [(v1, sym)]
 	void reinit(int n, const std::unordered_set<Edge, EdgeHasher> &edges);
 	void addEdge(const Edge &e);
 	bool hasEdge(const Edge &e) const;
