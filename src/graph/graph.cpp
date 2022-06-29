@@ -9,7 +9,6 @@ using Edge = std::tuple<int, int, int>;
 using EdgeHasher = IntTripleHasher;
 
 void Graph::reinit(int n, const std::unordered_set<Edge, EdgeHasher> &edges) {
-	numberOfVertices = n;
 	fastEdgeTest.clear();
 	adjacencyVector.clear();
 	adjacencyVector.resize(n);
@@ -39,8 +38,9 @@ std::vector<Edge> Graph::runCFLReachability(
 	for (const Edge &e : fastEdgeTest) {
 		w.push_front(e);
 	}
+	int nv = adjacencyVector.size();
 	for (int x : grammar.emptyProductions) {
-		for (int i = 0; i < numberOfVertices; i++) {
+		for (int i = 0; i < nv; i++) {
 			Edge e = std::make_tuple(i, x, i);
 			addEdge(e);
 			w.push_front(e);

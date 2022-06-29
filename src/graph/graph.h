@@ -10,7 +10,6 @@
 struct Graph {
 	using Edge = std::tuple<int, int, int>;
 	using EdgeHasher = IntTripleHasher;
-	int numberOfVertices = 0;
 	std::unordered_set<Edge, EdgeHasher> fastEdgeTest;
 	std::vector<std::vector<std::pair<int, int>>> adjacencyVector; // first vertex -> [(label, second vertex)]
 	std::vector<std::vector<std::pair<int, int>>> counterAdjacencyVector; // second vertex -> [(first vertex, label)]
