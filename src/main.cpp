@@ -32,14 +32,39 @@ void printResult(std::unordered_set<std::pair<int, int>, IntPairHasher> &reachab
 }
 
 void printUsage(const std::string &programName) {
-	std::cerr << "Usage: " << programName << " <\"naive\"/\"refine\"> <graph-file-path>" << std::endl;
+	std::cerr << "Usage: " << programName << " <\"reduction\"/\"naive\"/\"refine\"> <graph-file-path>" << std::endl;
 }
 
 void run(int argc, char *argv[]) {
 	if (argc == 3) {
 		std::string option = argv[1];
 		GraphFile gf = parseGraphFile(argv[2]);
-		if (option == "naive") {
+		if (option == "reduction") {
+			// original
+			std::cout << "original edge count: " << gf.edges.size() << std::endl;
+			// lcl
+			std::stringstream buffer;
+			for (auto &e : gf.edges) {
+				buffer
+					<< gf.nodeMapR[std::get<0>(e)] << "->" << gf.nodeMapR[std::get<2>(e)]
+					<< "[label=\"" << gf.symMapR[std::get<1>(e)] << "\"]\n";
+			}
+			std::set<std::pair<std::string, std::string>> reachableStringPairs;
+			std::set<std::tuple<std::string, std::string, std::string>> contributingStringEdges;
+			runLCL(buffer, reachableStringPairs, true, contributingStringEdges);
+			std::cout << "LCL edge count: " << contributingStringEdges.size() << std::endl;
+			// cfl
+			int ng = gf.grammars.size();
+			int nv = gf.nodeMap.size();
+			std::vector<Graph> graphs(ng);
+			for (int i = 0; i < ng; i++) {
+				graphs[i].reinit(nv, gf.edges);
+				std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
+				auto summaries = graphs[i].runCFLReachability(gf.grammars[i], true, record);
+				auto edges = graphs[i].getEdgeClosure(gf.grammars[i], summaries, record);
+				std::cout << "CFL " << i << " edge count: " << edges.size() << std::endl;
+			}
+		} else if (option == "naive") {
 			// lcl
 			std::stringstream buffer;
 			for (auto &e : gf.edges) {
