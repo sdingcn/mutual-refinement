@@ -79,6 +79,9 @@ void run(int argc, char *argv[]) {
 			for (auto &sp : reachableStringPairs) {
 				reachablePairs.insert(std::make_pair(gf.nodeMap[sp.first], gf.nodeMap[sp.second]));
 			}
+			for (auto &p : gf.nodeMap) {
+				reachablePairs.insert(std::make_pair(p.second, p.second));
+			}
 			// cfl
 			int ng = gf.grammars.size();
 			int nv = gf.nodeMap.size();
@@ -104,6 +107,13 @@ void run(int argc, char *argv[]) {
 			// main refinement loop
 			do {
 				prev_size = edges.size();
+				// cfl0
+				{
+					graphs[0].reinit(nv, edges);
+					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
+					auto summaries = graphs[0].runCFLReachability(gf.grammars[0], true, record);
+					edges = graphs[0].getEdgeClosure(gf.grammars[0], summaries, record);
+				}
 				// lcl
 				std::stringstream buffer;
 				for (auto &e : edges) {
@@ -118,17 +128,20 @@ void run(int argc, char *argv[]) {
 						std::make_tuple(gf.nodeMap[std::get<0>(se)], gf.symMap[std::get<1>(se)], gf.nodeMap[std::get<2>(se)])
 					);
 				}
-				// cfl
-				for (int i = 0; i < ng; i++) {
-					graphs[i].reinit(nv, edges);
+				// cfl1
+				{
+					graphs[1].reinit(nv, edges);
 					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-					auto summaries = graphs[i].runCFLReachability(gf.grammars[i], true, record);
-					edges = graphs[i].getEdgeClosure(gf.grammars[i], summaries, record);
+					auto summaries = graphs[1].runCFLReachability(gf.grammars[1], true, record);
+					edges = graphs[1].getEdgeClosure(gf.grammars[1], summaries, record);
 				}
 			} while (edges.size() != prev_size);
 			std::unordered_set<std::pair<int, int>, IntPairHasher> reachablePairs;
 			for (auto &sp : reachableStringPairs) {
 				reachablePairs.insert(std::make_pair(gf.nodeMap[sp.first], gf.nodeMap[sp.second]));
+			}
+			for (auto &p : gf.nodeMap) {
+				reachablePairs.insert(std::make_pair(p.second, p.second));
 			}
 			// print
 			printResult(reachablePairs, gf, graphs);
