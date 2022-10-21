@@ -27,6 +27,7 @@ std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
 	return mpR;
 }
 
+// (node, label, node)
 using Line = std::tuple<std::string, std::string, std::string>;
 
 std::vector<Line> readLines(const std::string &fName) {
@@ -63,70 +64,12 @@ GraphFile parseGraphFile(const std::string &fName) {
 	std::unordered_map<std::string, int> nodeMap = number(nodes);
 	std::unordered_map<int, std::string> nodeMapR = reverseMap(nodeMap);
 	// number symbols
-	std::unordered_map<std::string, std::unordered_set<std::string>> dyckNumbers;
-	for (auto &line: lines) {
-		auto symbol = std::get<1>(line);
-		std::string dyck = symbol.substr(1, 1);
-		std::string parNumber = symbol.substr(4, symbol.size() - 4);
-		dyckNumbers[dyck].insert(parNumber);
-	}
 	std::vector<std::string> symbols;
-	for (auto dyck : std::vector<std::string>{"p", "b"}) {
-		symbols.push_back("d" + dyck);
-		for (auto parNumber : dyckNumbers[dyck]) {
-			symbols.push_back("d" + dyck + "--" + parNumber);
-			symbols.push_back("o" + dyck + "--" + parNumber);
-			symbols.push_back("c" + dyck + "--" + parNumber);
-		}
+	for (auto &line : lines) {
+		symbols.push_back(std::get<1>(line));
 	}
 	std::unordered_map<std::string, int> symMap = number(symbols);
 	std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
-	// construct grammars
-	auto construct = [&dyckNumbers, &symMap]
-	(const std::string &dyck, const std::string &otherDyck) -> Grammar {
-		Grammar gm;
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addTerminal(symMap["o" + dyck + "--" + n]);
-			gm.addTerminal(symMap["c" + dyck + "--" + n]);
-		}
-		for (auto &n : dyckNumbers[otherDyck]) {
-			gm.addTerminal(symMap["o" + otherDyck + "--" + n]);
-			gm.addTerminal(symMap["c" + otherDyck + "--" + n]);
-		}
-		gm.addNonterminal(symMap["d" + dyck]);
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addNonterminal(symMap["d" + dyck + "--" + n]);
-		}
-		// d      -> empty
-		gm.addEmptyProduction(symMap["d" + dyck]);
-		// d      -> d d
-		gm.addBinaryProduction(symMap["d" + dyck], symMap["d" + dyck], symMap["d" + dyck]);
-		// d      -> o--[n] d--[n]
-		// d--[n] -> d      c--[n]
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addBinaryProduction(
-					symMap["d" + dyck],
-					symMap["o" + dyck + "--" + n],
-					symMap["d" + dyck + "--" + n]);
-			gm.addBinaryProduction(
-					symMap["d" + dyck + "--" + n],
-					symMap["d" + dyck],
-					symMap["c" + dyck + "--" + n]);
-		}
-		// d      -> ...
-		for (auto &n : dyckNumbers[otherDyck]) {
-			gm.addUnaryProduction(
-					symMap["d" + dyck],
-					symMap["o" + otherDyck + "--" + n]);
-			gm.addUnaryProduction(
-					symMap["d" + dyck],
-					symMap["c" + otherDyck + "--" + n]);
-		}
-		gm.addStartSymbol(symMap["d" + dyck]);
-		gm.initFastIndices();
-		return gm;
-	};
-	std::vector<Grammar> grammars{construct("p", "b"), construct("b", "p")};
 	// construct edges
 	std::unordered_set<Edge, EdgeHasher> edges;
 	for (auto &line : lines) {
@@ -142,7 +85,6 @@ GraphFile parseGraphFile(const std::string &fName) {
 	gf.nodeMapR = nodeMapR;
 	gf.symMap = symMap;
 	gf.symMapR = symMapR;
-	gf.grammars = grammars;
 	gf.edges = edges;
 	return gf;
 }

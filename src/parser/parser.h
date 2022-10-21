@@ -14,7 +14,6 @@ struct GraphFile {
 	std::unordered_map<int, std::string> nodeMapR;
 	std::unordered_map<std::string, int> symMap;
 	std::unordered_map<int, std::string> symMapR;
-	std::vector<Grammar> grammars;
 	std::unordered_set<Edge, EdgeHasher> edges;
 };
 

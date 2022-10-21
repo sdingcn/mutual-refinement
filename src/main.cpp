@@ -2,7 +2,6 @@
 #include "graph/graph.h"
 #include "hasher/hasher.h"
 #include "parser/parser.h"
-#include "lcllib/lcllib.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -12,139 +11,66 @@
 #include <unordered_set>
 #include <tuple>
 #include <chrono>
-
-void printResult(std::unordered_set<std::pair<int, int>, IntPairHasher> &reachablePairs, GraphFile &graphFile, std::vector<Graph> &graphs) {
-	int ng = graphs.size();
-	int ctr = 0;
-	for (auto &p : reachablePairs) {
-		bool ok = true;
-		for (int i = 0; i < ng; i++) {
-			if (!(graphs[i].hasEdge(std::make_tuple(p.first, graphFile.grammars[i].startSymbol, p.second)))) {
-				ok = false;
-				break;
-			}
-		}
-		if (ok) {
-			ctr++;
-		}
-	}
-	std::cout << "Number of Reachable Pairs: " << ctr << std::endl;
-}
+#include <cassert>
+#include <utility>
 
 void printUsage(const std::string &programName) {
 	std::cerr << "Usage: " << programName << " <\"reduction\"/\"naive\"/\"refine\"> <graph-file-path>" << std::endl;
+}
+
+std::unordered_set<Edge, EdgeHasher> intersectResults(const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
+	int n = results.size();
+	std::assert(n >= 1);
+	auto r = results[0];
+	for (int i = 1; i < n; i++) {
+		std::unordered_set<Edge, EdgeHasher> nr;
+		for (auto &e : r) {
+			if (results[i].count(e) > 0) {
+				nr.insert(e);
+			}
+		}
+		r = std::move(nr);
+	}
+	return r;
+}
+
+std::vector<Grammar> makeGrammars(GraphFile &gf) {
 }
 
 void run(int argc, char *argv[]) {
 	if (argc == 3) {
 		std::string option = argv[1];
 		GraphFile gf = parseGraphFile(argv[2]);
-		if (option == "reduction") {
-			// original
-			std::cout << "original edge count: " << gf.edges.size() << std::endl;
-			// lcl
-			std::stringstream buffer;
-			for (auto &e : gf.edges) {
-				buffer
-					<< gf.nodeMapR[std::get<0>(e)] << "->" << gf.nodeMapR[std::get<2>(e)]
-					<< "[label=\"" << gf.symMapR[std::get<1>(e)] << "\"]\n";
-			}
-			std::set<std::pair<std::string, std::string>> reachableStringPairs;
-			std::set<std::tuple<std::string, std::string, std::string>> contributingStringEdges;
-			runLCL(buffer, reachableStringPairs, true, contributingStringEdges);
-			std::cout << "LCL edge count: " << contributingStringEdges.size() << std::endl;
-			// cfl
-			int ng = gf.grammars.size();
-			int nv = gf.nodeMap.size();
+		int nv = gf.nodeMap.size();
+		std::vector<Grammar> grammars = makeGrammars(gf);
+		int ng = grammars.size();
+		if (option == "naive") {
 			std::vector<Graph> graphs(ng);
+			std::vector<std::unordered_set<Edge, EdgeHasher>> results(ng);
 			for (int i = 0; i < ng; i++) {
 				graphs[i].reinit(nv, gf.edges);
 				std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-				auto summaries = graphs[i].runCFLReachability(gf.grammars[i], true, record);
-				auto edges = graphs[i].getEdgeClosure(gf.grammars[i], summaries, record);
-				std::cout << "CFL " << i << " edge count: " << edges.size() << std::endl;
-			}
-		} else if (option == "naive") {
-			// lcl
-			std::stringstream buffer;
-			for (auto &e : gf.edges) {
-				buffer
-					<< gf.nodeMapR[std::get<0>(e)] << "->" << gf.nodeMapR[std::get<2>(e)]
-					<< "[label=\"" << gf.symMapR[std::get<1>(e)] << "\"]\n";
-			}
-			std::set<std::pair<std::string, std::string>> reachableStringPairs;
-			std::set<std::tuple<std::string, std::string, std::string>> contributingStringEdges;
-			runLCL(buffer, reachableStringPairs, false, contributingStringEdges);
-			std::unordered_set<std::pair<int, int>, IntPairHasher> reachablePairs;
-			for (auto &sp : reachableStringPairs) {
-				reachablePairs.insert(std::make_pair(gf.nodeMap[sp.first], gf.nodeMap[sp.second]));
-			}
-			for (auto &p : gf.nodeMap) {
-				reachablePairs.insert(std::make_pair(p.second, p.second));
-			}
-			// cfl
-			int ng = gf.grammars.size();
-			int nv = gf.nodeMap.size();
-			std::vector<Graph> graphs(ng);
-			for (int i = 0; i < ng; i++) {
-				graphs[i].reinit(nv, gf.edges);
-				std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-				graphs[i].runCFLReachability(gf.grammars[i], false, record);
+				results[i] = graphs[i].runCFLReachability(grammars[i], false, record);
 			}
 			// print
-			printResult(reachablePairs, gf, graphs);
+			std::cout << intersectResults(results).size() << std::endl;
 		} else if (option == "refine") {
-			// common
 			std::unordered_set<Edge, EdgeHasher> edges = gf.edges;
 			std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
-			// for lcl
-			std::set<std::pair<std::string, std::string>> reachableStringPairs;
-			std::set<std::tuple<std::string, std::string, std::string>> contributingStringEdges;
-			// for cfl
-			int ng = gf.grammars.size();
-			int nv = gf.nodeMap.size();
 			std::vector<Graph> graphs(ng);
+			std::vector<std::unordered_set<Edge, EdgeHasher>> results(ng);
 			// main refinement loop
 			do {
 				prev_size = edges.size();
-				// cfl0
-				{
-					graphs[0].reinit(nv, edges);
+				for (int i = 0; i < ng; i++) {
+					graphs[i].reinit(nv, edges);
 					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-					auto summaries = graphs[0].runCFLReachability(gf.grammars[0], true, record);
-					edges = graphs[0].getEdgeClosure(gf.grammars[0], summaries, record);
-				}
-				// lcl
-				std::stringstream buffer;
-				for (auto &e : edges) {
-					buffer
-						<< gf.nodeMapR[std::get<0>(e)] << "->" << gf.nodeMapR[std::get<2>(e)]
-						<< "[label=\"" << gf.symMapR[std::get<1>(e)] << "\"]\n";
-				}
-				runLCL(buffer, reachableStringPairs, true, contributingStringEdges);
-				edges = std::unordered_set<Edge, EdgeHasher>();
-				for (auto &se : contributingStringEdges) {
-					edges.insert(
-						std::make_tuple(gf.nodeMap[std::get<0>(se)], gf.symMap[std::get<1>(se)], gf.nodeMap[std::get<2>(se)])
-					);
-				}
-				// cfl1
-				{
-					graphs[1].reinit(nv, edges);
-					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-					auto summaries = graphs[1].runCFLReachability(gf.grammars[1], true, record);
-					edges = graphs[1].getEdgeClosure(gf.grammars[1], summaries, record);
+					results[i] = graphs[i].runCFLReachability(grammars[i], true, record);
+					edges = graphs[i].getEdgeClosure(grammars[i], results[i], record);
 				}
 			} while (edges.size() != prev_size);
-			std::unordered_set<std::pair<int, int>, IntPairHasher> reachablePairs;
-			for (auto &sp : reachableStringPairs) {
-				reachablePairs.insert(std::make_pair(gf.nodeMap[sp.first], gf.nodeMap[sp.second]));
-			}
-			for (auto &p : gf.nodeMap) {
-				reachablePairs.insert(std::make_pair(p.second, p.second));
-			}
 			// print
-			printResult(reachablePairs, gf, graphs);
+			std::cout << intersectResults(results).size() << std::endl;
 		} else {
 			printUsage(argv[0]);
 		}

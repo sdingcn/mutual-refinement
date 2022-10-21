@@ -14,13 +14,13 @@ struct Graph {
 	void reinit(int n, const std::unordered_set<Edge, EdgeHasher> &edges);
 	void addEdge(const Edge &e);
 	bool hasEdge(const Edge &e) const;
-	std::vector<Edge> runCFLReachability(
+	std::unordered_set<Edge, EdgeHasher> runCFLReachability(
 		const Grammar &grammar,
 		const bool trace,
 		std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record);
 	std::unordered_set<Edge, EdgeHasher> getEdgeClosure(
 		const Grammar &grammar,
-		const std::vector<Edge> &startSummaries,
+		const std::unordered_set<Edge, EdgeHasher> &result,
 		const std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) const;
 };
 

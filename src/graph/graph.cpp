@@ -27,11 +27,11 @@ bool Graph::hasEdge(const Edge &e) const {
 	return fastEdgeTest.count(e) == 1;
 }
 
-std::vector<Edge> Graph::runCFLReachability(
+std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(
 	const Grammar &grammar,
 	const bool trace,
 	std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) {
-	std::vector<Edge> startSummaries;
+	std::unordered_set<Edge, EdgeHasher> result;
 	std::deque<Edge> w;
 	for (const Edge &e : fastEdgeTest) {
 		w.push_front(e);
@@ -43,7 +43,7 @@ std::vector<Edge> Graph::runCFLReachability(
 			addEdge(e);
 			w.push_front(e);
 			if (x == grammar.startSymbol) {
-				startSummaries.push_back(e);
+				result.insert(e);
 			}
 		}
 	}
@@ -103,22 +103,22 @@ std::vector<Edge> Graph::runCFLReachability(
 				addEdge(e1);
 				w.push_front(e1);
 				if (std::get<1>(e1) == grammar.startSymbol) {
-					startSummaries.push_back(e1);
+					result.insert(e1);
 				}
 			}
 		}
 	}
-	return startSummaries;
+	return result;
 }
 
 std::unordered_set<Edge, EdgeHasher> Graph::getEdgeClosure(
 	const Grammar &grammar,
-	const std::vector<Edge> &startSummaries,
+	const std::unordered_set<Edge, EdgeHasher> &result,
 	const std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) const {
 	std::unordered_set<Edge, EdgeHasher> closure;
 	std::unordered_set<Edge, EdgeHasher> vis;
 	std::deque<Edge> w;
-	for (const Edge &e : startSummaries) {
+	for (const Edge &e : result) {
 		vis.insert(e);
 		w.push_back(e);
 	}
