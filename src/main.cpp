@@ -34,36 +34,49 @@ std::unordered_set<Edge, EdgeHasher> intersectResults(const std::vector<std::uno
 	return r;
 }
 
-std::vector<Grammar> makeGrammars(GraphFile &gf) {
+struct RawGraph {
+	int numNode;
+	int numEdge;
+	int numGrammar;
+	std::unordered_map<std::string, int> nodeMap;
+	std::unordered_map<int, std::string> nodeMapR;
+	std::unordered_map<std::string, int> symMap;
+	std::unordered_map<int, std::string> symMapR;
+	std::vector<Grammar> grammars;
+	std::unordered_set<Edge, EdgeHasher> edges;
+};
+
+RawGraph makeRawGraph(const std::vector<Line> &lines) {
+#ifdef INTERDYCK
+#else
+#endif
 }
 
 void run(int argc, char *argv[]) {
 	if (argc == 3) {
 		std::string option = argv[1];
-		GraphFile gf = parseGraphFile(argv[2]);
-		int nv = gf.nodeMap.size();
-		std::vector<Grammar> grammars = makeGrammars(gf);
-		int ng = grammars.size();
+		std::vector<Line> lines = parseGraphFile(argv[2]);
+		RawGraph rg = makeRawGraph(lines);
 		if (option == "naive") {
-			std::vector<Graph> graphs(ng);
-			std::vector<std::unordered_set<Edge, EdgeHasher>> results(ng);
+			std::vector<Graph> graphs(rg.numGrammar);
+			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
 			for (int i = 0; i < ng; i++) {
-				graphs[i].reinit(nv, gf.edges);
+				graphs[i].reinit(rg.numNode, rg.edges);
 				std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
 				results[i] = graphs[i].runCFLReachability(grammars[i], false, record);
 			}
 			// print
 			std::cout << intersectResults(results).size() << std::endl;
 		} else if (option == "refine") {
-			std::unordered_set<Edge, EdgeHasher> edges = gf.edges;
+			std::unordered_set<Edge, EdgeHasher> edges = rg.edges;
 			std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
-			std::vector<Graph> graphs(ng);
-			std::vector<std::unordered_set<Edge, EdgeHasher>> results(ng);
+			std::vector<Graph> graphs(rg.numGrammar);
+			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
 			// main refinement loop
 			do {
 				prev_size = edges.size();
 				for (int i = 0; i < ng; i++) {
-					graphs[i].reinit(nv, edges);
+					graphs[i].reinit(rg.numNode, rg.edges);
 					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
 					results[i] = graphs[i].runCFLReachability(grammars[i], true, record);
 					edges = graphs[i].getEdgeClosure(grammars[i], results[i], record);

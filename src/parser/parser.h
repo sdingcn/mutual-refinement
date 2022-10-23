@@ -9,14 +9,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-struct GraphFile {
-	std::unordered_map<std::string, int> nodeMap;
-	std::unordered_map<int, std::string> nodeMapR;
-	std::unordered_map<std::string, int> symMap;
-	std::unordered_map<int, std::string> symMapR;
-	std::unordered_set<Edge, EdgeHasher> edges;
-};
+// (node, label, node)
+using Line = std::tuple<std::string, std::string, std::string>;
 
-GraphFile parseGraphFile(const std::string &fName);
+std::vector<Line> parseGraphFile(const std::string &fName);
 
 #endif
