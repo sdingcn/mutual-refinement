@@ -15,12 +15,12 @@
 #include <utility>
 
 void printUsage(const std::string &programName) {
-	std::cerr << "Usage: " << programName << " <\"reduction\"/\"naive\"/\"refine\"> <graph-file-path>" << std::endl;
+	std::cerr << "Usage: " << programName << " <\"naive\"/\"refine\"> <graph-file-path>" << std::endl;
 }
 
 std::unordered_set<Edge, EdgeHasher> intersectResults(const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
 	int n = results.size();
-	std::assert(n >= 1);
+	assert(n >= 1);
 	auto r = results[0];
 	for (int i = 1; i < n; i++) {
 		std::unordered_set<Edge, EdgeHasher> nr;
@@ -46,10 +46,121 @@ struct RawGraph {
 	std::unordered_set<Edge, EdgeHasher> edges;
 };
 
+std::unordered_map<std::string, int> number(const std::vector<std::string> &names) {
+	std::unordered_map<std::string, int> mp;
+	int n = 0;
+	for (auto &name : names) {
+		if (mp.count(name) == 0) {
+			mp[name] = n++;
+		}
+	}
+	return mp;
+}
+
+template <typename T, typename U>
+std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
+	std::unordered_map<U, T> mpR;
+	for (auto &kv : mp) {
+		mpR[kv.second] = kv.first;
+	}
+	return mpR;
+}
+
 RawGraph makeRawGraph(const std::vector<Line> &lines) {
-#ifdef INTERDYCK
-#else
-#endif
+	// number nodes
+	std::vector<std::string> nodes;
+	for (auto &line : lines) {
+		nodes.push_back(std::get<0>(line));
+		nodes.push_back(std::get<2>(line));
+	}
+	std::unordered_map<std::string, int> nodeMap = number(nodes);
+	std::unordered_map<int, std::string> nodeMapR = reverseMap(nodeMap);
+	// number symbols
+	std::unordered_map<std::string, std::unordered_set<std::string>> dyckNumbers;
+	for (auto &line: lines) {
+		auto symbol = std::get<1>(line);
+		std::string dyck = symbol.substr(1, 1);
+		std::string parNumber = symbol.substr(4, symbol.size() - 4);
+		dyckNumbers[dyck].insert(parNumber);
+	}
+	std::vector<std::string> symbols;
+	for (auto dyck : std::vector<std::string>{"p", "b"}) {
+		symbols.push_back("d" + dyck);
+		for (auto parNumber : dyckNumbers[dyck]) {
+			symbols.push_back("d" + dyck + "--" + parNumber);
+			symbols.push_back("o" + dyck + "--" + parNumber);
+			symbols.push_back("c" + dyck + "--" + parNumber);
+		}
+	}
+	std::unordered_map<std::string, int> symMap = number(symbols);
+	std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
+	// construct grammars
+	auto construct = [&dyckNumbers, &symMap]
+	(const std::string &dyck, const std::string &otherDyck) -> Grammar {
+		Grammar gm;
+		for (auto &n : dyckNumbers[dyck]) {
+			gm.addTerminal(symMap["o" + dyck + "--" + n]);
+			gm.addTerminal(symMap["c" + dyck + "--" + n]);
+		}
+		for (auto &n : dyckNumbers[otherDyck]) {
+			gm.addTerminal(symMap["o" + otherDyck + "--" + n]);
+			gm.addTerminal(symMap["c" + otherDyck + "--" + n]);
+		}
+		gm.addNonterminal(symMap["d" + dyck]);
+		for (auto &n : dyckNumbers[dyck]) {
+			gm.addNonterminal(symMap["d" + dyck + "--" + n]);
+		}
+		// d      -> empty
+		gm.addEmptyProduction(symMap["d" + dyck]);
+		// d      -> d d
+		gm.addBinaryProduction(symMap["d" + dyck], symMap["d" + dyck], symMap["d" + dyck]);
+		// d      -> o--[n] d--[n]
+		// d--[n] -> d      c--[n]
+		for (auto &n : dyckNumbers[dyck]) {
+			gm.addBinaryProduction(
+					symMap["d" + dyck],
+					symMap["o" + dyck + "--" + n],
+					symMap["d" + dyck + "--" + n]);
+			gm.addBinaryProduction(
+					symMap["d" + dyck + "--" + n],
+					symMap["d" + dyck],
+					symMap["c" + dyck + "--" + n]);
+		}
+		// d      -> ...
+		for (auto &n : dyckNumbers[otherDyck]) {
+			gm.addUnaryProduction(
+					symMap["d" + dyck],
+					symMap["o" + otherDyck + "--" + n]);
+			gm.addUnaryProduction(
+					symMap["d" + dyck],
+					symMap["c" + otherDyck + "--" + n]);
+		}
+		gm.addStartSymbol(symMap["d" + dyck]);
+		gm.initFastIndices();
+		return gm;
+	};
+	std::vector<Grammar> grammars{construct("p", "b"), construct("b", "p")};
+	// construct edges
+	std::unordered_set<Edge, EdgeHasher> edges;
+	for (auto &line : lines) {
+		edges.insert(std::make_tuple(
+			nodeMap[std::get<0>(line)],
+			symMap[std::get<1>(line)],
+			nodeMap[std::get<2>(line)]
+		));
+	}
+	// return
+	RawGraph rg;
+	rg.numNode = nodeMap.size();
+	rg.numEdge = edges.size();
+	rg.numGrammar = 2;
+	rg.nodeMap = nodeMap;
+	rg.nodeMapR = nodeMapR;
+	rg.symMap = symMap;
+	rg.symMapR = symMapR;
+	rg.grammars = grammars;
+	rg.edges = edges;
+	return rg;
 }
 
 void run(int argc, char *argv[]) {
@@ -60,10 +171,10 @@ void run(int argc, char *argv[]) {
 		if (option == "naive") {
 			std::vector<Graph> graphs(rg.numGrammar);
 			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
-			for (int i = 0; i < ng; i++) {
+			for (int i = 0; i < rg.numGrammar; i++) {
 				graphs[i].reinit(rg.numNode, rg.edges);
 				std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-				results[i] = graphs[i].runCFLReachability(grammars[i], false, record);
+				results[i] = graphs[i].runCFLReachability(rg.grammars[i], false, record);
 			}
 			// print
 			std::cout << intersectResults(results).size() << std::endl;
@@ -75,11 +186,11 @@ void run(int argc, char *argv[]) {
 			// main refinement loop
 			do {
 				prev_size = edges.size();
-				for (int i = 0; i < ng; i++) {
+				for (int i = 0; i < rg.numGrammar; i++) {
 					graphs[i].reinit(rg.numNode, rg.edges);
 					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-					results[i] = graphs[i].runCFLReachability(grammars[i], true, record);
-					edges = graphs[i].getEdgeClosure(grammars[i], results[i], record);
+					results[i] = graphs[i].runCFLReachability(rg.grammars[i], true, record);
+					edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], record);
 				}
 			} while (edges.size() != prev_size);
 			// print
