@@ -18,20 +18,24 @@ void printUsage(const std::string &programName) {
 	std::cerr << "Usage: " << programName << " <\"naive\"/\"refine\"> <graph-file-path>" << std::endl;
 }
 
-std::unordered_set<Edge, EdgeHasher> intersectResults(const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
+std::unordered_set<std::pair<int, int>, IntPairHasher>
+	intersectResults(const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
 	int n = results.size();
 	assert(n >= 1);
-	auto r = results[0];
+	std::unordered_set<std::pair<int, int>, IntPairHasher> r0;
+	for (auto &e : results[0]) {
+		r0.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
+	}
 	for (int i = 1; i < n; i++) {
-		std::unordered_set<Edge, EdgeHasher> nr;
-		for (auto &e : r) {
-			if (results[i].count(e) > 0) {
-				nr.insert(e);
+		std::unordered_set<std::pair<int, int>, IntPairHasher> r1;
+		for (auto &e : results[i]) {
+			if (r0.count(std::make_pair(std::get<0>(e), std::get<2>(e))) > 0) {
+				r1.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
 			}
 		}
-		r = std::move(nr);
+		r0 = std::move(r1);
 	}
-	return r;
+	return r0;
 }
 
 struct RawGraph {
@@ -167,7 +171,7 @@ void run(int argc, char *argv[]) {
 	if (argc == 3) {
 		std::string option = argv[1];
 		std::vector<Line> lines = parseGraphFile(argv[2]);
-		RawGraph rg = makeRawGraph(lines);
+		const RawGraph rg = makeRawGraph(lines);
 		if (option == "naive") {
 			std::vector<Graph> graphs(rg.numGrammar);
 			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
@@ -187,7 +191,7 @@ void run(int argc, char *argv[]) {
 			do {
 				prev_size = edges.size();
 				for (int i = 0; i < rg.numGrammar; i++) {
-					graphs[i].reinit(rg.numNode, rg.edges);
+					graphs[i].reinit(rg.numNode, edges);
 					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
 					results[i] = graphs[i].runCFLReachability(rg.grammars[i], true, record);
 					edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], record);
