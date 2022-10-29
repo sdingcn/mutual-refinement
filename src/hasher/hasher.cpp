@@ -5,7 +5,7 @@
 #include <utility>
 #include <tuple>
 
-constexpr long long SHIFT = 20LL;
+static constexpr long long SHIFT = 20LL;
 
 std::size_t IntPairHasher::operator () (const std::pair<int, int> &p) const {
 	return std::hash<long long>()(

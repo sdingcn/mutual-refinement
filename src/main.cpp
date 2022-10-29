@@ -22,20 +22,23 @@ std::unordered_set<std::pair<int, int>, IntPairHasher>
 	intersectResults(const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
 	int n = results.size();
 	assert(n >= 1);
-	std::unordered_set<std::pair<int, int>, IntPairHasher> r0;
-	for (auto &e : results[0]) {
-		r0.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
-	}
-	for (int i = 1; i < n; i++) {
-		std::unordered_set<std::pair<int, int>, IntPairHasher> r1;
+	std::vector<std::unordered_set<std::pair<int, int>, IntPairHasher>> pairsets(n);
+	for (int i = 0; i < n; i++) {
 		for (auto &e : results[i]) {
-			if (r0.count(std::make_pair(std::get<0>(e), std::get<2>(e))) > 0) {
-				r1.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
+			pairsets[i].insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
+		}
+	}
+	std::unordered_set<std::pair<int, int>, IntPairHasher> ps = pairsets[0];
+	for (int i = 1; i < n; i++) {
+		std::unordered_set<std::pair<int, int>, IntPairHasher> tmp;
+		for (auto &p : ps) {
+			if (pairsets[i].count(p) > 0) {
+				tmp.insert(p);
 			}
 		}
-		r0 = std::move(r1);
+		ps = std::move(tmp);
 	}
-	return r0;
+	return ps;
 }
 
 struct RawGraph {
@@ -90,8 +93,11 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 	std::vector<std::string> symbols;
 	for (auto dyck : std::vector<std::string>{"p", "b"}) {
 		symbols.push_back("d" + dyck);
+		symbols.push_back("l" + dyck);
+		symbols.push_back("r" + dyck);
+		symbols.push_back("s" + dyck);
 		for (auto parNumber : dyckNumbers[dyck]) {
-			symbols.push_back("d" + dyck + "--" + parNumber);
+			symbols.push_back("i" + dyck + "--" + parNumber);
 			symbols.push_back("o" + dyck + "--" + parNumber);
 			symbols.push_back("c" + dyck + "--" + parNumber);
 		}
@@ -111,22 +117,26 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 			gm.addTerminal(symMap["c" + otherDyck + "--" + n]);
 		}
 		gm.addNonterminal(symMap["d" + dyck]);
+		gm.addNonterminal(symMap["l" + dyck]);
+		gm.addNonterminal(symMap["r" + dyck]);
+		gm.addNonterminal(symMap["s" + dyck]);
 		for (auto &n : dyckNumbers[dyck]) {
-			gm.addNonterminal(symMap["d" + dyck + "--" + n]);
+			gm.addNonterminal(symMap["i" + dyck + "--" + n]);
 		}
+		/* begin grammar */
 		// d      -> empty
 		gm.addEmptyProduction(symMap["d" + dyck]);
 		// d      -> d d
 		gm.addBinaryProduction(symMap["d" + dyck], symMap["d" + dyck], symMap["d" + dyck]);
-		// d      -> o--[n] d--[n]
-		// d--[n] -> d      c--[n]
+		// d      -> o--[n] i--[n]
+		// i--[n] -> d      c--[n]
 		for (auto &n : dyckNumbers[dyck]) {
 			gm.addBinaryProduction(
 					symMap["d" + dyck],
 					symMap["o" + dyck + "--" + n],
-					symMap["d" + dyck + "--" + n]);
+					symMap["i" + dyck + "--" + n]);
 			gm.addBinaryProduction(
-					symMap["d" + dyck + "--" + n],
+					symMap["i" + dyck + "--" + n],
 					symMap["d" + dyck],
 					symMap["c" + dyck + "--" + n]);
 		}
@@ -139,7 +149,32 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 					symMap["d" + dyck],
 					symMap["c" + otherDyck + "--" + n]);
 		}
-		gm.addStartSymbol(symMap["d" + dyck]);
+		// l      -> d      l
+		gm.addBinaryProduction(symMap["l" + dyck], symMap["d" + dyck], symMap["l" + dyck]);
+		// l      -> o--[n] l
+		for (auto &n : dyckNumbers[dyck]) {
+			gm.addBinaryProduction(
+					symMap["l" + dyck],
+					symMap["o" + dyck + "--" + n],
+					symMap["l" + dyck]);
+		}
+		// l      -> empty
+		gm.addEmptyProduction(symMap["l" + dyck]);
+		// r      -> r      d
+		gm.addBinaryProduction(symMap["r" + dyck], symMap["r" + dyck], symMap["d" + dyck]);
+		// r      -> r c--[n]
+		for (auto &n : dyckNumbers[dyck]) {
+			gm.addBinaryProduction(
+					symMap["r" + dyck],
+					symMap["r" + dyck],
+					symMap["c" + dyck + "--" + n]);
+		}
+		// r      -> empty
+		gm.addEmptyProduction(symMap["r" + dyck]);
+		// s      -> l r
+		gm.addBinaryProduction(symMap["s" + dyck], symMap["l" + dyck], symMap["r" + dyck]);
+		/* end grammar */
+		gm.addStartSymbol(symMap["s" + dyck]);
 		gm.initFastIndices();
 		return gm;
 	};
@@ -210,7 +245,7 @@ void run(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	// time
 	auto start = std::chrono::steady_clock::now();
-	run(argc, argv);
+	run(argc, argv); // the real run is here
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
 	// space
