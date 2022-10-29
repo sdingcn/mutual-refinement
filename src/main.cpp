@@ -15,7 +15,7 @@
 #include <utility>
 
 void printUsage(const std::string &programName) {
-	std::cerr << "Usage: " << programName << " <\"naive\"/\"refine\"> <graph-file-path>" << std::endl;
+	std::cerr << "Usage: " << programName << " <graph-file> <\"naive\"/\"refine\"> <0-3(pud)> <0-3(bud)>" << std::endl;
 }
 
 std::unordered_set<std::pair<int, int>, IntPairHasher>
@@ -73,7 +73,7 @@ std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
 	return mpR;
 }
 
-RawGraph makeRawGraph(const std::vector<Line> &lines) {
+RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
 	// number nodes
 	std::vector<std::string> nodes;
 	for (auto &line : lines) {
@@ -105,8 +105,9 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 	std::unordered_map<std::string, int> symMap = number(symbols);
 	std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
 	// construct grammars
+	// unmatchDegree: 0 for (), 1 for ), 2 for (, 3 for )(
 	auto construct = [&dyckNumbers, &symMap]
-	(const std::string &dyck, const std::string &otherDyck, bool match) -> Grammar {
+	(const std::string &dyck, const std::string &otherDyck, int unmatchDegree) -> Grammar {
 		Grammar gm;
 		for (auto &n : dyckNumbers[dyck]) {
 			gm.addTerminal(symMap["o" + dyck + "--" + n]);
@@ -117,9 +118,9 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 			gm.addTerminal(symMap["c" + otherDyck + "--" + n]);
 		}
 		gm.addNonterminal(symMap["d" + dyck]);
-		gm.addNonterminal(symMap["l" + dyck]);
-		gm.addNonterminal(symMap["r" + dyck]);
-		gm.addNonterminal(symMap["s" + dyck]);
+		if (unmatchDegree & 1) gm.addNonterminal(symMap["l" + dyck]);
+		if (unmatchDegree & 2) gm.addNonterminal(symMap["r" + dyck]);
+		if (unmatchDegree == 3) gm.addNonterminal(symMap["s" + dyck]);
 		for (auto &n : dyckNumbers[dyck]) {
 			gm.addNonterminal(symMap["i" + dyck + "--" + n]);
 		}
@@ -149,7 +150,7 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 					symMap["d" + dyck],
 					symMap["c" + otherDyck + "--" + n]);
 		}
-		if (!match) {
+		if (unmatchDegree & 1) {
 			// l      -> d      l
 			gm.addBinaryProduction(symMap["l" + dyck], symMap["d" + dyck], symMap["l" + dyck]);
 			// l      -> o--[n] l
@@ -161,6 +162,8 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 			}
 			// l      -> empty
 			gm.addEmptyProduction(symMap["l" + dyck]);
+		}
+		if (unmatchDegree & 2) {
 			// r      -> r      d
 			gm.addBinaryProduction(symMap["r" + dyck], symMap["r" + dyck], symMap["d" + dyck]);
 			// r      -> r c--[n]
@@ -172,19 +175,25 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 			}
 			// r      -> empty
 			gm.addEmptyProduction(symMap["r" + dyck]);
+		}
+		if (unmatchDegree == 3) {
 			// s      -> l r
 			gm.addBinaryProduction(symMap["s" + dyck], symMap["l" + dyck], symMap["r" + dyck]);
 		}
 		/* end grammar */
-		if (match) {
+		if (unmatchDegree == 0) {
 			gm.addStartSymbol(symMap["d" + dyck]);
-		} else {	
+		} else if (unmatchDegree == 1) {	
+			gm.addStartSymbol(symMap["l" + dyck]);
+		} else if (unmatchDegree == 2) {
+			gm.addStartSymbol(symMap["r" + dyck]);
+		} else if (unmatchDegree == 3) {
 			gm.addStartSymbol(symMap["s" + dyck]);
 		}
 		gm.initFastIndices();
 		return gm;
 	};
-	std::vector<Grammar> grammars{construct("p", "b", true), construct("b", "p", false)};
+	std::vector<Grammar> grammars{construct("p", "b", pud), construct("b", "p", bud)};
 	// construct edges
 	std::unordered_set<Edge, EdgeHasher> edges;
 	for (auto &line : lines) {
@@ -209,10 +218,15 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 }
 
 void run(int argc, char *argv[]) {
-	if (argc == 3) {
-		std::string option = argv[1];
-		std::vector<Line> lines = parseGraphFile(argv[2]);
-		const RawGraph rg = makeRawGraph(lines);
+	if (argc == 5) {
+		// get arguments
+		std::string file = argv[1];
+		std::string option = argv[2];
+		int pud = std::stoi(std::string(argv[3]));
+		int bud = std::stoi(std::string(argv[4]));
+		// construct the raw graph
+		std::vector<Line> lines = parseGraphFile(file);
+		const RawGraph rg = makeRawGraph(lines, pud, bud);
 		if (option == "naive") {
 			std::vector<Graph> graphs(rg.numGrammar);
 			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
@@ -240,8 +254,6 @@ void run(int argc, char *argv[]) {
 			} while (edges.size() != prev_size);
 			// print
 			std::cout << intersectResults(results).size() << std::endl;
-		} else {
-			printUsage(argv[0]);
 		}
 	} else {
 		printUsage(argv[0]);
