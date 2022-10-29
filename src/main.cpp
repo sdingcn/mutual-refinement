@@ -106,7 +106,7 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 	std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
 	// construct grammars
 	auto construct = [&dyckNumbers, &symMap]
-	(const std::string &dyck, const std::string &otherDyck) -> Grammar {
+	(const std::string &dyck, const std::string &otherDyck, bool match) -> Grammar {
 		Grammar gm;
 		for (auto &n : dyckNumbers[dyck]) {
 			gm.addTerminal(symMap["o" + dyck + "--" + n]);
@@ -149,36 +149,42 @@ RawGraph makeRawGraph(const std::vector<Line> &lines) {
 					symMap["d" + dyck],
 					symMap["c" + otherDyck + "--" + n]);
 		}
-		// l      -> d      l
-		gm.addBinaryProduction(symMap["l" + dyck], symMap["d" + dyck], symMap["l" + dyck]);
-		// l      -> o--[n] l
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addBinaryProduction(
-					symMap["l" + dyck],
-					symMap["o" + dyck + "--" + n],
-					symMap["l" + dyck]);
+		if (!match) {
+			// l      -> d      l
+			gm.addBinaryProduction(symMap["l" + dyck], symMap["d" + dyck], symMap["l" + dyck]);
+			// l      -> o--[n] l
+			for (auto &n : dyckNumbers[dyck]) {
+				gm.addBinaryProduction(
+						symMap["l" + dyck],
+						symMap["o" + dyck + "--" + n],
+						symMap["l" + dyck]);
+			}
+			// l      -> empty
+			gm.addEmptyProduction(symMap["l" + dyck]);
+			// r      -> r      d
+			gm.addBinaryProduction(symMap["r" + dyck], symMap["r" + dyck], symMap["d" + dyck]);
+			// r      -> r c--[n]
+			for (auto &n : dyckNumbers[dyck]) {
+				gm.addBinaryProduction(
+						symMap["r" + dyck],
+						symMap["r" + dyck],
+						symMap["c" + dyck + "--" + n]);
+			}
+			// r      -> empty
+			gm.addEmptyProduction(symMap["r" + dyck]);
+			// s      -> l r
+			gm.addBinaryProduction(symMap["s" + dyck], symMap["l" + dyck], symMap["r" + dyck]);
 		}
-		// l      -> empty
-		gm.addEmptyProduction(symMap["l" + dyck]);
-		// r      -> r      d
-		gm.addBinaryProduction(symMap["r" + dyck], symMap["r" + dyck], symMap["d" + dyck]);
-		// r      -> r c--[n]
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addBinaryProduction(
-					symMap["r" + dyck],
-					symMap["r" + dyck],
-					symMap["c" + dyck + "--" + n]);
-		}
-		// r      -> empty
-		gm.addEmptyProduction(symMap["r" + dyck]);
-		// s      -> l r
-		gm.addBinaryProduction(symMap["s" + dyck], symMap["l" + dyck], symMap["r" + dyck]);
 		/* end grammar */
-		gm.addStartSymbol(symMap["s" + dyck]);
+		if (match) {
+			gm.addStartSymbol(symMap["d" + dyck]);
+		} else {	
+			gm.addStartSymbol(symMap["s" + dyck]);
+		}
 		gm.initFastIndices();
 		return gm;
 	};
-	std::vector<Grammar> grammars{construct("p", "b"), construct("b", "p")};
+	std::vector<Grammar> grammars{construct("p", "b", true), construct("b", "p", false)};
 	// construct edges
 	std::unordered_set<Edge, EdgeHasher> edges;
 	for (auto &line : lines) {
