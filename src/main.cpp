@@ -86,11 +86,14 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
 	std::unordered_map<std::string, std::unordered_set<std::string>> dyckNumbers;
 	for (auto &line: lines) {
 		auto symbol = std::get<1>(line);
-		std::string dyck = symbol.substr(1, 1);
-		std::string parNumber = symbol.substr(4, symbol.size() - 4);
-		dyckNumbers[dyck].insert(parNumber);
+		if (symbol != "normal") {
+			std::string dyck = symbol.substr(1, 1);
+			std::string parNumber = symbol.substr(4, symbol.size() - 4);
+			dyckNumbers[dyck].insert(parNumber);
+		}
 	}
 	std::vector<std::string> symbols;
+	symbols.push_back("normal");
 	for (auto dyck : std::vector<std::string>{"p", "b"}) {
 		symbols.push_back("d" + dyck);
 		symbols.push_back("l" + dyck);
@@ -109,6 +112,8 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
 	auto construct = [&dyckNumbers, &symMap]
 	(const std::string &dyck, const std::string &otherDyck, int unmatchDegree) -> Grammar {
 		Grammar gm;
+		// terminals
+		gm.addTerminal(symMap["normal"]);
 		for (auto &n : dyckNumbers[dyck]) {
 			gm.addTerminal(symMap["o" + dyck + "--" + n]);
 			gm.addTerminal(symMap["c" + dyck + "--" + n]);
@@ -117,13 +122,14 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
 			gm.addTerminal(symMap["o" + otherDyck + "--" + n]);
 			gm.addTerminal(symMap["c" + otherDyck + "--" + n]);
 		}
+		// nonterminals
 		gm.addNonterminal(symMap["d" + dyck]);
-		if (unmatchDegree & 1) gm.addNonterminal(symMap["l" + dyck]);
-		if (unmatchDegree & 2) gm.addNonterminal(symMap["r" + dyck]);
-		if (unmatchDegree == 3) gm.addNonterminal(symMap["s" + dyck]);
 		for (auto &n : dyckNumbers[dyck]) {
 			gm.addNonterminal(symMap["i" + dyck + "--" + n]);
 		}
+		if (unmatchDegree & 1) gm.addNonterminal(symMap["l" + dyck]);
+		if (unmatchDegree & 2) gm.addNonterminal(symMap["r" + dyck]);
+		if (unmatchDegree == 3) gm.addNonterminal(symMap["s" + dyck]);
 		/* begin grammar */
 		// d      -> empty
 		gm.addEmptyProduction(symMap["d" + dyck]);
@@ -142,6 +148,7 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
 					symMap["c" + dyck + "--" + n]);
 		}
 		// d      -> ...
+		gm.addUnaryProduction(symMap["d" + dyck], symMap["normal"]);
 		for (auto &n : dyckNumbers[otherDyck]) {
 			gm.addUnaryProduction(
 					symMap["d" + dyck],
@@ -181,6 +188,7 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
 			gm.addBinaryProduction(symMap["s" + dyck], symMap["l" + dyck], symMap["r" + dyck]);
 		}
 		/* end grammar */
+		// start symbol
 		if (unmatchDegree == 0) {
 			gm.addStartSymbol(symMap["d" + dyck]);
 		} else if (unmatchDegree == 1) {	
