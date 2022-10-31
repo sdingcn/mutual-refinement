@@ -1,0 +1,4 @@
+exp/results/taint/*.result
+exp/results/valueflow/*.result
+*.o
+main
