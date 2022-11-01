@@ -15,7 +15,7 @@
 #include <utility>
 
 void printUsage(const std::string &programName) {
-	std::cerr << "Usage: " << programName << " <graph-file> <\"naive\"/\"refine\"> <0-3(pud)> <0-3(bud)>" << std::endl;
+	std::cerr << "Usage: " << programName << " <graph-file> <\"naive\"/\"refine\"> <\"taint\"/\"valueflow\">" << std::endl;
 }
 
 std::unordered_set<std::pair<int, int>, IntPairHasher>
@@ -73,7 +73,7 @@ std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
 	return mpR;
 }
 
-RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
+RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysis) {
 	// number nodes
 	std::vector<std::string> nodes;
 	for (auto &line : lines) {
@@ -82,159 +82,310 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, int pud, int bud) {
 	}
 	std::unordered_map<std::string, int> nodeMap = number(nodes);
 	std::unordered_map<int, std::string> nodeMapR = reverseMap(nodeMap);
-	// number symbols
+	// number dycks
 	std::unordered_map<std::string, std::unordered_set<std::string>> dyckNumbers;
 	for (auto &line: lines) {
 		auto symbol = std::get<1>(line);
-		if (symbol != "normal") {
+		if (symbol[0] == 'o' || symbol[0] == 'c') {
 			std::string dyck = symbol.substr(1, 1);
 			std::string parNumber = symbol.substr(4, symbol.size() - 4);
 			dyckNumbers[dyck].insert(parNumber);
 		}
 	}
-	std::vector<std::string> symbols;
-	symbols.push_back("normal");
-	for (auto dyck : std::vector<std::string>{"p", "b"}) {
-		symbols.push_back("d" + dyck);
-		symbols.push_back("l" + dyck);
-		symbols.push_back("r" + dyck);
-		symbols.push_back("s" + dyck);
-		for (auto parNumber : dyckNumbers[dyck]) {
-			symbols.push_back("i" + dyck + "--" + parNumber);
-			symbols.push_back("o" + dyck + "--" + parNumber);
-			symbols.push_back("c" + dyck + "--" + parNumber);
+	// two cases
+	if (analysis == "taint") {
+		/**********
+		 * number symbols
+		 **********/
+		std::vector<std::string> symbols;
+		symbols.push_back("dp");
+		for (auto parNumber : dyckNumbers["p"]) {
+			symbols.push_back("ip--" + parNumber);
+			symbols.push_back("op--" + parNumber);
+			symbols.push_back("cp--" + parNumber);
 		}
-	}
-	std::unordered_map<std::string, int> symMap = number(symbols);
-	std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
-	// construct grammars
-	// unmatchDegree: 0 for (), 1 for ), 2 for (, 3 for )(
-	auto construct = [&dyckNumbers, &symMap]
-	(const std::string &dyck, const std::string &otherDyck, int unmatchDegree) -> Grammar {
-		Grammar gm;
-		// terminals
-		gm.addTerminal(symMap["normal"]);
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addTerminal(symMap["o" + dyck + "--" + n]);
-			gm.addTerminal(symMap["c" + dyck + "--" + n]);
+		symbols.push_back("lb");
+		symbols.push_back("db");
+		for (auto parNumber : dyckNumbers["b"]) {
+			symbols.push_back("ib--" + parNumber);
+			symbols.push_back("ob--" + parNumber);
+			symbols.push_back("cb--" + parNumber);
 		}
-		for (auto &n : dyckNumbers[otherDyck]) {
-			gm.addTerminal(symMap["o" + otherDyck + "--" + n]);
-			gm.addTerminal(symMap["c" + otherDyck + "--" + n]);
-		}
-		// nonterminals
-		gm.addNonterminal(symMap["d" + dyck]);
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addNonterminal(symMap["i" + dyck + "--" + n]);
-		}
-		if (unmatchDegree & 1) gm.addNonterminal(symMap["l" + dyck]);
-		if (unmatchDegree & 2) gm.addNonterminal(symMap["r" + dyck]);
-		if (unmatchDegree == 3) gm.addNonterminal(symMap["s" + dyck]);
-		/* begin grammar */
-		// d      -> empty
-		gm.addEmptyProduction(symMap["d" + dyck]);
-		// d      -> d d
-		gm.addBinaryProduction(symMap["d" + dyck], symMap["d" + dyck], symMap["d" + dyck]);
-		// d      -> o--[n] i--[n]
-		// i--[n] -> d      c--[n]
-		for (auto &n : dyckNumbers[dyck]) {
-			gm.addBinaryProduction(
-					symMap["d" + dyck],
-					symMap["o" + dyck + "--" + n],
-					symMap["i" + dyck + "--" + n]);
-			gm.addBinaryProduction(
-					symMap["i" + dyck + "--" + n],
-					symMap["d" + dyck],
-					symMap["c" + dyck + "--" + n]);
-		}
-		// d      -> ...
-		gm.addUnaryProduction(symMap["d" + dyck], symMap["normal"]);
-		for (auto &n : dyckNumbers[otherDyck]) {
-			gm.addUnaryProduction(
-					symMap["d" + dyck],
-					symMap["o" + otherDyck + "--" + n]);
-			gm.addUnaryProduction(
-					symMap["d" + dyck],
-					symMap["c" + otherDyck + "--" + n]);
-		}
-		if (unmatchDegree & 1) {
-			// l      -> d      l
-			gm.addBinaryProduction(symMap["l" + dyck], symMap["d" + dyck], symMap["l" + dyck]);
-			// l      -> o--[n] l
-			for (auto &n : dyckNumbers[dyck]) {
-				gm.addBinaryProduction(
-						symMap["l" + dyck],
-						symMap["o" + dyck + "--" + n],
-						symMap["l" + dyck]);
+		std::unordered_map<std::string, int> symMap = number(symbols);
+		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
+		/**********
+		 * construct grammars
+		 **********/
+		std::vector<Grammar> grammars;
+		/* grammar 1 (parenthesis) */
+		{
+			Grammar gm;
+			// terminals
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addTerminal(symMap["op--" + n]);
+				gm.addTerminal(symMap["cp--" + n]);
 			}
-			// l      -> empty
-			gm.addEmptyProduction(symMap["l" + dyck]);
-		}
-		if (unmatchDegree & 2) {
-			// r      -> r      d
-			gm.addBinaryProduction(symMap["r" + dyck], symMap["r" + dyck], symMap["d" + dyck]);
-			// r      -> r c--[n]
-			for (auto &n : dyckNumbers[dyck]) {
-				gm.addBinaryProduction(
-						symMap["r" + dyck],
-						symMap["r" + dyck],
-						symMap["c" + dyck + "--" + n]);
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addTerminal(symMap["ob--" + n]);
+				gm.addTerminal(symMap["cb--" + n]);
 			}
-			// r      -> empty
-			gm.addEmptyProduction(symMap["r" + dyck]);
+			// nonterminals
+			gm.addNonterminal(symMap["dp"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addNonterminal(symMap["ip--" + n]);
+			}
+			// productions
+			gm.addEmptyProduction(symMap["dp"]);
+			gm.addBinaryProduction(symMap["dp"], symMap["dp"], symMap["dp"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addBinaryProduction(symMap["dp"], symMap["op--" + n], symMap["ip--" + n]);
+				gm.addBinaryProduction(symMap["ip--" + n], symMap["dp"], symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addUnaryProduction(symMap["dp"], symMap["ob--" + n]);
+				gm.addUnaryProduction(symMap["dp"], symMap["cb--" + n]);
+			}
+			// start symbol
+			gm.addStartSymbol(symMap["dp"]);
+			// finalize
+			gm.initFastIndices();
+			grammars.push_back(std::move(gm));
 		}
-		if (unmatchDegree == 3) {
-			// s      -> l r
-			gm.addBinaryProduction(symMap["s" + dyck], symMap["l" + dyck], symMap["r" + dyck]);
+		/* grammar 2 (brackets) */
+		{
+			Grammar gm;
+			// terminals
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addTerminal(symMap["op--" + n]);
+				gm.addTerminal(symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addTerminal(symMap["ob--" + n]);
+				gm.addTerminal(symMap["cb--" + n]);
+			}
+			// nonterminals
+			gm.addNonterminal(symMap["lb"]);
+			gm.addNonterminal(symMap["db"]);
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addNonterminal(symMap["ib--" + n]);
+			}
+			// productions
+			gm.addEmptyProduction(symMap["db"]);
+			gm.addBinaryProduction(symMap["db"], symMap["db"], symMap["db"]);
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addBinaryProduction(symMap["db"], symMap["ob--" + n], symMap["ib--" + n]);
+				gm.addBinaryProduction(symMap["ib--" + n], symMap["db"], symMap["cb--" + n]);
+			}
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addUnaryProduction(symMap["db"], symMap["op--" + n]);
+				gm.addUnaryProduction(symMap["db"], symMap["cp--" + n]);
+			}
+			gm.addBinaryProduction(symMap["lb"], symMap["db"], symMap["lb"]);
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addBinaryProduction(symMap["lb"], symMap["ob--" + n], symMap["lb"]);
+			}
+			gm.addEmptyProduction(symMap["lb"]);
+			// start symbol
+			gm.addStartSymbol(symMap["lb"]);
+			// finalize
+			gm.initFastIndices();
+			grammars.push_back(std::move(gm));
 		}
-		/* end grammar */
-		// start symbol
-		if (unmatchDegree == 0) {
-			gm.addStartSymbol(symMap["d" + dyck]);
-		} else if (unmatchDegree == 1) {	
-			gm.addStartSymbol(symMap["l" + dyck]);
-		} else if (unmatchDegree == 2) {
-			gm.addStartSymbol(symMap["r" + dyck]);
-		} else if (unmatchDegree == 3) {
-			gm.addStartSymbol(symMap["s" + dyck]);
+		/**********
+		 * construct edges
+		 **********/
+		std::unordered_set<Edge, EdgeHasher> edges;
+		for (auto &line : lines) {
+			edges.insert(std::make_tuple(
+				nodeMap[std::get<0>(line)],
+				symMap[std::get<1>(line)],
+				nodeMap[std::get<2>(line)]
+			));
 		}
-		gm.initFastIndices();
-		return gm;
-	};
-	std::vector<Grammar> grammars{construct("p", "b", pud), construct("b", "p", bud)};
-	// construct edges
-	std::unordered_set<Edge, EdgeHasher> edges;
-	for (auto &line : lines) {
-		edges.insert(std::make_tuple(
-			nodeMap[std::get<0>(line)],
-			symMap[std::get<1>(line)],
-			nodeMap[std::get<2>(line)]
-		));
+		/**********
+		 * return
+		 **********/
+		RawGraph rg;
+		rg.numNode = nodeMap.size();
+		rg.numEdge = edges.size();
+		rg.numGrammar = 2;
+		rg.nodeMap = nodeMap;
+		rg.nodeMapR = nodeMapR;
+		rg.symMap = symMap;
+		rg.symMapR = symMapR;
+		rg.grammars = grammars;
+		rg.edges = edges;
+		return rg;
+	} else {
+		assert(analysis == "valueflow");
+		/**********
+		 * number symbols
+		 **********/
+		std::vector<std::string> symbols;
+		symbols.push_back("normal");
+		symbols.push_back("dp");
+		for (auto parNumber : dyckNumbers["p"]) {
+			symbols.push_back("ip--" + parNumber);
+			symbols.push_back("op--" + parNumber);
+			symbols.push_back("cp--" + parNumber);
+		}
+		symbols.push_back("db");
+		for (auto parNumber : dyckNumbers["b"]) {
+			symbols.push_back("ib--" + parNumber);
+			symbols.push_back("ob--" + parNumber);
+			symbols.push_back("cb--" + parNumber);
+		}
+		symbols.push_back("dc");
+		symbols.push_back("ic");
+		std::unordered_map<std::string, int> symMap = number(symbols);
+		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
+		/**********
+		 * construct grammars
+		 **********/
+		std::vector<Grammar> grammars;
+		/* grammar 1 (parenthesis) */
+		{
+			Grammar gm;
+			// terminals
+			gm.addTerminal(symMap["normal"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addTerminal(symMap["op--" + n]);
+				gm.addTerminal(symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addTerminal(symMap["ob--" + n]);
+				gm.addTerminal(symMap["cb--" + n]);
+			}
+			// nonterminals
+			gm.addNonterminal(symMap["dp"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addNonterminal(symMap["ip--" + n]);
+			}
+			// productions
+			gm.addEmptyProduction(symMap["dp"]);
+			gm.addBinaryProduction(symMap["dp"], symMap["dp"], symMap["dp"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addBinaryProduction(symMap["dp"], symMap["op--" + n], symMap["ip--" + n]);
+				gm.addBinaryProduction(symMap["ip--" + n], symMap["dp"], symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addUnaryProduction(symMap["dp"], symMap["ob--" + n]);
+				gm.addUnaryProduction(symMap["dp"], symMap["cb--" + n]);
+			}
+			gm.addUnaryProduction(symMap["dp"], symMap["normal"]);
+			// start symbol
+			gm.addStartSymbol(symMap["dp"]);
+			// finalize
+			gm.initFastIndices();
+			grammars.push_back(std::move(gm));
+		}
+		/* grammar 2 (brackets) */
+		{
+			Grammar gm;
+			// terminals
+			gm.addTerminal(symMap["normal"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addTerminal(symMap["op--" + n]);
+				gm.addTerminal(symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addTerminal(symMap["ob--" + n]);
+				gm.addTerminal(symMap["cb--" + n]);
+			}
+			// nonterminals
+			gm.addNonterminal(symMap["db"]);
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addNonterminal(symMap["ib--" + n]);
+			}
+			// productions
+			gm.addEmptyProduction(symMap["db"]);
+			gm.addBinaryProduction(symMap["db"], symMap["db"], symMap["db"]);
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addBinaryProduction(symMap["db"], symMap["ob--" + n], symMap["ib--" + n]);
+				gm.addBinaryProduction(symMap["ib--" + n], symMap["db"], symMap["cb--" + n]);
+			}
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addUnaryProduction(symMap["db"], symMap["op--" + n]);
+				gm.addUnaryProduction(symMap["db"], symMap["cp--" + n]);
+			}
+			gm.addUnaryProduction(symMap["db"], symMap["normal"]);
+			// start symbol
+			gm.addStartSymbol(symMap["db"]);
+			// finalize
+			gm.initFastIndices();
+			grammars.push_back(std::move(gm));
+		}
+		/* grammar 3 (combined) */
+		{
+			Grammar gm;
+			// terminals
+			gm.addTerminal(symMap["normal"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addTerminal(symMap["op--" + n]);
+				gm.addTerminal(symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addTerminal(symMap["ob--" + n]);
+				gm.addTerminal(symMap["cb--" + n]);
+			}
+			// nonterminals
+			gm.addNonterminal(symMap["dc"]);
+			gm.addNonterminal(symMap["ic"]);
+			// productions
+			gm.addEmptyProduction(symMap["dc"]);
+			gm.addBinaryProduction(symMap["dc"], symMap["dc"], symMap["dc"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addBinaryProduction(symMap["dc"], symMap["op--" + n], symMap["ic"]);
+				gm.addBinaryProduction(symMap["ic"], symMap["dc"], symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addBinaryProduction(symMap["dc"], symMap["ob--" + n], symMap["ic"]);
+				gm.addBinaryProduction(symMap["ic"], symMap["dc"], symMap["cb--" + n]);
+			}
+			gm.addUnaryProduction(symMap["dc"], symMap["normal"]);
+			// start symbol
+			gm.addStartSymbol(symMap["dc"]);
+			// finalize
+			gm.initFastIndices();
+			grammars.push_back(std::move(gm));
+		}
+		/**********
+		 * construct edges
+		 **********/
+		std::unordered_set<Edge, EdgeHasher> edges;
+		for (auto &line : lines) {
+			edges.insert(std::make_tuple(
+				nodeMap[std::get<0>(line)],
+				symMap[std::get<1>(line)],
+				nodeMap[std::get<2>(line)]
+			));
+		}
+		/**********
+		 * return
+		 **********/
+		RawGraph rg;
+		rg.numNode = nodeMap.size();
+		rg.numEdge = edges.size();
+		rg.numGrammar = 2;
+		rg.nodeMap = nodeMap;
+		rg.nodeMapR = nodeMapR;
+		rg.symMap = symMap;
+		rg.symMapR = symMapR;
+		rg.grammars = grammars;
+		rg.edges = edges;
+		return rg;
 	}
-	// return
-	RawGraph rg;
-	rg.numNode = nodeMap.size();
-	rg.numEdge = edges.size();
-	rg.numGrammar = 2;
-	rg.nodeMap = nodeMap;
-	rg.nodeMapR = nodeMapR;
-	rg.symMap = symMap;
-	rg.symMapR = symMapR;
-	rg.grammars = grammars;
-	rg.edges = edges;
-	return rg;
 }
 
 void run(int argc, char *argv[]) {
-	if (argc == 5) {
+	if (argc == 4) {
 		// get arguments
 		std::string file = argv[1];
 		std::string option = argv[2];
-		int pud = std::stoi(std::string(argv[3]));
-		int bud = std::stoi(std::string(argv[4]));
+		std::string analysis = argv[3];
 		// construct the raw graph
 		std::vector<Line> lines = parseGraphFile(file);
-		const RawGraph rg = makeRawGraph(lines, pud, bud);
+		const RawGraph rg = makeRawGraph(lines, analysis);
 		if (option == "naive") {
 			std::vector<Graph> graphs(rg.numGrammar);
 			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
@@ -244,12 +395,13 @@ void run(int argc, char *argv[]) {
 				results[i] = graphs[i].runCFLReachability(rg.grammars[i], false, record);
 			}
 			// print
-			std::cout << intersectResults(results).size() << std::endl;
+			std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
 		} else if (option == "refine") {
 			std::unordered_set<Edge, EdgeHasher> edges = rg.edges;
 			std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
 			std::vector<Graph> graphs(rg.numGrammar);
 			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
+			int refineIter = 0;
 			// main refinement loop
 			do {
 				prev_size = edges.size();
@@ -259,9 +411,11 @@ void run(int argc, char *argv[]) {
 					results[i] = graphs[i].runCFLReachability(rg.grammars[i], true, record);
 					edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], record);
 				}
+				refineIter++;
 			} while (edges.size() != prev_size);
 			// print
-			std::cout << intersectResults(results).size() << std::endl;
+			std::cout << "Number of Refinement Iterations: " << refineIter << std::endl;
+			std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
 		}
 	} else {
 		printUsage(argv[0]);
