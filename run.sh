@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 1 hour, 10 GB
-ulimit -t 3600 -v 10485760
+# 4 hours, 128 GB
+ulimit -t 14400 -v 134217728
 
 # taint
 for graph in exp/graphs/taint/*.dot; do
