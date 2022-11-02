@@ -111,9 +111,6 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysi
 			symbols.push_back("ob--" + parNumber);
 			symbols.push_back("cb--" + parNumber);
 		}
-		symbols.push_back("lc");
-		symbols.push_back("dc");
-		symbols.push_back("ic");
 		std::unordered_map<std::string, int> symMap = number(symbols);
 		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
 		/**********
@@ -194,47 +191,6 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysi
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
 		}
-		/* grammar 3 (combined) */
-		{
-			Grammar gm;
-			// terminals
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addTerminal(symMap["op--" + n]);
-				gm.addTerminal(symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addTerminal(symMap["ob--" + n]);
-				gm.addTerminal(symMap["cb--" + n]);
-			}
-			// nonterminals
-			gm.addNonterminal(symMap["lc"]);
-			gm.addNonterminal(symMap["dc"]);
-			gm.addNonterminal(symMap["ic"]);
-			// productions
-			gm.addEmptyProduction(symMap["dc"]);
-			gm.addBinaryProduction(symMap["dc"], symMap["dc"], symMap["dc"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addBinaryProduction(symMap["dc"], symMap["op--" + n], symMap["ic"]);
-				gm.addBinaryProduction(symMap["ic"], symMap["dc"], symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["dc"], symMap["ob--" + n], symMap["ic"]);
-				gm.addBinaryProduction(symMap["ic"], symMap["dc"], symMap["cb--" + n]);
-			}
-			gm.addBinaryProduction(symMap["lc"], symMap["dc"], symMap["lc"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addBinaryProduction(symMap["lc"], symMap["op--" + n], symMap["lc"]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["lc"], symMap["ob--" + n], symMap["lc"]);
-			}
-			gm.addEmptyProduction(symMap["lc"]);
-			// start symbol
-			gm.addStartSymbol(symMap["lc"]);
-			// finalize
-			gm.initFastIndices();
-			grammars.push_back(std::move(gm));
-		}
 		/**********
 		 * construct edges
 		 **********/
@@ -279,6 +235,9 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysi
 			symbols.push_back("ob--" + parNumber);
 			symbols.push_back("cb--" + parNumber);
 		}
+		symbols.push_back("en");
+		symbols.push_back("ien");
+		symbols.push_back("g");
 		std::unordered_map<std::string, int> symMap = number(symbols);
 		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
 		/**********
@@ -353,6 +312,38 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysi
 			gm.addUnaryProduction(symMap["db"], symMap["normal"]);
 			// start symbol
 			gm.addStartSymbol(symMap["db"]);
+			// finalize
+			gm.initFastIndices();
+			grammars.push_back(std::move(gm));
+		}
+		/* grammar 3 (endpoints) */
+		{
+			Grammar gm;
+			// terminals
+			gm.addTerminal(symMap["normal"]);
+			for (auto &n : dyckNumbers["p"]) {
+				gm.addTerminal(symMap["op--" + n]);
+				gm.addTerminal(symMap["cp--" + n]);
+			}
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addTerminal(symMap["ob--" + n]);
+				gm.addTerminal(symMap["cb--" + n]);
+			}
+			// nonterminals
+			gm.addNonterminal(symMap["en"]);
+			gm.addNonterminal(symMap["ien"]);
+			gm.addNonterminal(symMap["g"]);
+			// productions
+			for (auto &n : dyckNumbers["b"]) {
+				gm.addBinaryProduction(symMap["en"], symMap["ob--" + n], symMap["ien"]);
+				gm.addBinaryProduction(symMap["ien"], symMap["g"], symMap["cb--" + n]);
+			}
+			gm.addEmptyProduction(symMap["g"]);
+			for (auto &t : gm.terminals) {
+				gm.addUnaryProduction(symMap["g"], t);
+			}
+			// start symbol
+			gm.addStartSymbol(symMap["en"]);
 			// finalize
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
