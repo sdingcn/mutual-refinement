@@ -2,7 +2,7 @@ import os
 import os.path
 import sys
 
-T = [
+Taint = [
     "backflash",
     "batterydoc",
     "droidkongfu",
@@ -20,7 +20,7 @@ T = [
     "zertsecurity"
 ]
 
-V = [
+Valueflow = [
     "cactus",
     "imagick",
     "leela",
@@ -33,6 +33,13 @@ V = [
     "xz"
 ]
 
+def arith_mean(lst):
+    n = len(lst)
+    x = 0
+    for v in lst:
+        x += v
+    return round(x / n, 3)
+
 def geo_mean(lst):
     n = len(lst)
     x = 1
@@ -40,89 +47,89 @@ def geo_mean(lst):
         x *= v
     return round(x ** (1 / n), 3)
 
-def get_result(fpath):
+def scan_graph(fpath):
+    nodes = set()
+    edges = set()
+    with open(fpath, "r") as f:
+        lines = f.read().strip().splitlines()
+        for line in lines:
+            if "->" in line:
+                n1, n2tail = line.split("->")
+                n2, _ = n2tail.split("[")
+                nodes.add(n1.strip())
+                nodes.add(n2.strip())
+                edges.add(line.strip())
+    return { "V" : len(nodes), "E" : len(edges) }
+
+def scan_result(fpath):
     result = {}
     with open(fpath, "r") as f:
         content = f.read()
         lines = list(map(lambda l : l.strip(), content.splitlines()))
         for line in lines:
             if line.startswith("Number of Refinement Iterations"):
-                result["iter"] = int(line.split()[-1].strip())
+                result["rounds"] = int(line.split()[-1].strip())
             elif line.startswith("Number of Reachable Pairs"):
-                result["reach"] = int(line.split()[-1].strip())
+                result["precision"] = int(line.split()[-1].strip())
             elif line.startswith("Total Time"):
                 result["time"] = float(line.split()[-1].strip())
             elif line.startswith("Peak Space"):
                 result["space"] = float(line.split()[-1].strip())
     return result
 
-def main(option):
-    
-    taint_path = "exp/results/taint"
-    taint_results = {}
-    for taint in T:
-        taint_results[taint] = {
-            "naive": get_result(os.path.join(taint_path, "naive-{}.result".format(taint))),
-            "refine": get_result(os.path.join(taint_path, "refine-{}.result".format(taint)))
-        }
-    
-    valueflow_path = "exp/results/valueflow"
-    valueflow_results = {}
-    for valueflow in V:
-        valueflow_results[valueflow] = {
-            "naive": get_result(os.path.join(valueflow_path, "naive-{}.result".format(valueflow))),
-            "refine": get_result(os.path.join(valueflow_path, "refine-{}.result".format(valueflow)))
-        }
-    
-    if option == "prettyprint":
-        
-        print("*** Taint Analysis ***")
-        for taint in T:
-            print(taint)
-            for k, v in taint_results[taint].items():
-                print("\t", k, ":", v)
-        
-        print("*** Value-Flow Analysis ***")
-        for valueflow in V:
-            print(valueflow)
-            for k, v in valueflow_results[valueflow].items():
-                print("\t", k, ":", v)
-    
-    elif option == "latextable":
-        
-        print("*** Taint Analysis ***")
-        print("Benchmark & Number of Reachable Pairs Ratio & Time Ratio & Space Ratio\\\\")
-        reaches = []
-        times = []
-        spaces = []
-        for taint in T:
-            if len(taint_results[taint]["naive"]) != 0 and len(taint_results[taint]["refine"]) != 0:
-                reach = round(taint_results[taint]["refine"]["reach"] / taint_results[taint]["naive"]["reach"], 3)
-                time = round(taint_results[taint]["refine"]["time"] / taint_results[taint]["naive"]["time"], 3)
-                space = round(taint_results[taint]["refine"]["space"] / taint_results[taint]["naive"]["space"], 3)
-                print("{} & {} & {} & {}\\\\".format(taint, reach, time, space))
-                reaches.append(reach)
-                times.append(time)
-                spaces.append(space)
-        print("Mean & {} & {} & {}\\\\".format(geo_mean(reaches), geo_mean(times), geo_mean(spaces)))
-        
-        print("*** Value-Flow Analysis ***")
-        print("Benchmark & Number of Reachable Pairs Ratio & Time Ratio & Space Ratio")
-        reaches = []
-        times = []
-        spaces = []
-        for valueflow in V:
-            if len(valueflow_results[valueflow]["naive"]) != 0 and len(valueflow_results[valueflow]["refine"]) != 0:
-                reach = round(valueflow_results[valueflow]["refine"]["reach"] / valueflow_results[valueflow]["naive"]["reach"], 3)
-                time = round(valueflow_results[valueflow]["refine"]["time"] / valueflow_results[valueflow]["naive"]["time"], 3)
-                space = round(valueflow_results[valueflow]["refine"]["space"] / valueflow_results[valueflow]["naive"]["space"], 3)
-                print("{} & {} & {} & {}\\\\".format(valueflow, reach, time, space))
-                reaches.append(reach)
-                times.append(time)
-                spaces.append(space)
-        print("Mean & {} & {} & {}\\\\".format(geo_mean(reaches), geo_mean(times), geo_mean(spaces)))
+def collect_data(name, graph_path, naive_result_path, refine_result_path):
+    g = scan_graph(graph_path)
+    nr = scan_result(naive_result_path)
+    rr = scan_result(refine_result_path)
+    ok = ("time" in nr) and ("time" in rr)
+    return {
+        "V"  : g["V"],
+        "E"  : g["E"],
+        "R"  : rr["rounds"] if ok else "-",
+        "PI" : round(nr["precision"] / rr["precision"], 3) if ok else "-",
+        "TI" : round(rr["time"] / nr["time"], 3) if ok else "-",
+        "SI" : round(rr["space"] / nr["space"], 3) if ok else "-"
+    }
+
+def print_table(analysis, names, graphs_dir, results_dir):
+    print("*** {} ***".format(analysis))
+    print("Benchmark & $(|V|, |E|)$ & Rounds & Precision Improvement & Time Increase & Space Increase\\\\")
+    Vs = []
+    Es = []
+    Rs = []
+    PIs = []
+    TIs = []
+    SIs = []
+    for name in names:
+        graph_path = os.path.join(graphs_dir, "{}.dot".format(name))
+        naive_result_path = os.path.join(results_dir, "naive-{}.result".format(name))
+        refine_result_path = os.path.join(results_dir, "refine-{}.result".format(name))
+        data = collect_data(name, graph_path, naive_result_path, refine_result_path)
+        print("{} & ({}, {}) & {} & {}x & {}x & {}x\\\\".format(name, data["V"], data["E"], data["R"], data["PI"], data["TI"], data["SI"]))
+        if data["V"] != "-": Vs.append(data["V"])
+        if data["E"] != "-": Es.append(data["E"])
+        if data["R"] != "-": Rs.append(data["R"])
+        if data["PI"] != "-": PIs.append(data["PI"])
+        if data["TI"] != "-": TIs.append(data["TI"])
+        if data["SI"] != "-": SIs.append(data["SI"])
+    print("Average & ({}, {}) & {} & {}x & {}x & {}x\\\\".format(
+        arith_mean(Vs),
+        arith_mean(Es),
+        arith_mean(Rs),
+        geo_mean(PIs),
+        geo_mean(TIs),
+        geo_mean(SIs)
+    ))
+
+def main():
+
+    taint_graphs_dir = "exp/graphs/taint"
+    valueflow_graphs_dir = "exp/graphs/valueflow"
+    taint_results_dir = "exp/results/taint"
+    valueflow_results_dir = "exp/results/valueflow"
+
+    print_table("Taint Analysis", Taint, taint_graphs_dir, taint_results_dir)
+    print_table("Value-Flow Analysis", Valueflow, valueflow_graphs_dir, valueflow_results_dir)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit("Usage: python3 {} <prettyprint/latextable>".format(sys.argv[0]))
-    main(sys.argv[1])
+    main()
