@@ -17,11 +17,13 @@ struct Graph {
 	std::unordered_set<Edge, EdgeHasher> runCFLReachability(
 		const Grammar &grammar,
 		const bool trace,
-		std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record);
+		std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> &singleRecord,
+		std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> &binaryRecord);
 	std::unordered_set<Edge, EdgeHasher> getEdgeClosure(
 		const Grammar &grammar,
 		const std::unordered_set<Edge, EdgeHasher> &result,
-		const std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) const;
+		const std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> &singleRecord,
+		const std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> &binaryRecord) const;
 };
 
 #endif

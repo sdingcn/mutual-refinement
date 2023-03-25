@@ -30,7 +30,8 @@ bool Graph::hasEdge(const Edge &e) const {
 std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(
 	const Grammar &grammar,
 	const bool trace,
-	std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) {
+	std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> &singleRecord,
+	std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> &binaryRecord) {
 	std::unordered_set<Edge, EdgeHasher> result;
 	std::deque<Edge> w;
 	for (const Edge &e : fastEdgeTest) {
@@ -64,7 +65,7 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(
 				Edge e1 = std::make_tuple(i, x, j);
 				tba.push_back(e1);
 				if (trace) {
-					record[e1].insert(e);
+					singleRecord[e1].insert(y);
 				}
 			}
 		}
@@ -77,8 +78,7 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(
 					Edge e1 = std::make_tuple(i, x, k);
 					tba.push_back(e1);
 					if (trace) {
-						record[e1].insert(e);
-						record[e1].insert(std::make_tuple(j, z, k));
+						binaryRecord[e1].insert(std::make_tuple(y, j, z));
 					}
 				}
 			}
@@ -92,8 +92,7 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(
 					Edge e1 = std::make_tuple(k, x, j);
 					tba.push_back(e1);
 					if (trace) {
-						record[e1].insert(std::make_tuple(k, z, i));
-						record[e1].insert(e);
+						binaryRecord[e1].insert(std::make_tuple(z, i, y));
 					}
 				}
 			}
@@ -114,7 +113,8 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(
 std::unordered_set<Edge, EdgeHasher> Graph::getEdgeClosure(
 	const Grammar &grammar,
 	const std::unordered_set<Edge, EdgeHasher> &result,
-	const std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> &record) const {
+	const std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> &singleRecord,
+	const std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> &binaryRecord) const {
 	std::unordered_set<Edge, EdgeHasher> closure;
 	std::unordered_set<Edge, EdgeHasher> vis;
 	std::deque<Edge> w;
@@ -126,15 +126,35 @@ std::unordered_set<Edge, EdgeHasher> Graph::getEdgeClosure(
 		Edge e = w.front();
 		w.pop_front();
 		// i --x--> j
+		int i = std::get<0>(e);
 		int x = std::get<1>(e);
+		int j = std::get<2>(e);
 		if (grammar.terminals.count(x) == 1) {
 			closure.insert(e);
 		} else {
-			if (record.count(e) == 1) {
-				for (const Edge &e1 : record.at(e)) {
+			if (singleRecord.count(e) == 1) {
+				for (int y : singleRecord.at(e)) {
+					Edge e1 = std::make_tuple(i, y, j);
 					if (vis.count(e1) == 0) {
 						vis.insert(e1);
 						w.push_back(e1);
+					}
+				}
+			}
+			if (binaryRecord.count(e) == 1) {
+				for (const auto &triple : binaryRecord.at(e)) {
+					int y = std::get<0>(triple);
+					int k = std::get<1>(triple);
+					int z = std::get<2>(triple);
+					Edge e1 = std::make_tuple(i, y, k);
+					Edge e2 = std::make_tuple(k, z, j);
+					if (vis.count(e1) == 0) {
+						vis.insert(e1);
+						w.push_back(e1);
+					}
+					if (vis.count(e2) == 0) {
+						vis.insert(e2);
+						w.push_back(e2);
 					}
 				}
 			}

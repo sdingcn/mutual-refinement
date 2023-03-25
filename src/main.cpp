@@ -390,8 +390,9 @@ void run(int argc, char *argv[]) {
 			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
 			for (int i = 0; i < rg.numGrammar; i++) {
 				graphs[i].reinit(rg.numNode, rg.edges);
-				std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-				results[i] = graphs[i].runCFLReachability(rg.grammars[i], false, record);
+				std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> singleRecord;
+				std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> binaryRecord;
+				results[i] = graphs[i].runCFLReachability(rg.grammars[i], false, singleRecord, binaryRecord);
 			}
 			// print
 			std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
@@ -406,9 +407,10 @@ void run(int argc, char *argv[]) {
 				prev_size = edges.size();
 				for (int i = 0; i < rg.numGrammar; i++) {
 					graphs[i].reinit(rg.numNode, edges);
-					std::unordered_map<Edge, std::unordered_set<Edge, EdgeHasher>, EdgeHasher> record;
-					results[i] = graphs[i].runCFLReachability(rg.grammars[i], true, record);
-					edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], record);
+					std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> singleRecord;
+					std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> binaryRecord;
+					results[i] = graphs[i].runCFLReachability(rg.grammars[i], true, singleRecord, binaryRecord);
+					edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], singleRecord, binaryRecord);
 				}
 				refineIter++;
 			} while (edges.size() != prev_size);
