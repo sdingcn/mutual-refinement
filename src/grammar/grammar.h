@@ -8,6 +8,13 @@
 #include <utility>
 
 struct Grammar {
+	void addTerminal(int t);
+	void addNonterminal(int nt);
+	void addStartSymbol(int s);
+	void addEmptyProduction(int l);
+	void addUnaryProduction(int l, int r);
+	void addBinaryProduction(int l, int r1, int r2);
+	void initFastIndices();
 	// grammar contents
 	std::unordered_set<int> terminals;
 	std::unordered_set<int> nonterminals;
@@ -21,13 +28,6 @@ struct Grammar {
 	std::unordered_map<int, std::vector<int>> unaryRL;
 	std::unordered_map<int, std::vector<int>> binaryLR;
 	std::unordered_map<std::pair<int, int>, std::vector<int>, IntPairHasher> binaryRL;
-	void addTerminal(int t);
-	void addNonterminal(int nt);
-	void addStartSymbol(int s);
-	void addEmptyProduction(int l);
-	void addUnaryProduction(int l, int r);
-	void addBinaryProduction(int l, int r1, int r2);
-	void initFastIndices();
 };
 
 #endif

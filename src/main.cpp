@@ -1,7 +1,6 @@
 #include "grammar/grammar.h"
 #include "graph/graph.h"
 #include "hasher/hasher.h"
-#include "parser/parser.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -14,31 +13,25 @@
 #include <cassert>
 #include <utility>
 
-void printUsage(const std::string &programName) {
-	std::cerr << "Usage: " << programName << " <graph-file> <\"naive\"/\"refine\"> <\"taint\"/\"valueflow\">" << std::endl;
-}
-
 std::unordered_set<std::pair<int, int>, IntPairHasher>
 	intersectResults(const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
 	int n = results.size();
 	assert(n >= 1);
-	std::vector<std::unordered_set<std::pair<int, int>, IntPairHasher>> pairsets(n);
-	for (int i = 0; i < n; i++) {
-		for (auto &e : results[i]) {
-			pairsets[i].insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
-		}
+	std::unordered_set<std::pair<int, int>, IntPairHasher> pairset;
+	for (auto &e : results[0]) {
+		pairset.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
 	}
-	std::unordered_set<std::pair<int, int>, IntPairHasher> ps = pairsets[0];
 	for (int i = 1; i < n; i++) {
 		std::unordered_set<std::pair<int, int>, IntPairHasher> tmp;
-		for (auto &p : ps) {
-			if (pairsets[i].count(p) > 0) {
+		for (auto &e : results[i]) {
+			std::pair<int, int> p = std::make_pair(std::get<0>(e), std::get<2>(e));
+			if (pairset.count(p) > 0) {
 				tmp.insert(p);
 			}
 		}
-		ps = std::move(tmp);
+		pairset = std::move(tmp);
 	}
-	return ps;
+	return pairset;
 }
 
 struct RawGraph {
@@ -73,7 +66,27 @@ std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
 	return mpR;
 }
 
-RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysis) {
+RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
+	// read file
+	std::ifstream in(fName); // file auto-closed via destructor
+	std::vector<std::tuple<std::string, std::string, std::string>> lines;
+	std::string rawLine;
+	while (getline(in, rawLine)) {
+		if (rawLine.find("->") != std::string::npos) {
+			// node1->node2[label="label"]
+			std::string::size_type p1 = rawLine.find("->");
+			std::string::size_type p2 = rawLine.find('[');
+			std::string::size_type p3 = rawLine.find('=');
+			std::string::size_type p4 = rawLine.find(']');
+			lines.push_back(
+				std::make_tuple(
+					rawLine.substr(0, p1 - 0),
+					rawLine.substr(p3 + 2, p4 - 1 - (p3 + 2)),
+					rawLine.substr(p1 + 2, p2 - (p1 + 2))
+				)
+			);
+		}
+	}
 	// number nodes
 	std::vector<std::string> nodes;
 	for (auto &line : lines) {
@@ -82,7 +95,7 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysi
 	}
 	std::unordered_map<std::string, int> nodeMap = number(nodes);
 	std::unordered_map<int, std::string> nodeMapR = reverseMap(nodeMap);
-	// number dycks
+	// collect dycks
 	std::unordered_map<std::string, std::unordered_set<std::string>> dyckNumbers;
 	for (auto &line: lines) {
 		auto symbol = std::get<1>(line);
@@ -377,59 +390,51 @@ RawGraph makeRawGraph(const std::vector<Line> &lines, const std::string &analysi
 }
 
 void run(int argc, char *argv[]) {
-	if (argc == 4) {
-		// get arguments
-		std::string file = argv[1];
-		std::string option = argv[2];
-		std::string analysis = argv[3];
-		// construct the raw graph
-		std::vector<Line> lines = parseGraphFile(file);
-		const RawGraph rg = makeRawGraph(lines, analysis);
-		if (option == "naive") {
-			std::vector<Graph> graphs(rg.numGrammar);
-			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
+	if (argc != 4) {
+		std::cerr << "Usage: " << argv[0] << " <graph-file> <\"taint\"/\"valueflow\"> <\"naive\"/\"refine\">" << std::endl;
+		return;
+	}
+	// get arguments
+	std::string file = argv[1];
+	std::string analysis = argv[2];
+	std::string option = argv[3];
+	// read the raw graph
+	const RawGraph rg = readRawGraph(file, analysis);
+	// handle options
+	if (option == "naive") {
+		std::vector<Graph> graphs(rg.numGrammar);
+		std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
+		for (int i = 0; i < rg.numGrammar; i++) {
+			graphs[i].reinit(rg.numNode, rg.edges);
+			results[i] = graphs[i].runCFLReachability(rg.grammars[i]);
+		}
+		// print
+		std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
+	} else if (option == "refine") {
+		std::unordered_set<Edge, EdgeHasher> edges = rg.edges;
+		std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
+		std::vector<Graph> graphs(rg.numGrammar);
+		std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
+		int refineIter = 0;
+		// mutual refinement loop
+		do {
+			prev_size = edges.size();
 			for (int i = 0; i < rg.numGrammar; i++) {
-				graphs[i].reinit(rg.numNode, rg.edges);
+				graphs[i].reinit(rg.numNode, edges);
 				std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> singleRecord;
 				std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> binaryRecord;
-				results[i] = graphs[i].runCFLReachability(rg.grammars[i], false, singleRecord, binaryRecord);
+				results[i] = graphs[i].runCFLReachability(rg.grammars[i], singleRecord, binaryRecord);
+				edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], singleRecord, binaryRecord);
 			}
-			// print
-			std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
-		} else if (option == "refine") {
-			std::unordered_set<Edge, EdgeHasher> edges = rg.edges;
-			std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
-			std::vector<Graph> graphs(rg.numGrammar);
-			std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
-			int refineIter = 0;
-			// main refinement loop
-			do {
-				prev_size = edges.size();
-				for (int i = 0; i < rg.numGrammar; i++) {
-					graphs[i].reinit(rg.numNode, edges);
-					std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> singleRecord;
-					std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> binaryRecord;
-					results[i] = graphs[i].runCFLReachability(rg.grammars[i], true, singleRecord, binaryRecord);
-					edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], singleRecord, binaryRecord);
-				}
-				refineIter++;
-			} while (edges.size() != prev_size);
-			// print
-			std::cout << "Number of Refinement Iterations: " << refineIter << std::endl;
-			std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
-		}
-	} else {
-		printUsage(argv[0]);
+			refineIter++;
+		} while (edges.size() != prev_size);
+		// print
+		std::cout << "Number of Refinement Iterations: " << refineIter << std::endl;
+		std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
 	}
 }
 
-int main(int argc, char *argv[]) {
-	// time
-	auto start = std::chrono::steady_clock::now();
-	run(argc, argv); // the real run is here
-	auto end = std::chrono::steady_clock::now();
-	std::chrono::duration<double> elapsed_seconds = end - start;
-	// space
+std::string getPeakMemory() {
 	std::ifstream in("/proc/self/status");
 	std::string line;
 	std::string vmpeak;
@@ -442,9 +447,16 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-	// print
+	return vmpeak;
+}
+
+int main(int argc, char *argv[]) {
+	auto start = std::chrono::steady_clock::now();
+	run(argc, argv);
+	auto end = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
 	std::cout
 		<< "*** Resource Consumption ***" << std::endl
 		<< "Total Time (Seconds): " << elapsed_seconds.count() << std::endl
-		<< "Peak Space (kB): " << vmpeak << std::endl; 
+		<< "Peak Space (kB): " << getPeakMemory() << std::endl; 
 }
