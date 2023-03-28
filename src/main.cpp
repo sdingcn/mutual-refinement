@@ -352,6 +352,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addBinaryProduction(symMap["ien"], symMap["g"], symMap["cb--" + n]);
 			}
 			gm.addEmptyProduction(symMap["g"]);
+			gm.addBinaryProduction(symMap["g"], symMap["g"], symMap["g"]);
 			for (auto &t : gm.terminals) {
 				gm.addUnaryProduction(symMap["g"], t);
 			}
