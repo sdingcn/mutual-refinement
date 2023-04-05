@@ -69,11 +69,10 @@ std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
 RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 	// read file
 	std::ifstream in(fName); // file auto-closed via destructor
-	std::vector<std::tuple<std::string, std::string, std::string>> lines;
+	std::vector<std::tuple<std::string, std::string, std::string>> lines; // (node1, label, node2)
 	std::string rawLine;
 	while (getline(in, rawLine)) {
-		if (rawLine.find("->") != std::string::npos) {
-			// node1->node2[label="label"]
+		if (rawLine.find("->") != std::string::npos) { // node1->node2[label="label"]
 			std::string::size_type p1 = rawLine.find("->");
 			std::string::size_type p2 = rawLine.find('[');
 			std::string::size_type p3 = rawLine.find('=');
@@ -81,7 +80,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 			lines.push_back(
 				std::make_tuple(
 					rawLine.substr(0, p1 - 0),
-					rawLine.substr(p3 + 2, p4 - 1 - (p3 + 2)),
+					rawLine.substr(p3 + 2, (p4 - 1) - (p3 + 2)),
 					rawLine.substr(p1 + 2, p2 - (p1 + 2))
 				)
 			);
@@ -95,43 +94,38 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 	}
 	std::unordered_map<std::string, int> nodeMap = number(nodes);
 	std::unordered_map<int, std::string> nodeMapR = reverseMap(nodeMap);
-	// collect dycks
+	// collect parenthesis / bracket types
 	std::unordered_map<std::string, std::unordered_set<std::string>> dyckNumbers;
 	for (auto &line: lines) {
-		auto symbol = std::get<1>(line);
-		if (symbol[0] == 'o' || symbol[0] == 'c') {
-			std::string dyck = symbol.substr(1, 1);
-			std::string parNumber = symbol.substr(4, symbol.size() - 4);
-			dyckNumbers[dyck].insert(parNumber);
+		auto label = std::get<1>(line);
+		if (label[0] == 'o' || label[0] == 'c') { // op--* or ob--*
+			std::string dyck = label.substr(1, 1);
+			std::string dyckNumber = label.substr(4, label.size() - 4);
+			dyckNumbers[dyck].insert(dyckNumber);
 		}
 	}
-	// two cases
-	if (analysis == "taint") {
-		/**********
-		 * number symbols
-		 **********/
+	// two types of analyses
+	if (analysis == "taint") { // allowing unmatched brackets
+		// number symbols
 		std::vector<std::string> symbols;
 		symbols.push_back("dp");
-		for (auto parNumber : dyckNumbers["p"]) {
-			symbols.push_back("ip--" + parNumber);
-			symbols.push_back("op--" + parNumber);
-			symbols.push_back("cp--" + parNumber);
+		for (auto n : dyckNumbers["p"]) {
+			symbols.push_back("ip--" + n);
+			symbols.push_back("op--" + n);
+			symbols.push_back("cp--" + n);
+		}
+		symbols.push_back("db");
+		for (auto n : dyckNumbers["b"]) {
+			symbols.push_back("ib--" + n);
+			symbols.push_back("ob--" + n);
+			symbols.push_back("cb--" + n);
 		}
 		symbols.push_back("lb");
-		symbols.push_back("db");
-		for (auto parNumber : dyckNumbers["b"]) {
-			symbols.push_back("ib--" + parNumber);
-			symbols.push_back("ob--" + parNumber);
-			symbols.push_back("cb--" + parNumber);
-		}
 		std::unordered_map<std::string, int> symMap = number(symbols);
 		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
-		/**********
-		 * construct grammars
-		 **********/
+		// construct grammars
 		std::vector<Grammar> grammars;
-		/* grammar 1 (parenthesis) */
-		{
+		{ // grammar 1 (parenthesis)
 			Grammar gm;
 			// terminals
 			for (auto &n : dyckNumbers["p"]) {
@@ -164,8 +158,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
 		}
-		/* grammar 2 (brackets) */
-		{
+		{ // grammar 2 (brackets)
 			Grammar gm;
 			// terminals
 			for (auto &n : dyckNumbers["p"]) {
@@ -177,11 +170,11 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addTerminal(symMap["cb--" + n]);
 			}
 			// nonterminals
-			gm.addNonterminal(symMap["lb"]);
 			gm.addNonterminal(symMap["db"]);
 			for (auto &n : dyckNumbers["b"]) {
 				gm.addNonterminal(symMap["ib--" + n]);
 			}
+			gm.addNonterminal(symMap["lb"]);
 			// productions
 			gm.addEmptyProduction(symMap["db"]);
 			gm.addBinaryProduction(symMap["db"], symMap["db"], symMap["db"]);
@@ -204,9 +197,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
 		}
-		/**********
-		 * construct edges
-		 **********/
+		// construct edges
 		std::unordered_set<Edge, EdgeHasher> edges;
 		for (auto &line : lines) {
 			edges.insert(std::make_tuple(
@@ -215,9 +206,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				nodeMap[std::get<2>(line)]
 			));
 		}
-		/**********
-		 * return
-		 **********/
+		// return
 		RawGraph rg;
 		rg.numNode = nodeMap.size();
 		rg.numEdge = edges.size();
@@ -231,34 +220,26 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 		return rg;
 	} else {
 		assert(analysis == "valueflow");
-		/**********
-		 * number symbols
-		 **********/
+		// number symbols
 		std::vector<std::string> symbols;
 		symbols.push_back("normal");
 		symbols.push_back("dp");
-		for (auto parNumber : dyckNumbers["p"]) {
-			symbols.push_back("ip--" + parNumber);
-			symbols.push_back("op--" + parNumber);
-			symbols.push_back("cp--" + parNumber);
+		for (auto n : dyckNumbers["p"]) {
+			symbols.push_back("ip--" + n);
+			symbols.push_back("op--" + n);
+			symbols.push_back("cp--" + n);
 		}
 		symbols.push_back("db");
-		for (auto parNumber : dyckNumbers["b"]) {
-			symbols.push_back("ib--" + parNumber);
-			symbols.push_back("ob--" + parNumber);
-			symbols.push_back("cb--" + parNumber);
+		for (auto n : dyckNumbers["b"]) {
+			symbols.push_back("ib--" + n);
+			symbols.push_back("ob--" + n);
+			symbols.push_back("cb--" + n);
 		}
-		symbols.push_back("en");
-		symbols.push_back("ien");
-		symbols.push_back("g");
 		std::unordered_map<std::string, int> symMap = number(symbols);
 		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
-		/**********
-		 * construct grammars
-		 **********/
+		// construct grammars
 		std::vector<Grammar> grammars;
-		/* grammar 1 (parenthesis) */
-		{
+		{ // grammar 1 (parenthesis)
 			Grammar gm;
 			// terminals
 			gm.addTerminal(symMap["normal"]);
@@ -293,8 +274,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
 		}
-		/* grammar 2 (brackets) */
-		{
+		{ // grammar 2 (brackets)
 			Grammar gm;
 			// terminals
 			gm.addTerminal(symMap["normal"]);
@@ -329,42 +309,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
 		}
-		/* grammar 3 (endpoints) */
-		{
-			Grammar gm;
-			// terminals
-			gm.addTerminal(symMap["normal"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addTerminal(symMap["op--" + n]);
-				gm.addTerminal(symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addTerminal(symMap["ob--" + n]);
-				gm.addTerminal(symMap["cb--" + n]);
-			}
-			// nonterminals
-			gm.addNonterminal(symMap["en"]);
-			gm.addNonterminal(symMap["ien"]);
-			gm.addNonterminal(symMap["g"]);
-			// productions
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["en"], symMap["ob--" + n], symMap["ien"]);
-				gm.addBinaryProduction(symMap["ien"], symMap["g"], symMap["cb--" + n]);
-			}
-			gm.addEmptyProduction(symMap["g"]);
-			gm.addBinaryProduction(symMap["g"], symMap["g"], symMap["g"]);
-			for (auto &t : gm.terminals) {
-				gm.addUnaryProduction(symMap["g"], t);
-			}
-			// start symbol
-			gm.addStartSymbol(symMap["en"]);
-			// finalize
-			gm.initFastIndices();
-			grammars.push_back(std::move(gm));
-		}
-		/**********
-		 * construct edges
-		 **********/
+		// construct edges
 		std::unordered_set<Edge, EdgeHasher> edges;
 		for (auto &line : lines) {
 			edges.insert(std::make_tuple(
@@ -373,9 +318,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				nodeMap[std::get<2>(line)]
 			));
 		}
-		/**********
-		 * return
-		 **********/
+		// return
 		RawGraph rg;
 		rg.numNode = nodeMap.size();
 		rg.numEdge = edges.size();

@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3 -UALIAS
+CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic -O3 -UALIAS
 LDFLAGS = 
 
 main: main.o grammar.o graph.o hasher.o
