@@ -356,6 +356,7 @@ void run(int argc, char *argv[]) {
 		std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
 	} else if (option == "refine") {
 		std::unordered_set<Edge, EdgeHasher> edges = rg.edges;
+		int originalEdgeSetSize = edges.size();
 		std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
 		std::vector<Graph> graphs(rg.numGrammar);
 		std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
@@ -372,7 +373,9 @@ void run(int argc, char *argv[]) {
 			}
 			refineIter++;
 		} while (edges.size() != prev_size);
+		int reducedEdgeSetSize = edges.size();
 		// print
+		std::cout << "Edge Set Reduction: " << originalEdgeSetSize << " -> " << reducedEdgeSetSize << std::endl;
 		std::cout << "Number of Refinement Iterations: " << refineIter << std::endl;
 		std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
 	}
