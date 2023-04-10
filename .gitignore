@@ -1,5 +1,11 @@
-mr/exp/graphs/valueflow/*.dot
+lzr-time.txt
+report.txt
+lzr/current.dot
 mr/exp/graphs/simplified-taint/*.dot
+mr/exp/graphs/valueflow/*.dot
+mr/exp/results/simplified-taint/*.result
 mr/exp/results/taint/*.result
 mr/exp/results/valueflow/*.result
-mr/exp/results/simplified-taint/*.result
+mr/*.o
+mr/main
+vf/dot-files/*.dot
