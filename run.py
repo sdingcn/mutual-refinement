@@ -101,50 +101,59 @@ def scan_mr_refine(fpath):
         result["space"] = '-'
     return result
 
-def scan_graphsimp(fpath):
-    with open(fpath, 'r') as f:
-        ori, red, t = f.read().strip().split()
-    return { 'e0' : int(ori.strip()), 'e1' : int(red.strip()), 'time' : round(float(t.strip()), 3) }
+def scan_lzr():
+    with open('lzr_time.txt', 'r') as f:
+        lines = f.readlines()
+    result = {}
+    for line in lines:
+        bench, time = line.strip().split()
+        result[bench] = float(time)
+    return result
 
 def print_2a(f):
     for bench in Taint:
-        r = scan_graph(f'mutual-refinement/exp/graphs/taint/{bench}.dot')
+        r = scan_graph(f'mr/exp/graphs/taint/{bench}.dot')
         f.write(f'{bench} & ({r["v"]}, {r["e"]})\\\\\n')
 
 def print_2b(f):
     for bench in Valueflow:
-        r = scan_graph(f'mutual-refinement/exp/graphs/valueflow/{bench}.dot')
+        r = scan_graph(f'mr/exp/graphs/valueflow/{bench}.dot')
         f.write(f'{bench} & ({r["v"]}, {r["e"]})\\\\\n')
 
 def print_3a(f):
     for bench in Taint:
-        rn = scan_mr_naive(f'mutual-refinement/exp/results/taint/naive-{bench}.result')
-        rr = scan_mr_refine(f'mutual-refinement/exp/results/taint/refine-{bench}.result')
+        rn = scan_mr_naive(f'mr/exp/results/taint/naive-{bench}.result')
+        rr = scan_mr_refine(f'mr/exp/results/taint/refine-{bench}.result')
         f.write(f'{bench} & {rr["iter"]} & {rn["pair"]} & {rr["pair"]} & {rn["time"]} & {rr["time"]} & {rn["space"]} & {rr["space"]}\\\\\n')
 
 def print_3b(f):
     for bench in Valueflow:
-        rn = scan_mr_naive(f'mutual-refinement/exp/results/valueflow/naive-{bench}.result')
-        rr = scan_mr_refine(f'mutual-refinement/exp/results/valueflow/refine-{bench}.result')
+        rn = scan_mr_naive(f'mr/exp/results/valueflow/naive-{bench}.result')
+        rr = scan_mr_refine(f'mr/exp/results/valueflow/refine-{bench}.result')
         f.write(f'{bench} & {rr["iter"]} & {rn["pair"]} & {rr["pair"]} & {rn["time"]} & {rr["time"]} & {rn["space"]} & {rr["space"]}\\\\\n')
 
 def print_4(f):
+    lzr_time_map = scan_lzr()
     for bench in Taint:
-        r_ori = scan_graph(f'mutual-refinement/exp/graphs/taint/{bench}.dot')
-        r_mr = scan_mr_refine(f'mutual-refinement/exp/results/taint/refine-{bench}.result')
-        r_lzr = scan_graphsimp(f'graphsimp-results/{bench}.result')
-        f.write(f'{bench} & {r_ori["e"]} & {r_lzr["e1"]} & {r_mr["e1"]} & {r_lzr["time"]} & {r_mr["time"]}\\\\\n')
+        mr_pair = scan_mr_refine(f'mr/exp/results/taint/refine-{bench}.result')['pair']
+        lzr_mr_pair = scan_mr_refine(f'mr/exp/results/simplified-taint/refine-{bench}.result')['pair']
+        mr_time = scan_mr_refine(f'mr/exp/results/taint/refine-{bench}.result')['time']
+        lzr_mr_time = lzr_time_map[bench] + scan_mr_refine(f'mr/exp/results/simplified-taint/refine-{bench}.result')['time']
+        ori_size = scan_graph(f'mr/exp/graphs/taint/{bench}.dot')['e']
+        lzr_size = scan_graph(f'mr/exp/graphs/simplified-taint/{bench}.dot')['e']
+        lzr_mr_size = scan_mr_refine(f'mr/exp/results/simplified-taint/refine-{bench}.result')['e1']
+        f.write(f'{bench} & {mr_pair} & {lzr_mr_pair} & {mr_time} & {lzr_mr_time} & {ori_size - lzr_size} & {ori_size - lzr_mr_size}\\\\\n')
 
 def log(f):
-    print('2a')
+    f.write('=== 2a ===\n')
     print_2a(f)
-    print('2b')
+    f.write('=== 2b ===\n')
     print_2b(f)
-    print('3a')
+    f.write('=== 3a ===\n')
     print_3a(f)
-    print('3b')
+    f.write('=== 3b ===\n')
     print_3b(f)
-    print('4')
+    f.write('=== 4 ===\n')
     print_4(f)
 
 def run_and_get_output(c, d, s):
@@ -158,16 +167,22 @@ def run_and_get_output(c, d, s):
     ).stdout
 
 def main():
-    # run valueflow analysis to get the graphs
+    print('running valueflow analysis to get the graphs')
     run_and_get_output('./analyze.sh', 'vf/', True)
-    # run graph simplification to get the graphs
+    print('running graph simplification to get the graphs')
+    lzr_times = []
     for bench in Taint:
         shutil.copyfile(f'mr/exp/graphs/taint/{bench}.dot', 'lzr/current.dot')
-        run_and_get_output('./graph_reduce.sh', 'lzr/', True)
+        output = run_and_get_output('./graph_reduce.sh', 'lzr/', True)
+        lzr_times.append((bench, output.strip().split()[-1]))
         shutil.copyfile('lzr/current.dot', f'mr/exp/graphs/simplified-taint/{bench}.dot')
-    # run mutual refinement
+    with open('lzr-time.txt', 'w') as f:
+        for bench, time in lzr_times:
+            f.write(f'{bench} {time}\n')
+    print('running mutual refinement')
     run_and_get_output('./run.sh', 'mr/', True)
-    # summerize and log results
+    print('logging results')
+    log('report.txt')
 
 if __name__ == '__main__':
     main()

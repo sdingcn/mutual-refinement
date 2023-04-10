@@ -24,5 +24,5 @@ done
 # simplified-taint
 for graph in exp/graphs/simplified-taint/*.dot; do
 	echo "running refine on $graph"
-	./main "$graph" taint refine > "exp/results/simplified-taint/$(basename "$graph" .dot).result" 2>&1
+	./main "$graph" taint refine > "exp/results/simplified-taint/refine-$(basename "$graph" .dot).result" 2>&1
 done
