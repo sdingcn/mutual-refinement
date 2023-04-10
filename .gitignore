@@ -1,4 +1,5 @@
-exp/results/taint/*.result
-exp/results/valueflow/*.result
-*.o
-main
+mr/exp/graphs/valueflow/*.dot
+mr/exp/graphs/simplified-taint/*.dot
+mr/exp/results/taint/*.result
+mr/exp/results/valueflow/*.result
+mr/exp/results/simplified-taint/*.result
