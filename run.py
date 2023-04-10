@@ -1,7 +1,9 @@
-
 import os
 import os.path
 import sys
+import shutil
+import subprocess
+import os.path
 
 Taint = [
     "backflash",
@@ -104,109 +106,68 @@ def scan_graphsimp(fpath):
         ori, red, t = f.read().strip().split()
     return { 'e0' : int(ori.strip()), 'e1' : int(red.strip()), 'time' : round(float(t.strip()), 3) }
 
-def print_2a():
+def print_2a(f):
     for bench in Taint:
         r = scan_graph(f'mutual-refinement/exp/graphs/taint/{bench}.dot')
-        print(f'{bench} & ({r["v"]}, {r["e"]})\\\\')
+        f.write(f'{bench} & ({r["v"]}, {r["e"]})\\\\\n')
 
-def print_2b():
+def print_2b(f):
     for bench in Valueflow:
         r = scan_graph(f'mutual-refinement/exp/graphs/valueflow/{bench}.dot')
-        print(f'{bench} & ({r["v"]}, {r["e"]})\\\\')
+        f.write(f'{bench} & ({r["v"]}, {r["e"]})\\\\\n')
 
-def print_3a():
+def print_3a(f):
     for bench in Taint:
         rn = scan_mr_naive(f'mutual-refinement/exp/results/taint/naive-{bench}.result')
         rr = scan_mr_refine(f'mutual-refinement/exp/results/taint/refine-{bench}.result')
-        print(f'{bench} & {rr["iter"]} & {rn["pair"]} & {rr["pair"]} & {rn["time"]} & {rr["time"]} & {rn["space"]} & {rr["space"]}\\\\')
+        f.write(f'{bench} & {rr["iter"]} & {rn["pair"]} & {rr["pair"]} & {rn["time"]} & {rr["time"]} & {rn["space"]} & {rr["space"]}\\\\\n')
 
-def print_3b():
+def print_3b(f):
     for bench in Valueflow:
         rn = scan_mr_naive(f'mutual-refinement/exp/results/valueflow/naive-{bench}.result')
         rr = scan_mr_refine(f'mutual-refinement/exp/results/valueflow/refine-{bench}.result')
-        print(f'{bench} & {rr["iter"]} & {rn["pair"]} & {rr["pair"]} & {rn["time"]} & {rr["time"]} & {rn["space"]} & {rr["space"]}\\\\')
+        f.write(f'{bench} & {rr["iter"]} & {rn["pair"]} & {rr["pair"]} & {rn["time"]} & {rr["time"]} & {rn["space"]} & {rr["space"]}\\\\\n')
 
-def print_4():
+def print_4(f):
     for bench in Taint:
         r_ori = scan_graph(f'mutual-refinement/exp/graphs/taint/{bench}.dot')
         r_mr = scan_mr_refine(f'mutual-refinement/exp/results/taint/refine-{bench}.result')
         r_lzr = scan_graphsimp(f'graphsimp-results/{bench}.result')
-        print(f'{bench} & {r_ori["e"]} & {r_lzr["e1"]} & {r_mr["e1"]} & {r_lzr["time"]} & {r_mr["time"]}\\\\')
+        f.write(f'{bench} & {r_ori["e"]} & {r_lzr["e1"]} & {r_mr["e1"]} & {r_lzr["time"]} & {r_mr["time"]}\\\\\n')
 
-def main():
+def log(f):
     print('2a')
-    print_2a()
+    print_2a(f)
     print('2b')
-    print_2b()
+    print_2b(f)
     print('3a')
-    print_3a()
+    print_3a(f)
     print('3b')
-    print_3b()
+    print_3b(f)
     print('4')
-    print_4()
+    print_4(f)
 
-if __name__ == "__main__":
-    main()
-
-import shutil
-import subprocess
-import os.path
-
-Taint = [
-    "backflash",
-    "batterydoc",
-    "droidkongfu",
-    "fakebanker",
-    "fakedaum",
-    "faketaobao",
-    "jollyserv",
-    "loozfon",
-    "phospy",
-    "roidsec",
-    "scipiex",
-    "simhosy",
-    "skullkey",
-    "uranai",
-    "zertsecurity"
-]
-
-def clean_graph(path):
-    with open(path, 'r') as f:
-        lines = f.readlines()
-    with open(path, 'w') as f:
-        for line in lines:
-            if '->' in line:
-                f.write(line.strip() + '\n')
-
-def count_edges(path):
-    with open(path, 'r') as f:
-        lines = f.readlines()
-    s = set()
-    for line in lines:
-        s.add(line.strip())
-    return len(s)
+def run_and_get_output(c, d, s):
+    return subprocess.run(
+            c,
+            cwd = d,
+            shell = s,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.STDOUT,
+            universal_newlines = True,
+    ).stdout
 
 def main():
+    # run valueflow analysis to get the graphs
+    run_and_get_output('./analyze.sh', 'vf/', True)
+    # run graph simplification to get the graphs
     for bench in Taint:
-        '''
-        print(f'simplifying {bench}')
-        shutil.copyfile(f'mutual-refinement/exp/graphs/taint/{bench}.dot', 'interdyck_graph_reduce/current.dot')
-        '''
-        clean_graph(f'mr/exp/graphs/taint/{bench}.dot')
-        '''original = count_edges('interdyck_graph_reduce/current.dot')
-        output = subprocess.run(
-                './graph_reduce.sh',
-                shell = True,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.STDOUT,
-                universal_newlines = True,
-                timeout = 14400,
-                cwd = 'interdyck_graph_reduce/').stdout
-        t = output.strip().split()[-1]
-        reduced = count_edges('interdyck_graph_reduce/current.dot')
-        with open(f'graphsimp-results/{bench}.result', 'w') as f:
-            f.write(f'{original} {reduced} {t}')
-        '''
+        shutil.copyfile(f'mr/exp/graphs/taint/{bench}.dot', 'lzr/current.dot')
+        run_and_get_output('./graph_reduce.sh', 'lzr/', True)
+        shutil.copyfile('lzr/current.dot', f'mr/exp/graphs/simplified-taint/{bench}.dot')
+    # run mutual refinement
+    run_and_get_output('./run.sh', 'mr/', True)
+    # summerize and log results
 
 if __name__ == '__main__':
     main()

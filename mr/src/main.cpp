@@ -19,7 +19,9 @@ std::unordered_set<std::pair<int, int>, IntPairHasher>
 	assert(n >= 1);
 	std::unordered_set<std::pair<int, int>, IntPairHasher> pairset;
 	for (auto &e : results[0]) {
-		pairset.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
+		if (std::get<0>(e) != std::get<2>(e)) {
+			pairset.insert(std::make_pair(std::get<0>(e), std::get<2>(e)));
+		}
 	}
 	for (int i = 1; i < n; i++) {
 		std::unordered_set<std::pair<int, int>, IntPairHasher> tmp;
@@ -105,7 +107,7 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 		}
 	}
 	// two types of analyses
-	if (analysis == "taint") { // allowing unmatched brackets
+	if (analysis == "taint") {
 		// number symbols
 		std::vector<std::string> symbols;
 		symbols.push_back("dp");
@@ -120,7 +122,6 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 			symbols.push_back("ob--" + n);
 			symbols.push_back("cb--" + n);
 		}
-		symbols.push_back("lb");
 		std::unordered_map<std::string, int> symMap = number(symbols);
 		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
 		// construct grammars
@@ -174,7 +175,6 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 			for (auto &n : dyckNumbers["b"]) {
 				gm.addNonterminal(symMap["ib--" + n]);
 			}
-			gm.addNonterminal(symMap["lb"]);
 			// productions
 			gm.addEmptyProduction(symMap["db"]);
 			gm.addBinaryProduction(symMap["db"], symMap["db"], symMap["db"]);
@@ -186,13 +186,8 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addUnaryProduction(symMap["db"], symMap["op--" + n]);
 				gm.addUnaryProduction(symMap["db"], symMap["cp--" + n]);
 			}
-			gm.addBinaryProduction(symMap["lb"], symMap["db"], symMap["lb"]);
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["lb"], symMap["ob--" + n], symMap["lb"]);
-			}
-			gm.addEmptyProduction(symMap["lb"]);
 			// start symbol
-			gm.addStartSymbol(symMap["lb"]);
+			gm.addStartSymbol(symMap["db"]);
 			// finalize
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
@@ -353,7 +348,7 @@ void run(int argc, char *argv[]) {
 			results[i] = graphs[i].runCFLReachability(rg.grammars[i]);
 		}
 		// print
-		std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
+		std::cout << "Number of Reachable Pairs (Excluding Self-loops): " << intersectResults(results).size() << std::endl;
 	} else if (option == "refine") {
 		std::unordered_set<Edge, EdgeHasher> edges = rg.edges;
 		int originalEdgeSetSize = edges.size();
@@ -377,7 +372,7 @@ void run(int argc, char *argv[]) {
 		// print
 		std::cout << "Edge Set Reduction: " << originalEdgeSetSize << " -> " << reducedEdgeSetSize << std::endl;
 		std::cout << "Number of Refinement Iterations: " << refineIter << std::endl;
-		std::cout << "Number of Reachable Pairs: " << intersectResults(results).size() << std::endl;
+		std::cout << "Number of Reachable Pairs (Excluding Self-loops): " << intersectResults(results).size() << std::endl;
 	}
 }
 
