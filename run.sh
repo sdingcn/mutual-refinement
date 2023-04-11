@@ -14,6 +14,7 @@ for graph in mr/exp/graphs/taint/*.dot; do
 	./graph_reduce.sh > output
 	echo $(basename "$graph" .dot) >> ../lzr_time.txt
 	awk 'END {print $NF}' output >> ../lzr_time.txt
+	cp current.dot ../mr/exp/graphs/simplified-taint/$(basename "$graph")
 	cd ../
 done
 rm lzr/output
@@ -22,6 +23,3 @@ echo "STEP 3 >>> running mutual refinement"
 cd mr/
 ./run.sh
 cd ../
-
-echo "STEP 4 >>> reporting results"
-python3 report.py
