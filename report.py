@@ -156,32 +156,7 @@ def log(f):
     f.write('=== 4 ===\n')
     print_4(f)
 
-def run_and_get_output(c, d, s):
-    return subprocess.run(
-            c,
-            cwd = d,
-            shell = s,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.STDOUT,
-            universal_newlines = True,
-    ).stdout
-
 def main():
-    print('running valueflow analysis to get the graphs')
-    run_and_get_output('./analyze.sh', 'vf/', True)
-    print('running graph simplification to get the graphs')
-    lzr_times = []
-    for bench in Taint:
-        shutil.copyfile(f'mr/exp/graphs/taint/{bench}.dot', 'lzr/current.dot')
-        output = run_and_get_output('./graph_reduce.sh', 'lzr/', True)
-        lzr_times.append((bench, output.strip().split()[-1]))
-        shutil.copyfile('lzr/current.dot', f'mr/exp/graphs/simplified-taint/{bench}.dot')
-    with open('lzr-time.txt', 'w') as f:
-        for bench, time in lzr_times:
-            f.write(f'{bench} {time}\n')
-    print('running mutual refinement')
-    run_and_get_output('./run.sh', 'mr/', True)
-    print('logging results')
     log('report.txt')
 
 if __name__ == '__main__':
