@@ -103,11 +103,16 @@ def scan_mr_refine(fpath):
 
 def scan_lzr():
     with open('lzr_time.txt', 'r') as f:
-        lines = f.readlines()
+        words = f.read().strip().split()
     result = {}
-    for line in lines:
-        bench, time = line.strip().split()
-        result[bench] = float(time)
+    is_bench = True
+    bench = ''
+    for word in words:
+        if is_bench:
+            bench = word
+        else:
+            result[bench] = float(word)
+        is_bench = not is_bench
     return result
 
 def print_2a(f):

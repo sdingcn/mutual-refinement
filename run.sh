@@ -6,17 +6,17 @@ cd vf/
 cd ../
 
 echo "STEP 2 >>> running graph simplification to get the graphs"
+touch lzr_time.txt
 for graph in mr/exp/graphs/taint/*.dot; do
 	echo "running graph simplification on $graph"
-	cp graph lzr/current.dot
+	cp $graph lzr/current.dot
 	cd lzr/
 	./graph_reduce.sh > output
-	$(basename "$graph" .dot) >> ../lzr_time.txt
+	echo $(basename "$graph" .dot) >> ../lzr_time.txt
 	awk 'END {print $NF}' output >> ../lzr_time.txt
-	echo "\n" >> ../lzr_time.txt
-	cp current.dot ../mr/exp/graphs/simplified-taint/$(basename "$graph" .dot).dot
 	cd ../
 done
+rm lzr/output
 
 echo "STEP 3 >>> running mutual refinement"
 cd mr/
