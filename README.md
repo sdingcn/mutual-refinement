@@ -1,3 +1,5 @@
 # mutual-refinement
 
-Run `python3 run.py` to run all experiments, after which all results are available in `report.txt`.
+Run `./run.sh` to run all experiments.
+
+Run `python3 report.py` to collect data into `report.txt`.
