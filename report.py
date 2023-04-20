@@ -117,7 +117,7 @@ def scan_lzr():
 
 def rd(x):
     if type(x) == float:
-        return round(x, 3)
+        return f'{round(x, 2):.2f}'
     else:
         return '-'
 
