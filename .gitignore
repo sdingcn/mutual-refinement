@@ -1,6 +1,7 @@
 lzr-time.txt
 report.txt
 lzr/current.dot
+lzr/resource-logs/*.log
 mr/exp/graphs/simplified-taint/*.dot
 mr/exp/graphs/valueflow/*.dot
 mr/exp/results/simplified-taint/*.result
