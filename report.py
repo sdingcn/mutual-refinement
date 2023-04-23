@@ -72,7 +72,7 @@ def scan_mr_naive(fpath):
             elif line.startswith("Total Time"):
                 result["time"] = float(line.split()[-1].strip())
             elif line.startswith("Peak Space"):
-                result["space"] = int(line.split()[-1].strip())
+                result["space"] = int(line.split()[-1].strip()) * 1000 / 1048576
     return result
 
 def scan_mr_refine(fpath):
@@ -98,7 +98,7 @@ def scan_mr_refine(fpath):
             elif line.startswith("Total Time"):
                 result["time"] = float(line.split()[-1].strip())
             elif line.startswith("Peak Space"):
-                result["space"] = int(line.split()[-1].strip())
+                result["space"] = int(line.split()[-1].strip()) * 1000 / 1048576
     return result
 
 def scan_lzr(fpath):
@@ -113,7 +113,7 @@ def scan_lzr(fpath):
             if line.startswith("elapsed time"):
                 result['time'] = float(line.split()[-1].strip())
             elif line.startswith("Maximum resident set size (kbytes)"):
-                result['space'] = int(line.split()[-1].strip())
+                result['space'] = int(line.split()[-1].strip()) * 1000 / 1048576
     return result
 
 def p_id(x):
@@ -137,6 +137,22 @@ def p_sub(a, b):
         return str(a - b)
     elif type(a) == float and type(b) == float:
         return f'{round(a - b, 2):.2f}'
+    else:
+        return '-'
+
+def p_mul(a, b):
+    if type(a) == int and type(b) == int:
+        return str(a * b)
+    elif type(a) == float and type(b) == float:
+        return f'{round(a * b, 2):.2f}'
+    else:
+        return '-'
+
+def p_div(a, b):
+    if type(a) == int and type(b) == int:
+        return str(a // b)
+    elif type(a) == float and type(b) == float:
+        return f'{round(a / b, 2):.2f}'
     else:
         return '-'
 
