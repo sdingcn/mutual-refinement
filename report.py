@@ -46,6 +46,7 @@ def scan_graph(fpath):
         nodes = set()
         edges = set()
         for line in lines:
+            line = line.strip()
             if "->" in line:
                 n1, n2tail = line.split("->")
                 n2, _ = n2tail.split("[")
@@ -63,9 +64,9 @@ def scan_mr_naive(fpath):
         "space" : None
     }
     with open(fpath, "r") as f:
-        content = f.read()
-        lines = list(map(lambda l : l.strip(), content.splitlines()))
+        lines = f.read().strip().splitlines()
         for line in lines:
+            line = line.strip()
             if line.startswith("Number of Reachable Pairs"):
                 result["pair"] = int(line.split()[-1].strip())
             elif line.startswith("Total Time"):
@@ -84,9 +85,9 @@ def scan_mr_refine(fpath):
         "space" : None
     }
     with open(fpath, "r") as f:
-        content = f.read()
-        lines = list(map(lambda l : l.strip(), content.splitlines()))
+        lines = f.read().strip().splitlines()
         for line in lines:
+            line = line.strip()
             if line.startswith("Edge Set Reduction"):
                 result["e0"] = int(line.split()[-3].strip())
                 result["e1"] = int(line.split()[-1].strip())
@@ -108,7 +109,7 @@ def scan_lzr(fpath):
     with open(fpath, 'r') as f:
         lines = f.read().strip().splitlines()
         for line in lines:
-            line.strip()
+            line = line.strip()
             if line.startswith("elapsed time"):
                 result['time'] = float(line.split()[-1].strip())
             elif line.startswith("Maximum resident set size (kbytes)"):
@@ -190,7 +191,7 @@ def print_4(f):
         mr_r = scan_mr_refine(f'mr/exp/results/taint/refine-{bench}.result')
         lzr_r = scan_lzr(f'lzr/resource-logs/{bench}.log')
         lzrmr_r = scan_mr_refine(f'mr/exp/results/simplified-taint/refine-{bench}.result')
-        f.write('{} & {} & {} & {} & {} & {} & {}\\\\\n'.format(
+        f.write('{} & {} & {} & {} & {} & {} & {} & {} & {}\\\\\n'.format(
             bench,
             p_id(mr_r['pair']), p_id(lzrmr_r['pair']),
             p_id(mr_r['time']), p_add(lzr_r['time'], lzrmr_r['time']),
