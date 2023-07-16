@@ -1,3 +1,0 @@
-# mutual-refinement
-
-`./run.sh`

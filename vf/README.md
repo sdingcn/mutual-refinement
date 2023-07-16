@@ -1,3 +1,0 @@
-# svf-analyzer
-
-`./analyze.sh`

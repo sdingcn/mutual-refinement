@@ -1,21 +1,29 @@
 #!/bin/bash
 
-echo "STEP 1 >>> running valueflow analysis to get the graphs"
-cd vf/
-./analyze.sh
-cd ../
+ulimit -t $1 -v $2
 
-echo "STEP 2 >>> running graph simplification to get the graphs"
-for graph in mr/exp/graphs/taint/*.dot; do
-	echo "running graph simplification on $graph"
-	cp $graph lzr/current.dot
-	cd lzr/
-	./graph_reduce.sh > resource-logs/$(basename "$graph" .dot).log 2>&1
-	cp current.dot ../mr/exp/graphs/simplified-taint/$(basename "$graph")
-	cd ../
+make clean
+
+make -j8
+
+# taint
+for graph in exp/graphs/taint/*.dot; do
+	echo "running naive on $graph"
+	./main "$graph" taint naive > "exp/results/taint/naive-$(basename "$graph" .dot).result" 2>&1
+	echo "running refine on $graph"
+	./main "$graph" taint refine > "exp/results/taint/refine-$(basename "$graph" .dot).result" 2>&1
 done
 
-echo "STEP 3 >>> running mutual refinement"
-cd mr/
-./run.sh
-cd ../
+# valueflow
+for graph in exp/graphs/valueflow/*.dot; do
+	echo "running naive on $graph"
+	./main "$graph" valueflow naive > "exp/results/valueflow/naive-$(basename "$graph" .dot).result" 2>&1
+	echo "running refine on $graph"
+	./main "$graph" valueflow refine > "exp/results/valueflow/refine-$(basename "$graph" .dot).result" 2>&1
+done
+
+# simplified-taint
+for graph in exp/graphs/simplified-taint/*.dot; do
+	echo "running refine on $graph"
+	./main "$graph" taint refine > "exp/results/simplified-taint/refine-$(basename "$graph" .dot).result" 2>&1
+done
