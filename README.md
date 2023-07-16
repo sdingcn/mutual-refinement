@@ -1,4 +1,4 @@
-# mutual refinement
+# mutual refinement (work in progress)
 
 This is an illustrative implementation for the mutual refinement algorithm
 proposed in the paper _Mutual Refinements of Context-Free Language Reachability (SAS 2023)_.
