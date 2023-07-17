@@ -5,6 +5,9 @@
 #include <utility>
 #include <tuple>
 
+// This parameter can be adjusted.
+// The idea is that when the elements in the pair or triple are small integers,
+// this implementation results in perfect hashing.
 static constexpr long long SHIFT = 20LL;
 
 std::size_t IntPairHasher::operator () (const std::pair<int, int> &p) const {

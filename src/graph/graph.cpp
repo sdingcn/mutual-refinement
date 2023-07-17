@@ -17,10 +17,12 @@ void Graph::reinit(int n, const std::unordered_set<Edge, EdgeHasher> &edges) {
 	}
 }
 
-void Graph::addEdge(const Edge &e) { // i --x--> j
+void Graph::addEdge(const Edge &e) {
 	fastEdgeTest.insert(e);
 	adjacencyVector[std::get<0>(e)].push_back(std::make_pair(std::get<1>(e), std::get<2>(e)));
-	counterAdjacencyVector[std::get<2>(e)].push_back(std::make_pair(std::get<0>(e), std::get<1>(e)));
+	counterAdjacencyVector[std::get<2>(e)].push_back(
+        std::make_pair(std::get<0>(e), std::get<1>(e))
+    );
 }
 
 bool Graph::hasEdge(const Edge &e) const {
@@ -28,15 +30,26 @@ bool Graph::hasEdge(const Edge &e) const {
 }
 
 std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(const Grammar &grammar) {
+    // To call runCFLReachabilityCore, those two maps are always needed,
+    // but we can use the Boolean flag to enable or disable tracing
 	std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> singleRecord;
-	std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> binaryRecord;
+	std::unordered_map<
+        Edge,
+        std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>,
+        EdgeHasher
+    > binaryRecord;
 	return runCFLReachabilityCore(grammar, false, singleRecord, binaryRecord);
 }
 
 std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachability(
 	const Grammar &grammar,
 	std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> &singleRecord,
-	std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> &binaryRecord) {
+	std::unordered_map<
+        Edge,
+        std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>,
+        EdgeHasher
+    > &binaryRecord
+) {
 	return runCFLReachabilityCore(grammar, true, singleRecord, binaryRecord);
 }
 
@@ -44,10 +57,18 @@ std::unordered_set<Edge, EdgeHasher> Graph::getEdgeClosure(
 	const Grammar &grammar,
 	const std::unordered_set<Edge, EdgeHasher> &result,
 	const std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> &singleRecord,
-	const std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> &binaryRecord) const {
+	const std::unordered_map<
+        Edge,
+        std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>,
+        EdgeHasher
+    > &binaryRecord
+) const {
+    // The set of edges to be returned, which only contains original edges in the graph
 	std::unordered_set<Edge, EdgeHasher> closure;
+    // The set to avoid visiting the same edge (including summary edges)  more than once
 	std::unordered_set<Edge, EdgeHasher> vis;
 	std::deque<Edge> w;
+    // Start from all S edges
 	for (const Edge &e : result) {
 		vis.insert(e);
 		w.push_back(e);
@@ -60,8 +81,10 @@ std::unordered_set<Edge, EdgeHasher> Graph::getEdgeClosure(
 		int x = std::get<1>(e);
 		int j = std::get<2>(e);
 		if (grammar.terminals.count(x) == 1) {
+            // Only insert terminal (original) edges
 			closure.insert(e);
 		} else {
+            // This is a const member function so we can't write singleRecord[e].
 			if (singleRecord.count(e) == 1) {
 				for (int y : singleRecord.at(e)) {
 					Edge e1 = std::make_tuple(i, y, j);
@@ -93,16 +116,24 @@ std::unordered_set<Edge, EdgeHasher> Graph::getEdgeClosure(
 	return closure;
 }
 
+/* The CFL-reachability algorithm */
 std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachabilityCore(
 	const Grammar &grammar,
 	const bool record,
 	std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> &singleRecord,
-	std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> &binaryRecord) {
+	std::unordered_map<
+        Edge,
+        std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>,
+        EdgeHasher
+    > &binaryRecord
+) {
 	std::unordered_set<Edge, EdgeHasher> result;
 	std::deque<Edge> w;
+    // Original edges
 	for (const Edge &e : fastEdgeTest) {
 		w.push_front(e);
 	}
+    // Empty productions
 	int nv = adjacencyVector.size();
 	for (int x : grammar.emptyProductions) {
 		for (int i = 0; i < nv; i++) {
@@ -114,6 +145,7 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachabilityCore(
 			}
 		}
 	}
+    // Other productions
 	while (!w.empty()) {
 		Edge e = w.front();
 		w.pop_front();
@@ -123,23 +155,27 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachabilityCore(
 		int y = std::get<1>(e);
 		int j = std::get<2>(e);
 
-		std::vector<Edge> tba; // to be added
+        // Edges to be added
+		std::vector<Edge> tba;
 
-		if (grammar.unaryRL.count(y) == 1) {
-			for (int ind : grammar.unaryRL.at(y)) { // x -> y
+		if (grammar.unaryR.count(y) == 1) {
+			for (int ind : grammar.unaryR.at(y)) {
+                // x -> y
 				int x = grammar.unaryProductions[ind].first;
 				Edge e1 = std::make_tuple(i, x, j);
 				tba.push_back(e1);
+                // May use conditional compilation to avoid the if-test cost
 				if (record) {
 					singleRecord[e1].insert(y);
 				}
 			}
 		}
-		for (auto &zk : adjacencyVector[j]) { // x -> yz
+		for (auto &zk : adjacencyVector[j]) {
+            // x -> yz
 			int z = zk.first;
 			int k = zk.second;
-			if (grammar.binaryRL.count(std::make_pair(y, z)) == 1) {
-				for (int ind : grammar.binaryRL.at(std::make_pair(y, z))) {
+			if (grammar.binaryR.count(std::make_pair(y, z)) == 1) {
+				for (int ind : grammar.binaryR.at(std::make_pair(y, z))) {
 					int x = grammar.binaryProductions[ind].first;
 					Edge e1 = std::make_tuple(i, x, k);
 					tba.push_back(e1);
@@ -149,11 +185,12 @@ std::unordered_set<Edge, EdgeHasher> Graph::runCFLReachabilityCore(
 				}
 			}
 		}
-		for (auto &kz : counterAdjacencyVector[i]) { // x -> zy
+		for (auto &kz : counterAdjacencyVector[i]) {
+            // x -> zy
 			int k = kz.first;
 			int z = kz.second;
-			if (grammar.binaryRL.count(std::make_pair(z, y)) == 1) {
-				for (int ind : grammar.binaryRL.at(std::make_pair(z, y))) {
+			if (grammar.binaryR.count(std::make_pair(z, y)) == 1) {
+				for (int ind : grammar.binaryR.at(std::make_pair(z, y))) {
 					int x = grammar.binaryProductions[ind].first;
 					Edge e1 = std::make_tuple(k, x, j);
 					tba.push_back(e1);

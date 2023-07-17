@@ -13,6 +13,7 @@ struct IntTripleHasher {
 	std::size_t operator () (const std::tuple<int, int, int> &t) const;
 };
 
+// An edge i --A--> j is represented as (i, A, j)
 using Edge = std::tuple<int, int, int>;
 using EdgeHasher = IntTripleHasher;
 

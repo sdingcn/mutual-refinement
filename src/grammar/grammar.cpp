@@ -29,16 +29,17 @@ void Grammar::addBinaryProduction(int l, int r1, int r2) {
 void Grammar::initFastIndices() {
 	int ne = emptyProductions.size();
 	for (int i = 0; i < ne; i++) {
-		emptyLR[emptyProductions[i]].push_back(i);
+		emptyL[emptyProductions[i]].push_back(i);
 	}
 	int nu = unaryProductions.size();
 	for (int i = 0; i < nu; i++) {
-		unaryLR[unaryProductions[i].first].push_back(i);
-		unaryRL[unaryProductions[i].second].push_back(i);
+        // first and second have different types here
+		unaryL[unaryProductions[i].first].push_back(i);
+		unaryR[unaryProductions[i].second].push_back(i);
 	}
 	int nb = binaryProductions.size();
 	for (int i = 0; i < nb; i++) {
-		binaryLR[binaryProductions[i].first].push_back(i);
-		binaryRL[binaryProductions[i].second].push_back(i);
+		binaryL[binaryProductions[i].first].push_back(i);
+		binaryR[binaryProductions[i].second].push_back(i);
 	}
 }
