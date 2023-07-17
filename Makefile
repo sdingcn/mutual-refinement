@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic -O3 -UALIAS
+CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic -O3
 LDFLAGS = 
 
 main: main.o grammar.o graph.o hasher.o
@@ -15,4 +15,4 @@ hasher.o: src/hasher/hasher.cpp src/hasher/hasher.h
 
 .PHONY : clean
 clean :
-	-rm *.o main exp/results/simplified-taint/*.result exp/results/taint/*.result exp/results/valueflow/*.result
+	-rm *.o main

@@ -9,20 +9,20 @@ Any C++ compiler (with at least C++11 support) and GNU make.
 
 ## Build and run
 
-Run `./run.sh <time (Second)> <space (KiB)>` to build the project and run every item
+Run `./run.sh <time (Second)> <space (KiB)>` to build the project and run every benchmark item
 in the following 5 categories with the given time and space limits.
 
-+ Straightforward combination for taint
-+ Mutual refinement for taint
-+ Straightforward combination for valueflow
-+ Mutual refinement for valueflow
-+ Mutual refinement for simplified-taint
++ Straightforward combination for _taint_
++ Mutual refinement for _taint_
++ Straightforward combination for _valueflow_
++ Mutual refinement for _valueflow_
++ Mutual refinement for _simplified-taint_
 
 ## Result interpretation
 
 For each benchmark item `<name>.dot` inside `exp/`,
 the result will be stored in the file `naive-<name>.result` or `refine-<name>.result`
-in the corresponding locations inside `exp/`.
+in the corresponding directory.
 
 ## Docker container
 
@@ -41,4 +41,4 @@ docker load --input mutual-refinement.tar
 docker run --rm -ti mutual-refinement
 ```
 
-Then you can repeat the experiment inside the docker container.
+Then you can repeat the above experiment inside the docker container.
