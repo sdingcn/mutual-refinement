@@ -20,9 +20,9 @@ in the following 5 categories with the given time and space limits.
 
 ## Result interpretation
 
-For each benchmark item `<name>.dot` inside `exp/graphs/`,
+For each benchmark item `<name>.dot` inside `exp/`,
 the result will be stored in the file `naive-<name>.result` or `refine-<name>.result`
-in the corresponding locations inside `exp/results/`.
+in the corresponding locations inside `exp/`.
 
 ## Docker container
 
