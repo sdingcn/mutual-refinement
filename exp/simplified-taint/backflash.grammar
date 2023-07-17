@@ -1,0 +1,430 @@
+{
+| Dp
+| Dp
+| Dp ob--5
+| Dp cb--5
+| Dp ob--4
+| Dp cb--4
+| Dp ob--3
+| Dp cb--3
+| Dp ob--2
+| Dp cb--2
+| Dp ob--1
+| Dp cb--1
+| Dp ob--0
+| Dp cb--0
+| Dp Dp Dp
+| Dp op--439 Ip--439
+| Ip--439 Dp cp--439
+| Dp op--425 Ip--425
+| Ip--425 Dp cp--425
+| Dp op--174 Ip--174
+| Ip--174 Dp cp--174
+| Dp op--394 Ip--394
+| Ip--394 Dp cp--394
+| Dp op--327 Ip--327
+| Ip--327 Dp cp--327
+| Dp op--241 Ip--241
+| Ip--241 Dp cp--241
+| Dp op--356 Ip--356
+| Ip--356 Dp cp--356
+| Dp op--305 Ip--305
+| Ip--305 Dp cp--305
+| Dp op--224 Ip--224
+| Ip--224 Dp cp--224
+| Dp op--209 Ip--209
+| Ip--209 Dp cp--209
+| Dp op--385 Ip--385
+| Ip--385 Dp cp--385
+| Dp op--236 Ip--236
+| Ip--236 Dp cp--236
+| Dp op--171 Ip--171
+| Ip--171 Dp cp--171
+| Dp op--166 Ip--166
+| Ip--166 Dp cp--166
+| Dp op--334 Ip--334
+| Ip--334 Dp cp--334
+| Dp op--227 Ip--227
+| Ip--227 Dp cp--227
+| Dp op--164 Ip--164
+| Ip--164 Dp cp--164
+| Dp op--161 Ip--161
+| Ip--161 Dp cp--161
+| Dp op--148 Ip--148
+| Ip--148 Dp cp--148
+| Dp op--144 Ip--144
+| Ip--144 Dp cp--144
+| Dp op--340 Ip--340
+| Ip--340 Dp cp--340
+| Dp op--140 Ip--140
+| Ip--140 Dp cp--140
+| Dp op--33 Ip--33
+| Ip--33 Dp cp--33
+| Dp op--138 Ip--138
+| Ip--138 Dp cp--138
+| Dp op--172 Ip--172
+| Ip--172 Dp cp--172
+| Dp op--111 Ip--111
+| Ip--111 Dp cp--111
+| Dp op--98 Ip--98
+| Ip--98 Dp cp--98
+| Dp op--332 Ip--332
+| Ip--332 Dp cp--332
+| Dp op--107 Ip--107
+| Ip--107 Dp cp--107
+| Dp op--105 Ip--105
+| Ip--105 Dp cp--105
+| Dp op--97 Ip--97
+| Ip--97 Dp cp--97
+| Dp op--78 Ip--78
+| Ip--78 Dp cp--78
+| Dp op--19 Ip--19
+| Ip--19 Dp cp--19
+| Dp op--46 Ip--46
+| Ip--46 Dp cp--46
+| Dp op--76 Ip--76
+| Ip--76 Dp cp--76
+| Dp op--75 Ip--75
+| Ip--75 Dp cp--75
+| Dp op--74 Ip--74
+| Ip--74 Dp cp--74
+| Dp op--165 Ip--165
+| Ip--165 Dp cp--165
+| Dp op--72 Ip--72
+| Ip--72 Dp cp--72
+| Dp op--278 Ip--278
+| Ip--278 Dp cp--278
+| Dp op--50 Ip--50
+| Ip--50 Dp cp--50
+| Dp op--49 Ip--49
+| Ip--49 Dp cp--49
+| Dp op--17 Ip--17
+| Ip--17 Dp cp--17
+| Dp op--13 Ip--13
+| Ip--13 Dp cp--13
+| Dp op--35 Ip--35
+| Ip--35 Dp cp--35
+| Dp op--210 Ip--210
+| Ip--210 Dp cp--210
+| Dp op--114 Ip--114
+| Ip--114 Dp cp--114
+| Dp op--27 Ip--27
+| Ip--27 Dp cp--27
+| Dp op--38 Ip--38
+| Ip--38 Dp cp--38
+| Dp op--10 Ip--10
+| Ip--10 Dp cp--10
+| Dp op--71 Ip--71
+| Ip--71 Dp cp--71
+| Dp op--160 Ip--160
+| Ip--160 Dp cp--160
+| Dp op--345 Ip--345
+| Ip--345 Dp cp--345
+| Dp op--8 Ip--8
+| Ip--8 Dp cp--8
+| Dp op--272 Ip--272
+| Ip--272 Dp cp--272
+| Dp op--7 Ip--7
+| Ip--7 Dp cp--7
+| Dp op--5 Ip--5
+| Ip--5 Dp cp--5
+| Dp op--14 Ip--14
+| Ip--14 Dp cp--14
+| Dp op--52 Ip--52
+| Ip--52 Dp cp--52
+| Dp op--330 Ip--330
+| Ip--330 Dp cp--330
+| Dp op--358 Ip--358
+| Ip--358 Dp cp--358
+| Dp op--67 Ip--67
+| Ip--67 Dp cp--67
+| Dp op--62 Ip--62
+| Ip--62 Dp cp--62
+| Dp op--135 Ip--135
+| Ip--135 Dp cp--135
+| Dp op--187 Ip--187
+| Ip--187 Dp cp--187
+| Dp op--110 Ip--110
+| Ip--110 Dp cp--110
+| Dp op--343 Ip--343
+| Ip--343 Dp cp--343
+| Dp op--122 Ip--122
+| Ip--122 Dp cp--122
+| Dp op--48 Ip--48
+| Ip--48 Dp cp--48
+| Dp op--191 Ip--191
+| Ip--191 Dp cp--191
+| Dp op--265 Ip--265
+| Ip--265 Dp cp--265
+| Dp op--129 Ip--129
+| Ip--129 Dp cp--129
+| Dp op--264 Ip--264
+| Ip--264 Dp cp--264
+| Dp op--380 Ip--380
+| Ip--380 Dp cp--380
+| Dp op--116 Ip--116
+| Ip--116 Dp cp--116
+| Dp op--331 Ip--331
+| Ip--331 Dp cp--331
+| Dp op--226 Ip--226
+| Ip--226 Dp cp--226
+| Dp op--230 Ip--230
+| Ip--230 Dp cp--230
+| Dp op--229 Ip--229
+| Ip--229 Dp cp--229
+| Dp op--335 Ip--335
+| Ip--335 Dp cp--335
+| Dp op--9 Ip--9
+| Ip--9 Dp cp--9
+| Dp op--159 Ip--159
+| Ip--159 Dp cp--159
+| Dp op--54 Ip--54
+| Ip--54 Dp cp--54
+| Dp op--263 Ip--263
+| Ip--263 Dp cp--263
+| Dp op--124 Ip--124
+| Ip--124 Dp cp--124
+| Dp op--31 Ip--31
+| Ip--31 Dp cp--31
+| Dp op--157 Ip--157
+| Ip--157 Dp cp--157
+| Dp op--112 Ip--112
+| Ip--112 Dp cp--112
+| Dp op--68 Ip--68
+| Ip--68 Dp cp--68
+| Dp op--73 Ip--73
+| Ip--73 Dp cp--73
+| Dp op--347 Ip--347
+| Ip--347 Dp cp--347
+| Dp op--310 Ip--310
+| Ip--310 Dp cp--310
+| Dp op--25 Ip--25
+| Ip--25 Dp cp--25
+| Dp op--211 Ip--211
+| Ip--211 Dp cp--211
+| Dp op--79 Ip--79
+| Ip--79 Dp cp--79
+| Dp op--118 Ip--118
+| Ip--118 Dp cp--118
+| Dp op--47 Ip--47
+| Ip--47 Dp cp--47
+| Dp op--34 Ip--34
+| Ip--34 Dp cp--34
+| Dp op--18 Ip--18
+| Ip--18 Dp cp--18
+}
+{
+| Db
+| Db
+| Db op--439
+| Db cp--439
+| Db op--425
+| Db cp--425
+| Db op--174
+| Db cp--174
+| Db op--394
+| Db cp--394
+| Db op--327
+| Db cp--327
+| Db op--241
+| Db cp--241
+| Db op--356
+| Db cp--356
+| Db op--305
+| Db cp--305
+| Db op--224
+| Db cp--224
+| Db op--209
+| Db cp--209
+| Db op--385
+| Db cp--385
+| Db op--236
+| Db cp--236
+| Db op--171
+| Db cp--171
+| Db op--166
+| Db cp--166
+| Db op--334
+| Db cp--334
+| Db op--227
+| Db cp--227
+| Db op--164
+| Db cp--164
+| Db op--161
+| Db cp--161
+| Db op--148
+| Db cp--148
+| Db op--144
+| Db cp--144
+| Db op--340
+| Db cp--340
+| Db op--140
+| Db cp--140
+| Db op--33
+| Db cp--33
+| Db op--138
+| Db cp--138
+| Db op--172
+| Db cp--172
+| Db op--111
+| Db cp--111
+| Db op--98
+| Db cp--98
+| Db op--332
+| Db cp--332
+| Db op--107
+| Db cp--107
+| Db op--105
+| Db cp--105
+| Db op--97
+| Db cp--97
+| Db op--78
+| Db cp--78
+| Db op--19
+| Db cp--19
+| Db op--46
+| Db cp--46
+| Db op--76
+| Db cp--76
+| Db op--75
+| Db cp--75
+| Db op--74
+| Db cp--74
+| Db op--165
+| Db cp--165
+| Db op--72
+| Db cp--72
+| Db op--278
+| Db cp--278
+| Db op--50
+| Db cp--50
+| Db op--49
+| Db cp--49
+| Db op--17
+| Db cp--17
+| Db op--13
+| Db cp--13
+| Db op--35
+| Db cp--35
+| Db op--210
+| Db cp--210
+| Db op--114
+| Db cp--114
+| Db op--27
+| Db cp--27
+| Db op--38
+| Db cp--38
+| Db op--10
+| Db cp--10
+| Db op--71
+| Db cp--71
+| Db op--160
+| Db cp--160
+| Db op--345
+| Db cp--345
+| Db op--8
+| Db cp--8
+| Db op--272
+| Db cp--272
+| Db op--7
+| Db cp--7
+| Db op--5
+| Db cp--5
+| Db op--14
+| Db cp--14
+| Db op--52
+| Db cp--52
+| Db op--330
+| Db cp--330
+| Db op--358
+| Db cp--358
+| Db op--67
+| Db cp--67
+| Db op--62
+| Db cp--62
+| Db op--135
+| Db cp--135
+| Db op--187
+| Db cp--187
+| Db op--110
+| Db cp--110
+| Db op--343
+| Db cp--343
+| Db op--122
+| Db cp--122
+| Db op--48
+| Db cp--48
+| Db op--191
+| Db cp--191
+| Db op--265
+| Db cp--265
+| Db op--129
+| Db cp--129
+| Db op--264
+| Db cp--264
+| Db op--380
+| Db cp--380
+| Db op--116
+| Db cp--116
+| Db op--331
+| Db cp--331
+| Db op--226
+| Db cp--226
+| Db op--230
+| Db cp--230
+| Db op--229
+| Db cp--229
+| Db op--335
+| Db cp--335
+| Db op--9
+| Db cp--9
+| Db op--159
+| Db cp--159
+| Db op--54
+| Db cp--54
+| Db op--263
+| Db cp--263
+| Db op--124
+| Db cp--124
+| Db op--31
+| Db cp--31
+| Db op--157
+| Db cp--157
+| Db op--112
+| Db cp--112
+| Db op--68
+| Db cp--68
+| Db op--73
+| Db cp--73
+| Db op--347
+| Db cp--347
+| Db op--310
+| Db cp--310
+| Db op--25
+| Db cp--25
+| Db op--211
+| Db cp--211
+| Db op--79
+| Db cp--79
+| Db op--118
+| Db cp--118
+| Db op--47
+| Db cp--47
+| Db op--34
+| Db cp--34
+| Db op--18
+| Db cp--18
+| Db Db Db
+| Db ob--5 Ib--5
+| Ib--5 Db cb--5
+| Db ob--4 Ib--4
+| Ib--4 Db cb--4
+| Db ob--3 Ib--3
+| Ib--3 Db cb--3
+| Db ob--2 Ib--2
+| Ib--2 Db cb--2
+| Db ob--1 Ib--1
+| Ib--1 Db cb--1
+| Db ob--0 Ib--0
+| Ib--0 Db cb--0
+}

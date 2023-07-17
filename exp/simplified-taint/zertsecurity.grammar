@@ -1,0 +1,254 @@
+{
+| Dp
+| Dp
+| Dp ob--6
+| Dp cb--6
+| Dp ob--3
+| Dp cb--3
+| Dp ob--2
+| Dp cb--2
+| Dp ob--1
+| Dp cb--1
+| Dp ob--7
+| Dp cb--7
+| Dp ob--5
+| Dp cb--5
+| Dp ob--0
+| Dp cb--0
+| Dp Dp Dp
+| Dp op--128 Ip--128
+| Ip--128 Dp cp--128
+| Dp op--32 Ip--32
+| Ip--32 Dp cp--32
+| Dp op--111 Ip--111
+| Ip--111 Dp cp--111
+| Dp op--112 Ip--112
+| Ip--112 Dp cp--112
+| Dp op--109 Ip--109
+| Ip--109 Dp cp--109
+| Dp op--107 Ip--107
+| Ip--107 Dp cp--107
+| Dp op--37 Ip--37
+| Ip--37 Dp cp--37
+| Dp op--105 Ip--105
+| Ip--105 Dp cp--105
+| Dp op--83 Ip--83
+| Ip--83 Dp cp--83
+| Dp op--91 Ip--91
+| Ip--91 Dp cp--91
+| Dp op--84 Ip--84
+| Ip--84 Dp cp--84
+| Dp op--80 Ip--80
+| Ip--80 Dp cp--80
+| Dp op--81 Ip--81
+| Ip--81 Dp cp--81
+| Dp op--75 Ip--75
+| Ip--75 Dp cp--75
+| Dp op--2 Ip--2
+| Ip--2 Dp cp--2
+| Dp op--53 Ip--53
+| Ip--53 Dp cp--53
+| Dp op--74 Ip--74
+| Ip--74 Dp cp--74
+| Dp op--60 Ip--60
+| Ip--60 Dp cp--60
+| Dp op--56 Ip--56
+| Ip--56 Dp cp--56
+| Dp op--54 Ip--54
+| Ip--54 Dp cp--54
+| Dp op--41 Ip--41
+| Ip--41 Dp cp--41
+| Dp op--26 Ip--26
+| Ip--26 Dp cp--26
+| Dp op--46 Ip--46
+| Ip--46 Dp cp--46
+| Dp op--40 Ip--40
+| Ip--40 Dp cp--40
+| Dp op--100 Ip--100
+| Ip--100 Dp cp--100
+| Dp op--45 Ip--45
+| Ip--45 Dp cp--45
+| Dp op--27 Ip--27
+| Ip--27 Dp cp--27
+| Dp op--51 Ip--51
+| Ip--51 Dp cp--51
+| Dp op--14 Ip--14
+| Ip--14 Dp cp--14
+| Dp op--18 Ip--18
+| Ip--18 Dp cp--18
+| Dp op--39 Ip--39
+| Ip--39 Dp cp--39
+| Dp op--88 Ip--88
+| Ip--88 Dp cp--88
+| Dp op--36 Ip--36
+| Ip--36 Dp cp--36
+| Dp op--22 Ip--22
+| Ip--22 Dp cp--22
+| Dp op--110 Ip--110
+| Ip--110 Dp cp--110
+| Dp op--44 Ip--44
+| Ip--44 Dp cp--44
+| Dp op--42 Ip--42
+| Ip--42 Dp cp--42
+| Dp op--79 Ip--79
+| Ip--79 Dp cp--79
+| Dp op--130 Ip--130
+| Ip--130 Dp cp--130
+| Dp op--115 Ip--115
+| Ip--115 Dp cp--115
+| Dp op--9 Ip--9
+| Ip--9 Dp cp--9
+| Dp op--1 Ip--1
+| Ip--1 Dp cp--1
+| Dp op--30 Ip--30
+| Ip--30 Dp cp--30
+| Dp op--87 Ip--87
+| Ip--87 Dp cp--87
+| Dp op--13 Ip--13
+| Ip--13 Dp cp--13
+| Dp op--23 Ip--23
+| Ip--23 Dp cp--23
+| Dp op--12 Ip--12
+| Ip--12 Dp cp--12
+| Dp op--28 Ip--28
+| Ip--28 Dp cp--28
+| Dp op--16 Ip--16
+| Ip--16 Dp cp--16
+| Dp op--108 Ip--108
+| Ip--108 Dp cp--108
+| Dp op--82 Ip--82
+| Ip--82 Dp cp--82
+| Dp op--8 Ip--8
+| Ip--8 Dp cp--8
+| Dp op--125 Ip--125
+| Ip--125 Dp cp--125
+| Dp op--0 Ip--0
+| Ip--0 Dp cp--0
+}
+{
+| Db
+| Db
+| Db op--128
+| Db cp--128
+| Db op--32
+| Db cp--32
+| Db op--111
+| Db cp--111
+| Db op--112
+| Db cp--112
+| Db op--109
+| Db cp--109
+| Db op--107
+| Db cp--107
+| Db op--37
+| Db cp--37
+| Db op--105
+| Db cp--105
+| Db op--83
+| Db cp--83
+| Db op--91
+| Db cp--91
+| Db op--84
+| Db cp--84
+| Db op--80
+| Db cp--80
+| Db op--81
+| Db cp--81
+| Db op--75
+| Db cp--75
+| Db op--2
+| Db cp--2
+| Db op--53
+| Db cp--53
+| Db op--74
+| Db cp--74
+| Db op--60
+| Db cp--60
+| Db op--56
+| Db cp--56
+| Db op--54
+| Db cp--54
+| Db op--41
+| Db cp--41
+| Db op--26
+| Db cp--26
+| Db op--46
+| Db cp--46
+| Db op--40
+| Db cp--40
+| Db op--100
+| Db cp--100
+| Db op--45
+| Db cp--45
+| Db op--27
+| Db cp--27
+| Db op--51
+| Db cp--51
+| Db op--14
+| Db cp--14
+| Db op--18
+| Db cp--18
+| Db op--39
+| Db cp--39
+| Db op--88
+| Db cp--88
+| Db op--36
+| Db cp--36
+| Db op--22
+| Db cp--22
+| Db op--110
+| Db cp--110
+| Db op--44
+| Db cp--44
+| Db op--42
+| Db cp--42
+| Db op--79
+| Db cp--79
+| Db op--130
+| Db cp--130
+| Db op--115
+| Db cp--115
+| Db op--9
+| Db cp--9
+| Db op--1
+| Db cp--1
+| Db op--30
+| Db cp--30
+| Db op--87
+| Db cp--87
+| Db op--13
+| Db cp--13
+| Db op--23
+| Db cp--23
+| Db op--12
+| Db cp--12
+| Db op--28
+| Db cp--28
+| Db op--16
+| Db cp--16
+| Db op--108
+| Db cp--108
+| Db op--82
+| Db cp--82
+| Db op--8
+| Db cp--8
+| Db op--125
+| Db cp--125
+| Db op--0
+| Db cp--0
+| Db Db Db
+| Db ob--6 Ib--6
+| Ib--6 Db cb--6
+| Db ob--3 Ib--3
+| Ib--3 Db cb--3
+| Db ob--2 Ib--2
+| Ib--2 Db cb--2
+| Db ob--1 Ib--1
+| Ib--1 Db cb--1
+| Db ob--7 Ib--7
+| Ib--7 Db cb--7
+| Db ob--5 Ib--5
+| Ib--5 Db cb--5
+| Db ob--0 Ib--0
+| Ib--0 Db cb--0
+}

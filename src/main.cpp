@@ -110,15 +110,15 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 	if (analysis == "taint") {
 		// number symbols
 		std::vector<std::string> symbols;
-		symbols.push_back("dp");
+		symbols.push_back("Dp");
 		for (auto n : dyckNumbers["p"]) {
-			symbols.push_back("ip--" + n);
+			symbols.push_back("Ip--" + n);
 			symbols.push_back("op--" + n);
 			symbols.push_back("cp--" + n);
 		}
-		symbols.push_back("db");
+		symbols.push_back("Db");
 		for (auto n : dyckNumbers["b"]) {
-			symbols.push_back("ib--" + n);
+			symbols.push_back("Ib--" + n);
 			symbols.push_back("ob--" + n);
 			symbols.push_back("cb--" + n);
 		}
@@ -138,23 +138,23 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addTerminal(symMap["cb--" + n]);
 			}
 			// nonterminals
-			gm.addNonterminal(symMap["dp"]);
+			gm.addNonterminal(symMap["Dp"]);
 			for (auto &n : dyckNumbers["p"]) {
-				gm.addNonterminal(symMap["ip--" + n]);
+				gm.addNonterminal(symMap["Ip--" + n]);
 			}
 			// productions
-			gm.addEmptyProduction(symMap["dp"]);
-			gm.addBinaryProduction(symMap["dp"], symMap["dp"], symMap["dp"]);
+			gm.addEmptyProduction(symMap["Dp"]);
+			gm.addBinaryProduction(symMap["Dp"], symMap["Dp"], symMap["Dp"]);
 			for (auto &n : dyckNumbers["p"]) {
-				gm.addBinaryProduction(symMap["dp"], symMap["op--" + n], symMap["ip--" + n]);
-				gm.addBinaryProduction(symMap["ip--" + n], symMap["dp"], symMap["cp--" + n]);
+				gm.addBinaryProduction(symMap["Dp"], symMap["op--" + n], symMap["Ip--" + n]);
+				gm.addBinaryProduction(symMap["Ip--" + n], symMap["Dp"], symMap["cp--" + n]);
 			}
 			for (auto &n : dyckNumbers["b"]) {
-				gm.addUnaryProduction(symMap["dp"], symMap["ob--" + n]);
-				gm.addUnaryProduction(symMap["dp"], symMap["cb--" + n]);
+				gm.addUnaryProduction(symMap["Dp"], symMap["ob--" + n]);
+				gm.addUnaryProduction(symMap["Dp"], symMap["cb--" + n]);
 			}
 			// start symbol
-			gm.addStartSymbol(symMap["dp"]);
+			gm.addStartSymbol(symMap["Dp"]);
 			// finalize
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
@@ -171,23 +171,23 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addTerminal(symMap["cb--" + n]);
 			}
 			// nonterminals
-			gm.addNonterminal(symMap["db"]);
+			gm.addNonterminal(symMap["Db"]);
 			for (auto &n : dyckNumbers["b"]) {
-				gm.addNonterminal(symMap["ib--" + n]);
+				gm.addNonterminal(symMap["Ib--" + n]);
 			}
 			// productions
-			gm.addEmptyProduction(symMap["db"]);
-			gm.addBinaryProduction(symMap["db"], symMap["db"], symMap["db"]);
+			gm.addEmptyProduction(symMap["Db"]);
+			gm.addBinaryProduction(symMap["Db"], symMap["Db"], symMap["Db"]);
 			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["db"], symMap["ob--" + n], symMap["ib--" + n]);
-				gm.addBinaryProduction(symMap["ib--" + n], symMap["db"], symMap["cb--" + n]);
+				gm.addBinaryProduction(symMap["Db"], symMap["ob--" + n], symMap["Ib--" + n]);
+				gm.addBinaryProduction(symMap["Ib--" + n], symMap["Db"], symMap["cb--" + n]);
 			}
 			for (auto &n : dyckNumbers["p"]) {
-				gm.addUnaryProduction(symMap["db"], symMap["op--" + n]);
-				gm.addUnaryProduction(symMap["db"], symMap["cp--" + n]);
+				gm.addUnaryProduction(symMap["Db"], symMap["op--" + n]);
+				gm.addUnaryProduction(symMap["Db"], symMap["cp--" + n]);
 			}
 			// start symbol
-			gm.addStartSymbol(symMap["db"]);
+			gm.addStartSymbol(symMap["Db"]);
 			// finalize
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
@@ -201,6 +201,24 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				nodeMap[std::get<2>(line)]
 			));
 		}
+        // write grammar
+        std::ofstream out(fName.substr(0, fName.size() - 4) + ".grammar");
+        for (auto &g : grammars) {
+            out << "{" << std::endl;
+            out << "| " << symMapR[g.startSymbol] << std::endl;
+            for (auto &p : g.emptyProductions) {
+                out << "| " << symMapR[p] << std::endl;
+            }
+            for (auto &p : g.unaryProductions) {
+                out << "| " << symMapR[p.first] << " " << symMapR[p.second] << std::endl;
+            }
+            for (auto &p : g.binaryProductions) {
+                out << "| " << symMapR[p.first] << " "
+                            << symMapR[p.second.first] << " "
+                            << symMapR[p.second.second] << std::endl;
+            }
+            out << "}" << std::endl;
+        }
 		// return
 		RawGraph rg;
 		rg.numNode = nodeMap.size();
@@ -218,21 +236,21 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 		// number symbols
 		std::vector<std::string> symbols;
 		symbols.push_back("normal");
-		symbols.push_back("dp");
+		symbols.push_back("Dp");
 		for (auto n : dyckNumbers["p"]) {
-			symbols.push_back("ip--" + n);
+			symbols.push_back("Ip--" + n);
 			symbols.push_back("op--" + n);
 			symbols.push_back("cp--" + n);
 		}
-		symbols.push_back("db");
+		symbols.push_back("Db");
 		for (auto n : dyckNumbers["b"]) {
-			symbols.push_back("ib--" + n);
+			symbols.push_back("Ib--" + n);
 			symbols.push_back("ob--" + n);
 			symbols.push_back("cb--" + n);
 		}
-		symbols.push_back("c");
-		symbols.push_back("ic");
-		symbols.push_back("g");
+		symbols.push_back("C");
+		symbols.push_back("Ic");
+		symbols.push_back("G");
 		std::unordered_map<std::string, int> symMap = number(symbols);
 		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
 		// construct grammars
@@ -250,24 +268,24 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addTerminal(symMap["cb--" + n]);
 			}
 			// nonterminals
-			gm.addNonterminal(symMap["dp"]);
+			gm.addNonterminal(symMap["Dp"]);
 			for (auto &n : dyckNumbers["p"]) {
-				gm.addNonterminal(symMap["ip--" + n]);
+				gm.addNonterminal(symMap["Ip--" + n]);
 			}
 			// productions
-			gm.addEmptyProduction(symMap["dp"]);
-			gm.addBinaryProduction(symMap["dp"], symMap["dp"], symMap["dp"]);
+			gm.addEmptyProduction(symMap["Dp"]);
+			gm.addBinaryProduction(symMap["Dp"], symMap["Dp"], symMap["Dp"]);
 			for (auto &n : dyckNumbers["p"]) {
-				gm.addBinaryProduction(symMap["dp"], symMap["op--" + n], symMap["ip--" + n]);
-				gm.addBinaryProduction(symMap["ip--" + n], symMap["dp"], symMap["cp--" + n]);
+				gm.addBinaryProduction(symMap["Dp"], symMap["op--" + n], symMap["Ip--" + n]);
+				gm.addBinaryProduction(symMap["Ip--" + n], symMap["Dp"], symMap["cp--" + n]);
 			}
 			for (auto &n : dyckNumbers["b"]) {
-				gm.addUnaryProduction(symMap["dp"], symMap["ob--" + n]);
-				gm.addUnaryProduction(symMap["dp"], symMap["cb--" + n]);
+				gm.addUnaryProduction(symMap["Dp"], symMap["ob--" + n]);
+				gm.addUnaryProduction(symMap["Dp"], symMap["cb--" + n]);
 			}
-			gm.addUnaryProduction(symMap["dp"], symMap["normal"]);
+			gm.addUnaryProduction(symMap["Dp"], symMap["normal"]);
 			// start symbol
-			gm.addStartSymbol(symMap["dp"]);
+			gm.addStartSymbol(symMap["Dp"]);
 			// finalize
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
@@ -285,24 +303,24 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addTerminal(symMap["cb--" + n]);
 			}
 			// nonterminals
-			gm.addNonterminal(symMap["db"]);
+			gm.addNonterminal(symMap["Db"]);
 			for (auto &n : dyckNumbers["b"]) {
-				gm.addNonterminal(symMap["ib--" + n]);
+				gm.addNonterminal(symMap["Ib--" + n]);
 			}
 			// productions
-			gm.addEmptyProduction(symMap["db"]);
-			gm.addBinaryProduction(symMap["db"], symMap["db"], symMap["db"]);
+			gm.addEmptyProduction(symMap["Db"]);
+			gm.addBinaryProduction(symMap["Db"], symMap["Db"], symMap["Db"]);
 			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["db"], symMap["ob--" + n], symMap["ib--" + n]);
-				gm.addBinaryProduction(symMap["ib--" + n], symMap["db"], symMap["cb--" + n]);
+				gm.addBinaryProduction(symMap["Db"], symMap["ob--" + n], symMap["Ib--" + n]);
+				gm.addBinaryProduction(symMap["Ib--" + n], symMap["Db"], symMap["cb--" + n]);
 			}
 			for (auto &n : dyckNumbers["p"]) {
-				gm.addUnaryProduction(symMap["db"], symMap["op--" + n]);
-				gm.addUnaryProduction(symMap["db"], symMap["cp--" + n]);
+				gm.addUnaryProduction(symMap["Db"], symMap["op--" + n]);
+				gm.addUnaryProduction(symMap["Db"], symMap["cp--" + n]);
 			}
-			gm.addUnaryProduction(symMap["db"], symMap["normal"]);
+			gm.addUnaryProduction(symMap["Db"], symMap["normal"]);
 			// start symbol
-			gm.addStartSymbol(symMap["db"]);
+			gm.addStartSymbol(symMap["Db"]);
 			// finalize
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
@@ -320,21 +338,21 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				gm.addTerminal(symMap["cb--" + n]);
 			}
 			// nonterminals
-			gm.addNonterminal(symMap["c"]);
-			gm.addNonterminal(symMap["ic"]);
-			gm.addNonterminal(symMap["g"]);
+			gm.addNonterminal(symMap["C"]);
+			gm.addNonterminal(symMap["Ic"]);
+			gm.addNonterminal(symMap["G"]);
 			// productions
 			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["c"], symMap["ob--" + n], symMap["ic"]);
-				gm.addBinaryProduction(symMap["ic"], symMap["g"], symMap["cb--" + n]);
+				gm.addBinaryProduction(symMap["C"], symMap["ob--" + n], symMap["Ic"]);
+				gm.addBinaryProduction(symMap["Ic"], symMap["G"], symMap["cb--" + n]);
 			}
-			gm.addEmptyProduction(symMap["g"]);
-			gm.addBinaryProduction(symMap["g"], symMap["g"], symMap["g"]);
+			gm.addEmptyProduction(symMap["G"]);
+			gm.addBinaryProduction(symMap["G"], symMap["G"], symMap["G"]);
 			for (auto &t : gm.terminals) {
-				gm.addUnaryProduction(symMap["g"], t);
+				gm.addUnaryProduction(symMap["G"], t);
 			}
 			// start symbol
-			gm.addStartSymbol(symMap["c"]);
+			gm.addStartSymbol(symMap["C"]);
 			// finalize
 			gm.initFastIndices();
 			grammars.push_back(std::move(gm));
@@ -348,6 +366,24 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 				nodeMap[std::get<2>(line)]
 			));
 		}
+        // write grammar
+        std::ofstream out(fName.substr(0, fName.size() - 4) + ".grammar");
+        for (auto &g : grammars) {
+            out << "{" << std::endl;
+            out << "| " << symMapR[g.startSymbol] << std::endl;
+            for (auto &p : g.emptyProductions) {
+                out << "| " << symMapR[p] << std::endl;
+            }
+            for (auto &p : g.unaryProductions) {
+                out << "| " << symMapR[p.first] << " " << symMapR[p.second] << std::endl;
+            }
+            for (auto &p : g.binaryProductions) {
+                out << "| " << symMapR[p.first] << " "
+                            << symMapR[p.second.first] << " "
+                            << symMapR[p.second.second] << std::endl;
+            }
+            out << "}" << std::endl;
+        }
 		// return
 		RawGraph rg;
 		rg.numNode = nodeMap.size();
@@ -364,16 +400,22 @@ RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
 }
 
 void run(int argc, char *argv[]) {
+#if 0
 	if (argc != 4) {
-		std::cerr << "Usage: " << argv[0] << " <graph-file> <\"taint\"/\"valueflow\"> <\"naive\"/\"refine\">" << std::endl;
+		std::cerr
+            << "Usage: "
+            << argv[0] << " <graph-file> <\"taint\"/\"valueflow\"> <\"naive\"/\"refine\">"
+            << std::endl;
 		return;
 	}
+#endif
 	// get arguments
 	std::string file = argv[1];
 	std::string analysis = argv[2];
-	std::string option = argv[3];
+	// std::string option = argv[3];
 	// read the raw graph
 	const RawGraph rg = readRawGraph(file, analysis);
+#if 0
 	// handle options
 	if (option == "naive") {
 		std::vector<Graph> graphs(rg.numGrammar);
@@ -409,6 +451,7 @@ void run(int argc, char *argv[]) {
 		std::cout << "Number of Refinement Iterations: " << refineIter << std::endl;
 		std::cout << "Number of Reachable Pairs (Excluding Self-loops): " << intersectResults(results).size() << std::endl;
 	}
+#endif
 }
 
 std::string getPeakMemory() {

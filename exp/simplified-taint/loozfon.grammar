@@ -1,0 +1,142 @@
+{
+| Dp
+| Dp
+| Dp ob--1
+| Dp cb--1
+| Dp ob--0
+| Dp cb--0
+| Dp Dp Dp
+| Dp op--62 Ip--62
+| Ip--62 Dp cp--62
+| Dp op--54 Ip--54
+| Ip--54 Dp cp--54
+| Dp op--31 Ip--31
+| Ip--31 Dp cp--31
+| Dp op--16 Ip--16
+| Ip--16 Dp cp--16
+| Dp op--7 Ip--7
+| Ip--7 Dp cp--7
+| Dp op--5 Ip--5
+| Ip--5 Dp cp--5
+| Dp op--75 Ip--75
+| Ip--75 Dp cp--75
+| Dp op--11 Ip--11
+| Ip--11 Dp cp--11
+| Dp op--3 Ip--3
+| Ip--3 Dp cp--3
+| Dp op--21 Ip--21
+| Ip--21 Dp cp--21
+| Dp op--52 Ip--52
+| Ip--52 Dp cp--52
+| Dp op--73 Ip--73
+| Ip--73 Dp cp--73
+| Dp op--27 Ip--27
+| Ip--27 Dp cp--27
+| Dp op--4 Ip--4
+| Ip--4 Dp cp--4
+| Dp op--46 Ip--46
+| Ip--46 Dp cp--46
+| Dp op--69 Ip--69
+| Ip--69 Dp cp--69
+| Dp op--37 Ip--37
+| Ip--37 Dp cp--37
+| Dp op--28 Ip--28
+| Ip--28 Dp cp--28
+| Dp op--12 Ip--12
+| Ip--12 Dp cp--12
+| Dp op--23 Ip--23
+| Ip--23 Dp cp--23
+| Dp op--32 Ip--32
+| Ip--32 Dp cp--32
+| Dp op--55 Ip--55
+| Ip--55 Dp cp--55
+| Dp op--33 Ip--33
+| Ip--33 Dp cp--33
+| Dp op--30 Ip--30
+| Ip--30 Dp cp--30
+| Dp op--18 Ip--18
+| Ip--18 Dp cp--18
+| Dp op--14 Ip--14
+| Ip--14 Dp cp--14
+| Dp op--15 Ip--15
+| Ip--15 Dp cp--15
+| Dp op--2 Ip--2
+| Ip--2 Dp cp--2
+| Dp op--22 Ip--22
+| Ip--22 Dp cp--22
+| Dp op--17 Ip--17
+| Ip--17 Dp cp--17
+| Dp op--0 Ip--0
+| Ip--0 Dp cp--0
+}
+{
+| Db
+| Db
+| Db op--62
+| Db cp--62
+| Db op--54
+| Db cp--54
+| Db op--31
+| Db cp--31
+| Db op--16
+| Db cp--16
+| Db op--7
+| Db cp--7
+| Db op--5
+| Db cp--5
+| Db op--75
+| Db cp--75
+| Db op--11
+| Db cp--11
+| Db op--3
+| Db cp--3
+| Db op--21
+| Db cp--21
+| Db op--52
+| Db cp--52
+| Db op--73
+| Db cp--73
+| Db op--27
+| Db cp--27
+| Db op--4
+| Db cp--4
+| Db op--46
+| Db cp--46
+| Db op--69
+| Db cp--69
+| Db op--37
+| Db cp--37
+| Db op--28
+| Db cp--28
+| Db op--12
+| Db cp--12
+| Db op--23
+| Db cp--23
+| Db op--32
+| Db cp--32
+| Db op--55
+| Db cp--55
+| Db op--33
+| Db cp--33
+| Db op--30
+| Db cp--30
+| Db op--18
+| Db cp--18
+| Db op--14
+| Db cp--14
+| Db op--15
+| Db cp--15
+| Db op--2
+| Db cp--2
+| Db op--22
+| Db cp--22
+| Db op--17
+| Db cp--17
+| Db op--0
+| Db cp--0
+| Db Db Db
+| Db ob--1 Ib--1
+| Ib--1 Db cb--1
+| Db ob--0 Ib--0
+| Ib--0 Db cb--0
+}
