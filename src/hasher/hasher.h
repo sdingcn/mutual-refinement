@@ -2,15 +2,15 @@
 #define HASHER_H
 
 #include <cstddef>
-#include <utility>
 #include <tuple>
+#include <utility>
 
 struct IntPairHasher {
-	std::size_t operator () (const std::pair<int, int> &p) const;
+  std::size_t operator()(const std::pair<int, int> &p) const;
 };
 
 struct IntTripleHasher {
-	std::size_t operator () (const std::tuple<int, int, int> &t) const;
+  std::size_t operator()(const std::tuple<int, int, int> &t) const;
 };
 
 // An edge i --A--> j is represented as (i, A, j)
