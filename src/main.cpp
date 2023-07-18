@@ -11,10 +11,12 @@
 #include <tuple>
 #include <chrono>
 #include <cassert>
+#include <cctype>
 #include <utility>
 
-std::unordered_set<std::pair<int, int>, IntPairHasher>
-	intersectResults(const std::vector<std::unordered_set<Edge, EdgeHasher>> &results) {
+std::unordered_set<std::pair<int, int>, IntPairHasher> intersectResults(
+    const std::vector<std::unordered_set<Edge, EdgeHasher>> &results
+) {
 	int n = results.size();
 	assert(n >= 1);
 	std::unordered_set<std::pair<int, int>, IntPairHasher> pairset;
@@ -36,18 +38,6 @@ std::unordered_set<std::pair<int, int>, IntPairHasher>
 	return pairset;
 }
 
-struct RawGraph {
-	int numNode;
-	int numEdge;
-	int numGrammar;
-	std::unordered_map<std::string, int> nodeMap;
-	std::unordered_map<int, std::string> nodeMapR;
-	std::unordered_map<std::string, int> symMap;
-	std::unordered_map<int, std::string> symMapR;
-	std::vector<Grammar> grammars;
-	std::unordered_set<Edge, EdgeHasher> edges;
-};
-
 std::unordered_map<std::string, int> number(const std::vector<std::string> &names) {
 	std::unordered_map<std::string, int> mp;
 	int n = 0;
@@ -68,390 +58,205 @@ std::unordered_map<U, T> reverseMap(const std::unordered_map<T, U> &mp) {
 	return mpR;
 }
 
-RawGraph readRawGraph(const std::string &fName, const std::string &analysis) {
-	// read file
-	std::ifstream in(fName); // file auto-closed via destructor
-	std::vector<std::tuple<std::string, std::string, std::string>> lines; // (node1, label, node2)
-	std::string rawLine;
-	while (getline(in, rawLine)) {
-		if (rawLine.find("->") != std::string::npos) { // node1->node2[label="label"]
-			std::string::size_type p1 = rawLine.find("->");
-			std::string::size_type p2 = rawLine.find('[');
-			std::string::size_type p3 = rawLine.find('=');
-			std::string::size_type p4 = rawLine.find(']');
-			lines.push_back(
+/* Raw grammars and raw graphs are ones with original strings
+ * as symbols and node names. After encoding those strings as integers,
+ * we get Grammar and Graph objects to use in CFL-reachabilty. */
+
+std::vector<std::vector<std::vector<std::string>>> readRawGrammars(const std::string &file) {
+    std::ifstream in(file);
+    std::vector<std::vector<std::vector<std::string>>> rawGrammars;
+    std::vector<std::vector<std::string>> rawGrammar;
+    std::string line;
+    while (getline(in, line)) {
+        if (line.size() > 0) {
+            if (line[0] == '{') {
+                rawGrammar = std::vector<std::vector<std::string>>();
+            } else if (line[0] == '|') {
+                std::istringstream sin(line);
+                std::vector<std::string> items;
+                std::string item;
+                while (sin >> item) {
+                    items.push_back(std::move(item));
+                }
+                rawGrammar.push_back(std::move(items));
+            } else if (line[0] == '}') {
+                rawGrammars.push_back(std::move(rawGrammar));
+            }
+        }
+    }
+    return rawGrammars;
+}
+
+std::vector<std::tuple<std::string, std::string, std::string>> readRawGraph(
+    const std::string &file
+) {
+    // This stream will automatically be closed via RAII.
+	std::ifstream in(file);
+    std::vector<std::tuple<std::string, std::string, std::string>> rawEdges;
+	std::string line;
+	while (getline(in, line)) {
+        // node1->node2[label="label"]
+		if (line.find("->") != std::string::npos) {
+			std::string::size_type p1 = line.find("->");
+			std::string::size_type p2 = line.find('[');
+			std::string::size_type p3 = line.find('=');
+			std::string::size_type p4 = line.find(']');
+			rawEdges.push_back(
 				std::make_tuple(
-					rawLine.substr(0, p1 - 0),
-					rawLine.substr(p3 + 2, (p4 - 1) - (p3 + 2)),
-					rawLine.substr(p1 + 2, p2 - (p1 + 2))
+					line.substr(0, p1 - 0),
+					line.substr(p3 + 2, (p4 - 1) - (p3 + 2)),
+					line.substr(p1 + 2, p2 - (p1 + 2))
 				)
 			);
 		}
 	}
-	// number nodes
+    return rawEdges;
+}
+
+std::tuple<std::vector<Grammar>, int, std::unordered_set<Edge, EdgeHasher>> encode(
+    std::vector<std::vector<std::vector<std::string>>> rawGrammars,
+    std::vector<std::tuple<std::string, std::string, std::string>> rawGraph
+) {
+    // Edge symbol encoding
+    std::vector<std::string> symbols;
+    for (auto &rawGrammar : rawGrammars) {
+        for (auto &line : rawGrammar) {
+            for (auto &sym : line) {
+                symbols.push_back(sym);
+            }
+        }
+    }
+	std::unordered_map<std::string, int> symMap = number(symbols);
+	std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
+    // Node encoding
 	std::vector<std::string> nodes;
-	for (auto &line : lines) {
-		nodes.push_back(std::get<0>(line));
-		nodes.push_back(std::get<2>(line));
+	for (auto &rawEdge : rawGraph) {
+		nodes.push_back(std::get<0>(rawEdge));
+		nodes.push_back(std::get<2>(rawEdge));
 	}
 	std::unordered_map<std::string, int> nodeMap = number(nodes);
 	std::unordered_map<int, std::string> nodeMapR = reverseMap(nodeMap);
-	// collect parenthesis / bracket types
-	std::unordered_map<std::string, std::unordered_set<std::string>> dyckNumbers;
-	for (auto &line: lines) {
-		auto label = std::get<1>(line);
-		if (label[0] == 'o' || label[0] == 'c') { // op--* or ob--*
-			std::string dyck = label.substr(1, 1);
-			std::string dyckNumber = label.substr(4, label.size() - 4);
-			dyckNumbers[dyck].insert(dyckNumber);
-		}
-	}
-	// two types of analyses
-	if (analysis == "taint") {
-		// number symbols
-		std::vector<std::string> symbols;
-		symbols.push_back("Dp");
-		for (auto n : dyckNumbers["p"]) {
-			symbols.push_back("Ip--" + n);
-			symbols.push_back("op--" + n);
-			symbols.push_back("cp--" + n);
-		}
-		symbols.push_back("Db");
-		for (auto n : dyckNumbers["b"]) {
-			symbols.push_back("Ib--" + n);
-			symbols.push_back("ob--" + n);
-			symbols.push_back("cb--" + n);
-		}
-		std::unordered_map<std::string, int> symMap = number(symbols);
-		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
-		// construct grammars
-		std::vector<Grammar> grammars;
-		{ // grammar 1 (parenthesis)
-			Grammar gm;
-			// terminals
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addTerminal(symMap["op--" + n]);
-				gm.addTerminal(symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addTerminal(symMap["ob--" + n]);
-				gm.addTerminal(symMap["cb--" + n]);
-			}
-			// nonterminals
-			gm.addNonterminal(symMap["Dp"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addNonterminal(symMap["Ip--" + n]);
-			}
-			// productions
-			gm.addEmptyProduction(symMap["Dp"]);
-			gm.addBinaryProduction(symMap["Dp"], symMap["Dp"], symMap["Dp"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addBinaryProduction(symMap["Dp"], symMap["op--" + n], symMap["Ip--" + n]);
-				gm.addBinaryProduction(symMap["Ip--" + n], symMap["Dp"], symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addUnaryProduction(symMap["Dp"], symMap["ob--" + n]);
-				gm.addUnaryProduction(symMap["Dp"], symMap["cb--" + n]);
-			}
-			// start symbol
-			gm.addStartSymbol(symMap["Dp"]);
-			// finalize
-			gm.initFastIndices();
-			grammars.push_back(std::move(gm));
-		}
-		{ // grammar 2 (brackets)
-			Grammar gm;
-			// terminals
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addTerminal(symMap["op--" + n]);
-				gm.addTerminal(symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addTerminal(symMap["ob--" + n]);
-				gm.addTerminal(symMap["cb--" + n]);
-			}
-			// nonterminals
-			gm.addNonterminal(symMap["Db"]);
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addNonterminal(symMap["Ib--" + n]);
-			}
-			// productions
-			gm.addEmptyProduction(symMap["Db"]);
-			gm.addBinaryProduction(symMap["Db"], symMap["Db"], symMap["Db"]);
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["Db"], symMap["ob--" + n], symMap["Ib--" + n]);
-				gm.addBinaryProduction(symMap["Ib--" + n], symMap["Db"], symMap["cb--" + n]);
-			}
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addUnaryProduction(symMap["Db"], symMap["op--" + n]);
-				gm.addUnaryProduction(symMap["Db"], symMap["cp--" + n]);
-			}
-			// start symbol
-			gm.addStartSymbol(symMap["Db"]);
-			// finalize
-			gm.initFastIndices();
-			grammars.push_back(std::move(gm));
-		}
-		// construct edges
-		std::unordered_set<Edge, EdgeHasher> edges;
-		for (auto &line : lines) {
-			edges.insert(std::make_tuple(
-				nodeMap[std::get<0>(line)],
-				symMap[std::get<1>(line)],
-				nodeMap[std::get<2>(line)]
-			));
-		}
-        // write grammar
-        std::ofstream out(fName.substr(0, fName.size() - 4) + ".grammar");
-        for (auto &g : grammars) {
-            out << "{" << std::endl;
-            out << "| " << symMapR[g.startSymbol] << std::endl;
-            for (auto &p : g.emptyProductions) {
-                out << "| " << symMapR[p] << std::endl;
+    // Grammar construction
+	std::vector<Grammar> grammars;
+    for (auto &rawGrammar : rawGrammars) {
+        Grammar gm;
+        // Symbols
+        for (auto &line : rawGrammar) {
+            for (auto &sym : line) {
+                if (isupper(sym[0])) {
+                    gm.addNonterminal(symMap[sym]);
+                } else {
+                    assert(islower(sym[0]));
+                    gm.addTerminal(symMap[sym]);
+                }
             }
-            for (auto &p : g.unaryProductions) {
-                out << "| " << symMapR[p.first] << " " << symMapR[p.second] << std::endl;
-            }
-            for (auto &p : g.binaryProductions) {
-                out << "| " << symMapR[p.first] << " "
-                            << symMapR[p.second.first] << " "
-                            << symMapR[p.second.second] << std::endl;
-            }
-            out << "}" << std::endl;
         }
-		// return
-		RawGraph rg;
-		rg.numNode = nodeMap.size();
-		rg.numEdge = edges.size();
-		rg.numGrammar = grammars.size();
-		rg.nodeMap = nodeMap;
-		rg.nodeMapR = nodeMapR;
-		rg.symMap = symMap;
-		rg.symMapR = symMapR;
-		rg.grammars = grammars;
-		rg.edges = edges;
-		return rg;
-	} else {
-		assert(analysis == "valueflow");
-		// number symbols
-		std::vector<std::string> symbols;
-		symbols.push_back("normal");
-		symbols.push_back("Dp");
-		for (auto n : dyckNumbers["p"]) {
-			symbols.push_back("Ip--" + n);
-			symbols.push_back("op--" + n);
-			symbols.push_back("cp--" + n);
-		}
-		symbols.push_back("Db");
-		for (auto n : dyckNumbers["b"]) {
-			symbols.push_back("Ib--" + n);
-			symbols.push_back("ob--" + n);
-			symbols.push_back("cb--" + n);
-		}
-		symbols.push_back("C");
-		symbols.push_back("Ic");
-		symbols.push_back("G");
-		std::unordered_map<std::string, int> symMap = number(symbols);
-		std::unordered_map<int, std::string> symMapR = reverseMap(symMap);
-		// construct grammars
-		std::vector<Grammar> grammars;
-		{ // grammar 1 (parenthesis)
-			Grammar gm;
-			// terminals
-			gm.addTerminal(symMap["normal"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addTerminal(symMap["op--" + n]);
-				gm.addTerminal(symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addTerminal(symMap["ob--" + n]);
-				gm.addTerminal(symMap["cb--" + n]);
-			}
-			// nonterminals
-			gm.addNonterminal(symMap["Dp"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addNonterminal(symMap["Ip--" + n]);
-			}
-			// productions
-			gm.addEmptyProduction(symMap["Dp"]);
-			gm.addBinaryProduction(symMap["Dp"], symMap["Dp"], symMap["Dp"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addBinaryProduction(symMap["Dp"], symMap["op--" + n], symMap["Ip--" + n]);
-				gm.addBinaryProduction(symMap["Ip--" + n], symMap["Dp"], symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addUnaryProduction(symMap["Dp"], symMap["ob--" + n]);
-				gm.addUnaryProduction(symMap["Dp"], symMap["cb--" + n]);
-			}
-			gm.addUnaryProduction(symMap["Dp"], symMap["normal"]);
-			// start symbol
-			gm.addStartSymbol(symMap["Dp"]);
-			// finalize
-			gm.initFastIndices();
-			grammars.push_back(std::move(gm));
-		}
-		{ // grammar 2 (brackets)
-			Grammar gm;
-			// terminals
-			gm.addTerminal(symMap["normal"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addTerminal(symMap["op--" + n]);
-				gm.addTerminal(symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addTerminal(symMap["ob--" + n]);
-				gm.addTerminal(symMap["cb--" + n]);
-			}
-			// nonterminals
-			gm.addNonterminal(symMap["Db"]);
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addNonterminal(symMap["Ib--" + n]);
-			}
-			// productions
-			gm.addEmptyProduction(symMap["Db"]);
-			gm.addBinaryProduction(symMap["Db"], symMap["Db"], symMap["Db"]);
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["Db"], symMap["ob--" + n], symMap["Ib--" + n]);
-				gm.addBinaryProduction(symMap["Ib--" + n], symMap["Db"], symMap["cb--" + n]);
-			}
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addUnaryProduction(symMap["Db"], symMap["op--" + n]);
-				gm.addUnaryProduction(symMap["Db"], symMap["cp--" + n]);
-			}
-			gm.addUnaryProduction(symMap["Db"], symMap["normal"]);
-			// start symbol
-			gm.addStartSymbol(symMap["Db"]);
-			// finalize
-			gm.initFastIndices();
-			grammars.push_back(std::move(gm));
-		}
-		{ // grammar 3 (endpoints)
-			Grammar gm;
-			// terminals
-			gm.addTerminal(symMap["normal"]);
-			for (auto &n : dyckNumbers["p"]) {
-				gm.addTerminal(symMap["op--" + n]);
-				gm.addTerminal(symMap["cp--" + n]);
-			}
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addTerminal(symMap["ob--" + n]);
-				gm.addTerminal(symMap["cb--" + n]);
-			}
-			// nonterminals
-			gm.addNonterminal(symMap["C"]);
-			gm.addNonterminal(symMap["Ic"]);
-			gm.addNonterminal(symMap["G"]);
-			// productions
-			for (auto &n : dyckNumbers["b"]) {
-				gm.addBinaryProduction(symMap["C"], symMap["ob--" + n], symMap["Ic"]);
-				gm.addBinaryProduction(symMap["Ic"], symMap["G"], symMap["cb--" + n]);
-			}
-			gm.addEmptyProduction(symMap["G"]);
-			gm.addBinaryProduction(symMap["G"], symMap["G"], symMap["G"]);
-			for (auto &t : gm.terminals) {
-				gm.addUnaryProduction(symMap["G"], t);
-			}
-			// start symbol
-			gm.addStartSymbol(symMap["C"]);
-			// finalize
-			gm.initFastIndices();
-			grammars.push_back(std::move(gm));
-		}
-		// construct edges
-		std::unordered_set<Edge, EdgeHasher> edges;
-		for (auto &line : lines) {
-			edges.insert(std::make_tuple(
-				nodeMap[std::get<0>(line)],
-				symMap[std::get<1>(line)],
-				nodeMap[std::get<2>(line)]
-			));
-		}
-        // write grammar
-        std::ofstream out(fName.substr(0, fName.size() - 4) + ".grammar");
-        for (auto &g : grammars) {
-            out << "{" << std::endl;
-            out << "| " << symMapR[g.startSymbol] << std::endl;
-            for (auto &p : g.emptyProductions) {
-                out << "| " << symMapR[p] << std::endl;
+        // Productions
+        int n = rawGrammar.size();
+        for (int i = 1; i < n; i++) {
+            if (rawGrammar[i].size() == 1) {
+                gm.addEmptyProduction(symMap[rawGrammar[i][0]]);
+            } else if (rawGrammar[i].size() == 2) {
+                gm.addUnaryProduction(symMap[rawGrammar[i][0]], symMap[rawGrammar[i][1]]);
+            } else {
+                assert(rawGrammar[i].size() == 3);
+                gm.addBinaryProduction(
+                    symMap[rawGrammar[i][0]],
+                    symMap[rawGrammar[i][1]],
+                    symMap[rawGrammar[i][2]]
+                );
             }
-            for (auto &p : g.unaryProductions) {
-                out << "| " << symMapR[p.first] << " " << symMapR[p.second] << std::endl;
-            }
-            for (auto &p : g.binaryProductions) {
-                out << "| " << symMapR[p.first] << " "
-                            << symMapR[p.second.first] << " "
-                            << symMapR[p.second.second] << std::endl;
-            }
-            out << "}" << std::endl;
         }
-		// return
-		RawGraph rg;
-		rg.numNode = nodeMap.size();
-		rg.numEdge = edges.size();
-		rg.numGrammar = grammars.size();
-		rg.nodeMap = nodeMap;
-		rg.nodeMapR = nodeMapR;
-		rg.symMap = symMap;
-		rg.symMapR = symMapR;
-		rg.grammars = grammars;
-		rg.edges = edges;
-		return rg;
+        // Start symbol
+        gm.addStartSymbol(symMap[rawGrammar[0][0]]);
+        // Initialize
+        gm.initFastIndices();
+        grammars.push_back(std::move(gm));
+    }
+    // Graph node count
+    int numNode = nodeMap.size();
+    // Graph edges
+    std::unordered_set<Edge, EdgeHasher> edges;
+	for (auto &rawEdge : rawGraph) {
+		edges.insert(std::make_tuple(
+			nodeMap[std::get<0>(rawEdge)],
+			symMap[std::get<1>(rawEdge)],
+			nodeMap[std::get<2>(rawEdge)]
+		));
 	}
+    return std::make_tuple(std::move(grammars), numNode, std::move(edges));
 }
 
 void run(int argc, char *argv[]) {
-#if 0
 	if (argc != 4) {
 		std::cerr
             << "Usage: "
-            << argv[0] << " <graph-file> <\"taint\"/\"valueflow\"> <\"naive\"/\"refine\">"
+            << argv[0] << " <grammar-file> <graph-file> <\"naive\"/\"refine\">"
             << std::endl;
 		return;
 	}
-#endif
-	// get arguments
-	std::string file = argv[1];
-	std::string analysis = argv[2];
-	// std::string option = argv[3];
-	// read the raw graph
-	const RawGraph rg = readRawGraph(file, analysis);
-#if 0
-	// handle options
-	if (option == "naive") {
-		std::vector<Graph> graphs(rg.numGrammar);
-		std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
-		for (int i = 0; i < rg.numGrammar; i++) {
-			graphs[i].reinit(rg.numNode, rg.edges);
-			results[i] = graphs[i].runCFLReachability(rg.grammars[i]);
+	// Get arguments
+	std::string grammarFile = argv[1];
+    std::string graphFile = argv[2];
+    std::string mode = argv[3];
+    // Read and encode
+    const auto &[grammars, numNode, edges] = encode(
+        readRawGrammars(grammarFile),
+        readRawGraph(graphFile)
+    );
+    int numGrammar = grammars.size();
+	// Handle modes
+	if (mode == "naive") {
+		std::vector<Graph> graphs(numGrammar);
+		std::vector<std::unordered_set<Edge, EdgeHasher>> results(numGrammar);
+		for (int i = 0; i < numGrammar; i++) {
+			graphs[i].reinit(numNode, edges);
+			results[i] = graphs[i].runCFLReachability(grammars[i]);
 		}
-		// print
-		std::cout << "Number of Reachable Pairs (Excluding Self-loops): " << intersectResults(results).size() << std::endl;
-	} else if (option == "refine") {
-		std::unordered_set<Edge, EdgeHasher> edges = rg.edges;
-		int originalEdgeSetSize = edges.size();
-		std::unordered_set<Edge, EdgeHasher>::size_type prev_size;
-		std::vector<Graph> graphs(rg.numGrammar);
-		std::vector<std::unordered_set<Edge, EdgeHasher>> results(rg.numGrammar);
-		int refineIter = 0;
-		// mutual refinement loop
+		std::cout
+            << "Number of Reachable Pairs (Excluding Self-loops): "
+            << intersectResults(results).size() << std::endl;
+	} else if (mode == "refine") {
+		std::unordered_set<Edge, EdgeHasher> edgeSet = edges;
+		int originalEdgeSetSize = edgeSet.size();
+		std::unordered_set<Edge, EdgeHasher>::size_type previousEdgeSetSize;
+		std::vector<Graph> graphs(numGrammar);
+		std::vector<std::unordered_set<Edge, EdgeHasher>> results(numGrammar);
+		int refineIterationCounter = 0;
+		// Mutual refinement loop
 		do {
-			prev_size = edges.size();
-			for (int i = 0; i < rg.numGrammar; i++) {
-				graphs[i].reinit(rg.numNode, edges);
+			previousEdgeSetSize = edgeSet.size();
+			for (int i = 0; i < numGrammar; i++) {
+				graphs[i].reinit(numNode, edgeSet);
 				std::unordered_map<Edge, std::unordered_set<int>, EdgeHasher> singleRecord;
-				std::unordered_map<Edge, std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>, EdgeHasher> binaryRecord;
-				results[i] = graphs[i].runCFLReachability(rg.grammars[i], singleRecord, binaryRecord);
-				edges = graphs[i].getEdgeClosure(rg.grammars[i], results[i], singleRecord, binaryRecord);
+				std::unordered_map<
+                    Edge,
+                    std::unordered_set<std::tuple<int, int, int>, IntTripleHasher>,
+                    EdgeHasher
+                > binaryRecord;
+				results[i] = graphs[i].runCFLReachability(
+                    grammars[i],
+                    singleRecord,
+                    binaryRecord
+                );
+				edgeSet = graphs[i].getEdgeClosure(
+                    grammars[i],
+                    results[i],
+                    singleRecord,
+                    binaryRecord
+                );
 			}
-			refineIter++;
-		} while (edges.size() != prev_size);
-		int reducedEdgeSetSize = edges.size();
-		// print
-		std::cout << "Edge Set Reduction: " << originalEdgeSetSize << " -> " << reducedEdgeSetSize << std::endl;
-		std::cout << "Number of Refinement Iterations: " << refineIter << std::endl;
-		std::cout << "Number of Reachable Pairs (Excluding Self-loops): " << intersectResults(results).size() << std::endl;
+			refineIterationCounter++;
+		} while (edgeSet.size() != previousEdgeSetSize);
+		int reducedEdgeSetSize = edgeSet.size();
+		std::cout
+            << "Edge Set Reduction: "
+            << originalEdgeSetSize << " -> " << reducedEdgeSetSize << std::endl;
+		std::cout << "Number of Refinement Iterations: " << refineIterationCounter << std::endl;
+		std::cout
+            << "Number of Reachable Pairs (Excluding Self-loops): "
+            << intersectResults(results).size() << std::endl;
 	}
-#endif
 }
 
 std::string getPeakMemory() {

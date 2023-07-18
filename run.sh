@@ -3,27 +3,32 @@
 ulimit -t $1 -v $2
 
 make clean
-
 make -j8
 
-# taint
-for graph in exp/taint/*.dot; do
-	echo "running naive on $graph"
-	./main "$graph" taint naive > "exp/taint/naive-$(basename "$graph" .dot).result" 2>&1
-	echo "running refine on $graph"
-	./main "$graph" taint refine > "exp/taint/refine-$(basename "$graph" .dot).result" 2>&1
+echo ">>> Running taint"
+for dotfile in exp/taint/*.dot; do
+    name=$(basename "$dotfile" .dot)
+	echo "Running on $name"
+	./main "exp/taint/$name.grammar" "exp/taint/$name.dot" naive \
+        > "exp/taint/naive-$name.result" 2>&1
+	./main "exp/taint/$name.grammar" "exp/taint/$name.dot" refine \
+        > "exp/taint/refine-$name.result" 2>&1
 done
 
-# valueflow
-for graph in exp/valueflow/*.dot; do
-	echo "running naive on $graph"
-	./main "$graph" valueflow naive > "exp/valueflow/naive-$(basename "$graph" .dot).result" 2>&1
-	echo "running refine on $graph"
-	./main "$graph" valueflow refine > "exp/valueflow/refine-$(basename "$graph" .dot).result" 2>&1
+echo ">>> Running valueflow"
+for dotfile in exp/valueflow/*.dot; do
+    name=$(basename "$dotfile" .dot)
+	echo "Running on $name"
+	./main "exp/valueflow/$name.grammar" "exp/valueflow/$name.dot" naive \
+        > "exp/valueflow/naive-$name.result" 2>&1
+	./main "exp/valueflow/$name.grammar" "exp/valueflow/$name.dot" refine \
+        > "exp/valueflow/refine-$name.result" 2>&1
 done
 
-# simplified-taint
-for graph in exp/simplified-taint/*.dot; do
-	echo "running refine on $graph"
-	./main "$graph" taint refine > "exp/simplified-taint/refine-$(basename "$graph" .dot).result" 2>&1
+echo ">>> Running simplified-taint"
+for dotfile in exp/simplified-taint/*.dot; do
+    name=$(basename "$dotfile" .dot)
+	echo "Running on $name"
+	./main "exp/simplified-taint/$name.grammar" "exp/simplified-taint/$name.dot" refine \
+        > "exp/simplified-taint/refine-$name.result" 2>&1
 done
