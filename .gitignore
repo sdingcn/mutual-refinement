@@ -1,12 +1,5 @@
-lzr-time.txt
-report.txt
-lzr/current.dot
-lzr/resource-logs/*.log
-mr/exp/graphs/simplified-taint/*.dot
-mr/exp/graphs/valueflow/*.dot
-mr/exp/results/simplified-taint/*.result
-mr/exp/results/taint/*.result
-mr/exp/results/valueflow/*.result
-mr/*.o
-mr/main
-vf/dot-files/*.dot
+*.o
+main
+exp/taint/*.result
+exp/valueflow/*.result
+exp/simplified-taint/*.result
