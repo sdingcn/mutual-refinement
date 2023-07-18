@@ -1,27 +1,28 @@
-# mutual refinement (work in progress)
+# mutual refinement
 
 This is an illustrative implementation for the mutual refinement algorithm
 proposed in the paper _Mutual Refinements of Context-Free Language Reachability (SAS 2023)_.
 
 ## Dependencies
 
-Any C++ compiler (with at least C++11 support) and GNU make.
+Python >= 3.9, C++ >= 17, and any recent version of GNU make.
 
 ## Build and run
 
-Run `./run.sh <time (Second)> <space (KiB)>` to build the project and run every benchmark item
-in the following 5 categories with the given time and space limits.
+Run `python3 run.py` to build the project and run every benchmark item
+in the following 5 categories with 10-second time limit.
+Please check `run.py` for detailed arguments for each invocation.
 
-+ Straightforward combination for _taint_
-+ Mutual refinement for _taint_
-+ Straightforward combination for _valueflow_
-+ Mutual refinement for _valueflow_
-+ Mutual refinement for _simplified-taint_
++ Straightforward combination (naive) for _taint_
++ Mutual refinement (refine) for _taint_
++ Straightforward combination (naive) for _valueflow_
++ Mutual refinement (refine) for _valueflow_
++ Mutual refinement (refine) for _simplified-taint_
 
 ## Result interpretation
 
-For each benchmark item `<name>.dot` inside `exp/`,
-the result will be stored in the file `naive-<name>.result` or `refine-<name>.result`
+For each benchmark item `(<name>.grammar, <name>.dot)` inside `exp/`,
+the result will be stored in the file `<name>.naive.result` or `<name>.refine.result`
 in the corresponding directory.
 
 ## Docker container
@@ -34,11 +35,11 @@ docker save -o mutual-refinement.tar mutual-refinement:latest
 ```
 
 Once you have the `.tar` file, you can share it with others.
-Anyone with the `.tar` file can load the docker image from it and create a container from the image.
+Anyone with the `.tar` file can load the docker image
+and launch a container from the image.
+Then one can repeat the above experiment inside the docker container.
 
 ```
 docker load --input mutual-refinement.tar
 docker run --rm -ti mutual-refinement
 ```
-
-Then you can repeat the above experiment inside the docker container.
