@@ -72,7 +72,7 @@ std::vector<std::vector<std::vector<std::string>>> readRawGrammars(const std::st
             if (line[0] == '{') {
                 rawGrammar = std::vector<std::vector<std::string>>();
             } else if (line[0] == '|') {
-                std::istringstream sin(line);
+                std::istringstream sin(line.substr(1, line.size() - 1));
                 std::vector<std::string> items;
                 std::string item;
                 while (sin >> item) {
