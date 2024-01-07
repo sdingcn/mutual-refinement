@@ -3,7 +3,15 @@
 This is an illustrative implementation for the mutual refinement algorithm
 proposed in the paper _Mutual Refinements of Context-Free Language Reachability (SAS 2023)_.
 
-## Dependencies
+## Platform and dependencies
+
+### Platform
+
+The project is known to work on Linux. On MacBook or Windows the memory measure code
+https://github.com/sdingcn/mutual-refinement/blob/e62f3d805c32bae820eb63b7d349fa0c472304c3/src/main.cpp#L244
+won't work, but other components should work well since they only use the standard library.
+
+### Dependencies
 
 Python >= 3.9, C++ >= 17, and any recent version of GNU make.
 
